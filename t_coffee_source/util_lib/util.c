@@ -119,25 +119,25 @@ void sb()
   in=(double *)vcalloc (26, sizeof (double));
   in[dirichlet_code('y')]=0.5;
   in[dirichlet_code('k')]=0.5;
-  
-  
+
+
   out=compute_dirichlet_p (in);
   for ( a=0; a<26; a++)
     {
-     
+
       if (is_aa(a+'a'))
 	{
 	  int i=dirichlet_code (a+'a');
 	  HERE ("%c %.2f", a+'a', (float)exp((float)out[i]));
 	  tot+=(float)exp((float)out[i]);
-	  
+
 	}
     }
   HERE ("TOT=%.2f", tot);
   exit(0);
 }
 
-    
+
 
 
 /*********************************************************************/
@@ -813,7 +813,7 @@ int name_is_in_list ( const char name_in[], char **name_list, int n_name, int le
 
   char name[256];
 	strcpy(name,name_in);
-	
+
 	for ( a=n_name-1; a>=0; --a)
 	{
 		if ( name_list[a]==NULL) {}
@@ -2940,7 +2940,7 @@ char **  string2list2 ( char *string, char *separators)
 	    s=strtok (NULL, separators);
 
 	  }
-    
+
   if ( n==0){vfree(buf); return NULL;}
 
   list=(char**)declare_arrayN (2, sizeof (char), n+2, max_len+1);
@@ -2953,7 +2953,7 @@ char **  string2list2 ( char *string, char *separators)
 	    sprintf (list[n++], "%s",s);
 	    s=strtok (NULL, separators);
 	  }
-  
+
   sprintf (list[0], "%d", n);
 
   vfree (buf);
@@ -3138,7 +3138,7 @@ void remove_charset ( char *seq, char *set)
 	  {
 	    sprintf ( set2, "%s", set);
 	  }
-	
+
 	l=strlen ( seq);
 	for (b=0, a=0; a<l; a++)
 	  {
@@ -3146,7 +3146,7 @@ void remove_charset ( char *seq, char *set)
 	    else seq[b++]=seq[a];
 	  }
 	seq[b]='\0';
-	
+
 	vfree (set2);
 	}
 
@@ -3852,13 +3852,13 @@ int my_system ( char *command0)
   static char ***unpacked_list=NULL;
   static int n_unpacked=0;
 
-  
+
   if (!unpacked_list)
   {
     unpacked_list=(char***)declare_arrayN(3, sizeof (char), 3, 200,vtmpnam_size());
   }
-  
-  
+
+
   if ( getenv ("DEBUG_PERL"))return safe_system (command0);
   else
   {
@@ -4177,7 +4177,12 @@ int safe_system (const char * com_in)
   errno = 0;
 
   // Suspends calling thread until execution of the new process is complete.
-  spawnv(  P_WAIT, "sh", argv );
+  #ifdef _MSC_VER
+    _spawnv( _P_WAIT, "sh", argv );
+  #else
+    pid_t childPidUnused;
+    errno = posix_spawnp( & childPidUnused, "sh", NULL, NULL, argv, NULL );
+  #endif
 
   if ( debug_lock)
       fprintf ( stderr, "\n--- safe system return (util.c): r:%d", errno);
@@ -5231,71 +5236,71 @@ char* unset_string_variable (char *name)
  */
 char* store_string_variable (char *name, char* v, int mode)
 {
-  static char **name_array, **val_array;
-  static int n;
-  int a;
+    static char **name_array, **val_array;
+    static int n;
+    int a;
 
-  if ( mode == SET)
+    if ( mode == SET)
     {
 
-      for (a=0; a<n; a++)
-	{
-	  if ( strm (name,name_array[a]))
-	    {
-	      if (v)
-		{
-		  val_array[a]=(char*)vrealloc (val_array[a], strlen (v)+1);
-		  sprintf (val_array[a],"%s",v);
-		}
-	      else val_array[a]='\0';
-	      return v;
-	    }
-	}
-      if (!name_array)
-	{
-	  name_array=(char**)vcalloc (1, sizeof (char*));
-	  val_array=(char**)vcalloc  (1, sizeof (char*));
-	}
-      else
-	{
-	  name_array=(char**)vrealloc (name_array, (n+1)*sizeof (char*));
-	  val_array=(char**)vrealloc (val_array, (n+1)*sizeof (char*));
-	}
-      name_array[n]=(char*)vcalloc ( strlen (name)+1, sizeof (char));
-      val_array[n]=(char*)vcalloc ( strlen (v)+1, sizeof (char));
+        for (a=0; a<n; a++)
+        {
+            if ( strm (name,name_array[a]))
+            {
+                if (v)
+                {
+                    val_array[a]=(char*)vrealloc (val_array[a], strlen (v)+1);
+                    sprintf (val_array[a],"%s",v);
+                }
+                else if( val_array[a] ) val_array[a][0]='\0';
+                return v;
+            }
+        }
+        if (!name_array)
+        {
+            name_array=(char**)vcalloc (1, sizeof (char*));
+            val_array=(char**)vcalloc  (1, sizeof (char*));
+        }
+        else
+        {
+            name_array=(char**)vrealloc (name_array, (n+1)*sizeof (char*));
+            val_array=(char**)vrealloc (val_array, (n+1)*sizeof (char*));
+        }
+        name_array[n]=(char*)vcalloc ( strlen (name)+1, sizeof (char));
+        val_array[n]=(char*)vcalloc ( strlen (v)+1, sizeof (char));
 
-      sprintf ( name_array[n], "%s", name);
-      sprintf ( val_array[n], "%s", v);
-      n++;
+        sprintf ( name_array[n], "%s", name);
+        sprintf ( val_array[n], "%s", v);
+        n++;
 
-      return v;
+        return v;
 
     }
-  else if ( mode == ISSET)
+    else if ( mode == ISSET)
     {
-       for (a=0; a<n; a++)
-	 if ( strm (name_array[a], name))return (char *)1;
+        for (a=0; a<n; a++)
+            if ( strm (name_array[a], name))return (char *)1;
     }
-  else if ( mode == UNSET)
+    else if ( mode == UNSET)
     {
-      for (a=0; a<n; a++)
-	if ( strm (name_array[a], name))
-	  {
-	    name_array[a][0]='\0';
-	    val_array[a][0]='\0';
-	    return 0;
-	  }
-      add_warning (stdout, "Could not UNSET the value of %s. You must SET the value before it is used", name);
+        for (a=0; a<n; a++)
+            if ( strm (name_array[a], name))
+            {
+                name_array[a][0]='\0';
+                val_array[a][0]='\0';
+                return 0;
+            }
+        add_warning (stdout, "Could not UNSET the value of %s. You must SET the value before it is used", name);
     }
-  else if (mode==GET)
+    else if (mode==GET)
     {
-      for (a=0; a<n; a++)
-	{
-	  if ( strm (name_array[a], name))
-	    return val_array[a];
-	}
+        for (a=0; a<n; a++)
+        {
+            if ( strm (name_array[a], name))
+                return val_array[a];
+        }
     }
-  return NULL;
+    return NULL;
 }
 int int_variable_isset (const char *name_in)
 {
@@ -5534,7 +5539,7 @@ void dump_tcoffee(char *target, char *nature)
   char *f;
   char *out_list;
 
-  
+
 
   if ((fp=fopen (target, "w")))
     {
@@ -5613,7 +5618,7 @@ void dump_error_file()
   if (strstr (target, "NO"));
   else
     dump_tcoffee (target, "error");
-  
+
   return;
 
   if ((fp=fopen (target, "w")))
@@ -5670,7 +5675,7 @@ FILE* error_msg(FILE*fp )
        char errorfile[100];
 
        sprintf (errorfile , "%s", getenv("ERRORFILE_4_TCOFFEE"));
-       
+
        fprintf( fp,"\n\t******************************************************************");
        fprintf( fp, "\n\t* Abnormal Termination");
        fprintf( fp, "\n\t* Job NOT Completed:[%s, %s]",PROGRAM, VERSION);
@@ -5681,13 +5686,13 @@ FILE* error_msg(FILE*fp )
        fprintf( fp, "\n\t* \t\t (@, |, %%...)");
 
        fprintf( fp, "\n\t* \t-4 The Online Doc (%s)                   ", URL);
-       
+
        if ( strm (errorfile, "NO"))
 	    fprintf( fp, "\n\t* \t-5 re-run your CL (see below) with tze -debug option. This will produce a debug file you can send us.");
        else
 	 fprintf( fp, "\n\t* \t-5 Send the file:");
        fprintf (fp, "\n\t*");
-       
+
        fprintf (fp, "\n\t*\t    %s ", getenv("ERRORFILE_4_TCOFFEE"));
        fprintf (fp,  "\n\t* to:");
        fprintf( fp, "\n\t* \t\t%s",EMAIL);
@@ -6442,7 +6447,7 @@ int file2size(char *name)
 */
 int get_cl_param (int argc, char **argv, FILE **fp,const char para_name[], int *set_flag,const char type[], int optional, int max_n_val,const char usage[], ...)
         {
-	
+
 	int pos=0;
 	int a;
 	va_list ap;
@@ -6962,10 +6967,10 @@ char *vfgets ( char *buf, FILE *fp)
 
   l=0;
   c=fgetc (fp);
-  
+
   if ( (c==EOF)){return NULL;}
   ungetc (c, fp);
-    
+
   while ( (c=fgetc (fp))!='\n' && c!=EOF)
     {
       if (l>=buf_len)
@@ -7319,7 +7324,7 @@ int check_environement_variable_is_set ( char *variable, char *description, int 
 
 int url2file (char *address, char *out)
 {
-  
+
   if      (check_program_is_installed ("wget",NULL, NULL,WGET_ADDRESS, IS_NOT_FATAL))
     printf_system( "wget \'%s\' -O%s >/dev/null 2>/dev/null", address, out);
   else if (check_program_is_installed ("curl",NULL, NULL,CURL_ADDRESS, IS_NOT_FATAL))
@@ -7350,7 +7355,7 @@ int simple_check_internet_connection (char *ref_site)
   int n, internet=0;
 
   test=vtmpnam (NULL);
-  if (url2file( const_cast<char*>( (ref_site)?ref_site:TEST_WWWSITE_4_TCOFFEE),test )!=EXIT_SUCCESS)internet=0; 
+  if (url2file( const_cast<char*>( (ref_site)?ref_site:TEST_WWWSITE_4_TCOFFEE),test )!=EXIT_SUCCESS)internet=0;
 	      //Maria added this to cast a const char* to char*
   else if ((n=count_n_char_in_file(test))<10)internet=0;
   else internet =1;
@@ -7724,25 +7729,25 @@ char* check_url_exists  ( char *fname_in)
   static int n;
   int a;
   char *tmp;
-  
+
   if (!fname_in)return NULL;
-  
+
   for (a=0; a<n; a++) if (strm (lu[a][0], fname_in))return lu[a][1];
-  
+
   tmp=vtmpnam (NULL);
   url2file (fname_in, tmp);
-  
+
   lu=(char***)vrealloc (lu, (n+1)*sizeof (char**));
   lu[n]=declare_char (2, MAX((strlen (fname_in)),(strlen (tmp)))+1);
   sprintf (lu[n][0], "%s", fname_in);
-  
-  
-  
+
+
+
   if ( file2size(tmp)>0)sprintf (lu[n][1], "%s", tmp);
   else{vfree (lu[n][1]); lu[n][1]=NULL;}
   return lu[n++][1];
 }
-  
+
 char* check_file_exists ( char *fname_in)
 	{
 
@@ -7883,7 +7888,7 @@ FILE * output_completion ( FILE *fp,int n, int tot, int n_reports, char *string)
 	    }
 	  t=get_time()/1000;
 	  elapsed=t-ref_time;
-	  
+
 	  if ( !ref_val && !flag)
 	    {
 	      fprintf (fp, "\n!\t\t[%s][TOT=%5d][%3d %%][ ELAPSED  TIME: %4d sec.]",(string)?string:"",tot,(tot==1)?100:0, elapsed);
@@ -7892,7 +7897,7 @@ FILE * output_completion ( FILE *fp,int n, int tot, int n_reports, char *string)
 	  else if ( n>=tot)fprintf (fp, "\r!\t\t[%s][TOT=%5d][%3d %%][ ELAPSED  TIME: %4d sec.]\n",(string)?string:"", tot,100, elapsed);
 	  else if ( ((n*100)/tot)>ref_val)
 	    {
-	      
+
 	      ref_val=((n*100)/tot);
 	      t=(ref_val==0)?0:elapsed/ref_val;
 	      t=t*(100-ref_val);

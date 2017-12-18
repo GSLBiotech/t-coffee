@@ -48,7 +48,7 @@ struct Tmpname
     };
 /*********************************************************************/
 /*                                                                   */
-/*                                  SANDBOX
+/*                                  SANDBOX                          */
 /*                                                                   */
 /*                                                                   */
 /*********************************************************************/
@@ -62,7 +62,7 @@ void sb();
 double dichotomy (double value, double target_value, double middle, double *bottom,double *top);
 /*********************************************************************/
 /*                                                                   */
-/*                                   QSORT                        */
+/*                                   QSORT                           */
 /*                                                                   */
 /*                                                                   */
 /*********************************************************************/
@@ -85,8 +85,8 @@ void ** hsort_array ( void **ra,int n,int len, size_t size, int first_comp_field
 /*                                                                    */
 /*                                                                    */
 /**********************************************************************/
-void **hsort_list_array ( void **L, int len, size_t size, int entry_len,int first_comp_field, int n_comp_fields);  
-FILE  *hsort_list_file  ( FILE *fp, int len, size_t size, int entry_len,int first_comp_field, int n_comp_fields);  
+void **hsort_list_array ( void **L, int len, size_t size, int entry_len,int first_comp_field, int n_comp_fields);
+FILE  *hsort_list_file  ( FILE *fp, int len, size_t size, int entry_len,int first_comp_field, int n_comp_fields);
 int hsort_cmp ( const void *a, const void *b, int first, int clen, size_t size);
 void *hsort_cpy(void*to, void *from, size_t size);
 
@@ -106,7 +106,7 @@ void * bsearch_array( const void *key,int *p,int comp_first,int comp_len,void**l
 /*                     MY  B_SEARCH_FILE FUNCTIONS                   */
 /*                                                                   */
 /*                                                                   */
-/*********************************************************************/		 
+/*********************************************************************/
 void **search_in_list_file  ( void *key,int *p, int comp_len,FILE *fp, int len, size_t size, int entry_len);
 void **search_in_list_array ( void *key,int *p, int comp_len,void **L , int len, size_t size, int entry_len);
 
@@ -122,7 +122,7 @@ void sort_float ( float **V,int N_F, int F, int left, int right);
 
 void sort_int_1D ( int *L, int n);
 char** sort_string_array (char **V, int n);
-     
+
 void sort_int            ( int **V,int N_F, int F, int left, int right);
 int * flash_sort_int_inv ( int **V,int N_F, int F, int left, int right);
 int * flash_sort_int     ( int **V,int N_F, int F, int left, int right);
@@ -346,7 +346,7 @@ char *pg2path (char *pg);
 int pg_is_installed ( char *pg);
 /*********************************************************************/
 /*                                                                   */
-/*                           MISC                                    */  
+/*                           MISC                                    */
 /*                                                                   */
 /*********************************************************************/
 char *num2plot (int value, int max, int line_len);
@@ -500,7 +500,7 @@ int get_ctime  ();
 /*                         SYSTEM CALLS                              */
 /*                                                                   */
 /*                                                                   */
-/*********************************************************************/	
+/*********************************************************************/
 int   has_error_lock();
 int   is_root_thread();
 int is_shellpid(int pid);
@@ -674,7 +674,7 @@ void clean_exit();
 void signal_exit(int);
 void main_exit ();
 int  log_function (char *fname);
-   
+
 void   clean_function ( );
 void   sig_clean_function ( int x);
 char * prepare_cache ( const char *mode);
@@ -707,7 +707,7 @@ int check_for_update ( char *web_address);
 int url2file (char *address, char *out);
 int wget (char *address, char *out);
 int curl (char *address, char *out);
-	
+
 
 int simple_check_internet_connection  (char *address);
 int check_internet_connection  (int mode);
@@ -781,7 +781,7 @@ float LOG_ADD7 (float x1, float x2, float x3, float x4, float x5, float x6, floa
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Hash function
 ////////////////////////////////////////////////////////////////////////////////////////////
-unsigned long hash_file(char* file);  //returns the hash value for key 
+unsigned long hash_file(char* file);  //returns the hash value for key
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Generating lists through recirsive exploration
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -791,14 +791,14 @@ float *display_accuracy (float *count, FILE *fp);
 float *counts2accuracy (float *count);
 
 float rates2sensitivity (int tp, int tn, int fp, int fn, float *sp, float *sn, float *sen2, float *best);
-float profile2sensitivity (char *pred, char *ref, float *sp, float *sn, float *sen2, float *b);	      
+float profile2sensitivity (char *pred, char *ref, float *sp, float *sn, float *sen2, float *b);
 float profile2evalue (char *pred, char *ref);
 //isexec lib
 
 ///////////////////////////////////////////////////////////////////////////////
-//                                                                           //  
-//                                                                           //  
-//                           Kmeans                                          //  
+//                                                                           //
+//                                                                           //
+//                           Kmeans                                          //
 ///////////////////////////////////////////////////////////////////////////////
 
 

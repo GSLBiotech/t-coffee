@@ -30,8 +30,6 @@
 
   #include <process.h>
   #define getpid _getpid
-  #define P_WAIT _P_WAIT
-  #define spawnv _spawnv
   typedef int pid_t;
   pid_t getppid();
   void kill(pid_t p, int /* signalUnused */ );
@@ -48,9 +46,10 @@
   #include <sys/times.h>
   #include <sys/wait.h>
   #include <unistd.h>
+  #include <spawn.h>
 
-  #define mkdir tc_mkdir
-  #define gethostname tc_gethostname
+  #define tc_mkdir mkdir
+  #define tc_gethostname gethostname
 #endif
 
 #endif // PLATFORM_LIB_H_
