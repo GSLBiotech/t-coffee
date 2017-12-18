@@ -1,0 +1,54 @@
+# Usage:
+#   gmake -j -f makefile.win
+#   cp t_coffee.exe C:\some\path
+#   gmake -j -f makefile.win clean
+#
+# GNU Make is used for features missing in NMake.
+
+#===================================================
+# Set to 1 to use a debugger.
+DEBUG_ENABLED ?= 0
+
+CC = cl
+
+#===================================================
+CFLAGS_DEBUG    = /Od /Zi /FS
+CFLAGS_OPTIMIZE = /O2
+CFLAGS_REQUIRED = /EHsc /TP /I.
+
+ifeq ($(DEBUG_ENABLED),1)
+  CFLAGS_OPTIONAL = $(CFLAGS_DEBUG)
+else
+  CFLAGS_OPTIONAL = $(CFLAGS_OPTIMIZE)
+endif
+
+CFLAGS = $(CFLAGS_REQUIRED) $(CFLAGS_OPTIONAL) 
+
+#===================================================
+LDFLAGS_DEBUG    = /DEBUG
+LDFLAGS_REQUIRED = /link Ws2_32.lib
+
+ifeq ($(DEBUG_ENABLED),1)
+  LDFLAGS_OPTIONAL = $(LDFLAGS_DEBUG)
+endif
+
+LDFLAGS = $(LDFLAGS_REQUIRED) $(LDFLAGS_OPTIONAL) 
+
+#===================================================
+SUBDIRS := $(wildcard */)
+SOURCES := $(wildcard $(addsuffix *.c,$(SUBDIRS)))
+OBJECTS := $(patsubst %.c,%.obj,$(SOURCES))
+
+#===================================================
+all: t_coffee
+
+t_coffee: $(OBJECTS)
+	$(CC) /Fe$@ $^ $(LDFLAGS) 
+
+%.obj: %.c
+	$(CC) $(CFLAGS) /Fo$@ /c $<
+
+.PHONY: clean
+
+clean:
+	-rm -f $(OBJECTS) t_coffee.exe *.pdb *.ilk *.log
