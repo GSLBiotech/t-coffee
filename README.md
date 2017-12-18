@@ -38,7 +38,7 @@ QtCreator can be used to debug the executable.
 
 Build it from the command line with GNU Make:
 
-    gmake -f makefile.win DEBUG_ENALBED=1
+    gmake -f makefile.win DEBUG_ENABLED=1
 
 Use these args in Project->Run:
 
