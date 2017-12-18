@@ -37,7 +37,9 @@ Debugging
 QtCreator can be used to debug the executable.
 
 Build it from the command line with GNU Make:
+
     gmake -f makefile.win DEBUG_ENALBED=1
 
 Use these args in Project->Run:
+
     -infile C:\tmp\input.fasta -type=dna -outfile C:\tmp\output.txt
