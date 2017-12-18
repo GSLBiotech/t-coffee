@@ -516,7 +516,7 @@ int gotoh_pair_wise_sw (Alignment *A, int*ns, int **l_s,Constraint_list *CL)
 /*	                                                                       */
 /*******************************************************************************/
 
-Alignment * add_seq2aln   (Constraint_list *CL, Alignment *IN,Sequence  *S)
+Alignment * add_seq2aln   (Constraint_list *CL, Alignment *pIN,Sequence  *S)
            {	
 	   int *n_groups;
 	   int **group_list;
@@ -535,47 +535,47 @@ Alignment * add_seq2aln   (Constraint_list *CL, Alignment *IN,Sequence  *S)
 	   if (CL->packed_seq_lu){ste=S->nseq-1;}
 	   else{ste=0;}
 
-	   if ( IN==NULL)
+	   if ( pIN==NULL)
 	      {
-	      IN=realloc_aln2(IN, 1, strlen (S->seq[ste])+1);
-	      IN->S=S;
-	      IN->nseq=1;
+	      pIN=realloc_aln2(pIN, 1, strlen (S->seq[ste])+1);
+	      pIN->S=S;
+	      pIN->nseq=1;
 	      
 	      
 	      
-	      sprintf ( IN->seq_al[0], "%s", S->seq[ste]);
-	      sprintf (IN->name[0], "%s_%d_1", S->name[ste],series);
-	      IN->order[0][0]=ste;
-	      IN->order[0][1]=0;
+	      sprintf ( pIN->seq_al[0], "%s", S->seq[ste]);
+	      sprintf (pIN->name[0], "%s_%d_1", S->name[ste],series);
+	      pIN->order[0][0]=ste;
+	      pIN->order[0][1]=0;
 	      
-	      IN->len_aln=strlen ( IN->seq_al[0]);
+	      pIN->len_aln=strlen ( pIN->seq_al[0]);
 	      series++;
 	    
 	      }	   
 	   else
 	      {
 	      
-	      IN=realloc_aln2 ( IN, IN->nseq+1,MAX(strlen ( S->seq[ste])+1, IN->len_aln+1));
+	      pIN=realloc_aln2 ( pIN, pIN->nseq+1,MAX(strlen ( S->seq[ste])+1, pIN->len_aln+1));
 	      n_groups=(int*)vcalloc ( 2, sizeof (int));
-	      group_list=declare_int (2,IN->nseq+1);
+	      group_list=declare_int (2,pIN->nseq+1);
 	      
-	      n_groups[0]=IN->nseq;
-	      for ( a=0; a<IN->nseq; a++)group_list[0][a]=a;
+	      n_groups[0]=pIN->nseq;
+	      for ( a=0; a<pIN->nseq; a++)group_list[0][a]=a;
 	      
 	      n_groups[1]=1;
-	      group_list[1][0]=IN->nseq;
-	      sprintf (IN->name[IN->nseq], "%s_%d_%d",S->name[ste],series,IN->nseq+1);
-	      sprintf (IN->seq_al[IN->nseq], "%s",S->seq[ste]);
-	      IN->order[IN->nseq][0]=ste;
-	      IN->order[IN->nseq][1]=0;
-	      IN->nseq++;
+	      group_list[1][0]=pIN->nseq;
+	      sprintf (pIN->name[pIN->nseq], "%s_%d_%d",S->name[ste],series,pIN->nseq+1);
+	      sprintf (pIN->seq_al[pIN->nseq], "%s",S->seq[ste]);
+	      pIN->order[pIN->nseq][0]=ste;
+	      pIN->order[pIN->nseq][1]=0;
+	      pIN->nseq++;
 	      
 	     
-	      pair_wise ( IN, n_groups, group_list,CL);	
+	      pair_wise ( pIN, n_groups, group_list,CL);	
 	      
 	      }
 	  
-	   return IN;
+	   return pIN;
 	      
 	   }
 	   

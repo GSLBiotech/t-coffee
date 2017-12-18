@@ -275,17 +275,17 @@ Split ** count_splits( NT_node RT, Sequence *S, char *s);
 NT_node *treelist2prune_treelist (Sequence *S, Sequence *TS, FILE *out);
 int** treelist2groups (Sequence *S, Sequence *ST, char *depth, FILE *out);
 int treelist2splits (Sequence *S, Sequence *ST);
-int treelist2leafgroup ( Sequence *S, Sequence *TS, char *taxon);
+void treelist2leafgroup ( Sequence *S, Sequence *TS, char *taxon);
 int ***tree2dist ( NT_node T, Sequence *S, int ***d);
-int treelist2frame (Sequence *S, Sequence *TS);
+void treelist2frame (Sequence *S, Sequence *TS);
 int** treelist2lti ( Sequence *S, Sequence *TS, int nb, FILE *out);
 
 float simple_tree_cmp (NT_node T1, NT_node T2,Sequence *S, int mode);
 
 int treelist2dmat ( Sequence *S);
 NT_node new_declare_tree_node ();
-int count_tree_groups( Sequence *LIST, char *group_file);
-int node_sort ( char *name, NT_node T);
+void count_tree_groups( Sequence *LIST, char *group_file);
+void node_sort ( char *name, NT_node T);
 int    treelist2n (NT_node *L);
 int ** treelist2avg_treecmp (NT_node *L, char *file);
 Alignment *treelist2cons (Alignment *T);

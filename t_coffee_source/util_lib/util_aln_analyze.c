@@ -540,7 +540,7 @@ int make_sim_pred ( Alignment *A,Alignment *S, int comp, int seq)
 }
 
 
-Alignment * sar_analyze (Alignment *inA, Alignment *inS, char *mode)
+void sar_analyze (Alignment *inA, Alignment *inS, char *mode)
 {
   int ***sim,***glob_results, ***comp_results;
   int *count;
@@ -4080,7 +4080,7 @@ Alignment * sar2simpred (Alignment *A, Alignment *SAR, char *posfile, char *comp
 Alignment * sar2simpred2 (Alignment *A, Alignment *SAR, char *seqlist, char *posfile, char *compound, int L )
 {
   int a,b, c,c1, c2, p, s;
-  float n11, n10, n01, n00, n, sn2, prediction,sp, n1, n0, t, entropy, Delta;
+  float n11, n10, n01, n00, n, sn2, prediction,sp, n1, n0, entropy, Delta;
   int *rlist, *tlist, *pred, *npred, tsim, psim;
   int **sim, **sim_ref;
   int nr=0;
@@ -4191,7 +4191,6 @@ Alignment * sar2simpred2 (Alignment *A, Alignment *SAR, char *seqlist, char *pos
 
 	  if (c1==0)n0++;
 	  else n1++;
-	  t++;
 
 
 	  Delta=pred[1]-pred[0];
@@ -4266,9 +4265,9 @@ void sar2jack (Alignment *A, Alignment *S, int nseq, int sarlen)
   S=reorder_aln  (S, A->name, A->nseq);
   S=aln2jacknife (S, 0, sarlen);
 }
-Alignment *or_scan (Alignment *A,Alignment *S, char *pmode)
+Alignment* or_scan (Alignment *A,Alignment *S, char *pmode)
 {
-  int l, a,ax,cx, b;
+  int l, a,ax, b;
   char mode[100];
   int start, offset,w;
   int nl, *poslist;
@@ -4439,7 +4438,7 @@ Alignment *or_scan (Alignment *A,Alignment *S, char *pmode)
       poscache=(int*)vcalloc ( A->len_aln, sizeof (int));
       for (s=0; s<S->len_aln; s++)
 	{
-	  int count;
+    int count=0;
 	  NS=aln2block (S, s+1, s+2, NS);
 	  fprintf ( stderr, "\nProcess: %s ...", get_compound_name(s, mode));
 	  for (n=0,p1=0; p1<A->len_aln-w; p1++, count ++)
@@ -4477,6 +4476,7 @@ Alignment *or_scan (Alignment *A,Alignment *S, char *pmode)
     }
 
   myexit (EXIT_SUCCESS);
+  return NULL;
 }
 
 
@@ -4601,35 +4601,35 @@ ORP * combine_n_predictions (ORP**R, Alignment *A, Alignment *S)
   return N;
 }
 
-ORP *combine_2_predictions ( ORP*IN, ORP *TO,Alignment *A, Alignment *S)
+ORP *combine_2_predictions ( ORP*pIN, ORP *TO,Alignment *A, Alignment *S)
 {
   int a;
 
   if ( !TO)
     {
-      TO=declare_or_prediction (IN->ncomp, IN->nseq, IN->len);
+      TO=declare_or_prediction (pIN->ncomp, pIN->nseq, pIN->len);
       TO->A=A;
       TO->S=S;
       TO->P=copy_aln(S, NULL);
-      TO->offset=IN->offset;
+      TO->offset=pIN->offset;
       TO->ncomp=0;
     }
 
-  for (a=0; a< IN->len; a++)
+  for (a=0; a< pIN->len; a++)
     {
-      TO->pos[a]+=IN->pos[a];
+      TO->pos[a]+=pIN->pos[a];
     }
 
-  TO->fp+=IN->fp;
-  TO->fn+=IN->fn;
-  TO->tp+=IN->tp;
-  TO->tn+=IN->tn;
+  TO->fp+=pIN->fp;
+  TO->fn+=pIN->fn;
+  TO->tp+=pIN->tp;
+  TO->tn+=pIN->tn;
   rates2sensitivity (TO->tp, TO->tn, TO->fp, TO->fn, &(TO->sp), &(TO->sn), &(TO->sen2), &(TO->best));
 
 
   for (a=0; a<(TO->A)->nseq; a++)
     {
-      (TO->P)->seq_al[a][TO->ncomp]=(IN->P)->seq_al[a][0];
+      (TO->P)->seq_al[a][TO->ncomp]=(pIN->P)->seq_al[a][0];
       //(TO->S)->seq_al[a][TO->ncomp]=(IN->S)->seq_al[a][0];
     }
   TO->ncomp++;

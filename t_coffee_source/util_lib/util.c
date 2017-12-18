@@ -38,9 +38,8 @@
 #include <math.h>
 #include <stdarg.h>
 #include <fcntl.h>
-#include <sys/file.h>
 #include <sys/types.h>
-#include <unistd.h>
+#include <chrono>
 
 // required to find out the numOfCores on MACOSX
 // see function 'getNumCores' below
@@ -49,11 +48,24 @@
 #include <sys/sysctl.h>
 #endif
 
+#ifndef _MSC_VER
+  #include <sys/file.h>
+  #include <unistd.h>
+#endif
+
 #include "io_lib_header.h"
 #include "util_lib_header.h"
 #include "define_header.h"
-#include "perl_header_lib.h"
+#ifdef _MSC_VER
+  // msvc cannot use string literals greater than 16k, so skip for desktop until refactor.
+  #include "data_headers/perl_header_lib.h"
+#else
+  #include "perl_header_lib.h"
+#endif
 #include "dp_lib_header.h"
+
+#include <thread>
+#include <iostream>
 
 //defined this way because all compilers cannot pas ap
 //safe printf: it declares buf to the proper size
@@ -799,7 +811,7 @@ int name_is_in_list ( const char name_in[], char **name_list, int n_name, int le
 	/*Note: RETURNS THE Offset of the LAST Occurence of name in name_list*/
 	if ( name_list==NULL || name_in ==NULL) return -1;
 
-	char name[strlen(name_in)+1];
+  char name[256];
 	strcpy(name,name_in);
 	
 	for ( a=n_name-1; a>=0; --a)
@@ -1846,6 +1858,8 @@ char *get_pwd ( char *name)
     sprintf(name, "%s", cwd);
   else
     perror("getcwd() error");
+
+  return NULL;
 }
 
 
@@ -2127,7 +2141,7 @@ char* estrstr (char *string,char *token,...)
 
 char* festrstr (char *file,char *token,...)
 {
-  char *string;
+  char *string=NULL;
   char *etoken;
   char *ret;
 
@@ -2698,38 +2712,38 @@ int check_cl4t_coffee (int argc, char **argv)
   if ( name_is_in_list ("-other_pg", argv, argc, 100)!=-1)return 1;
   else if (name_is_in_list ( "tcoffee_test_seq.pep", argv, argc, 100)!=-1)return 1;
   else
+  {
+    int a,  inseq, result;
+    FILE *fp;
+    char command[10000];
+    command[0]='\0';
+
+    for ( inseq=0,a=0; a<argc; a++)
     {
-      int a,  inseq, result;
-      FILE *fp;
-      char command[10000];
-      command[0]='\0';
+      if ( inseq && argv[a][0]=='-')
+      {
+        inseq=0;
+      }
+      else if (strm ( argv[a], "-seq"))inseq=1;
 
-      for ( inseq=0,a=0; a<argc; a++)
-	{
-	  if ( inseq && argv[a][0]=='-')
-	    {
-	      inseq=0;
-	    }
-	  else if (strm ( argv[a], "-seq"))inseq=1;
-
-	  if ( inseq==0)
-	    {
-	      strcat ( command, " ");
-	      strcat ( command, argv[a]);
-	    }
-	}
-      name=(char*)vcalloc ( 100, sizeof (char));
-      sprintf ( name, "TCIT_%d", (int)rand()%10000);
-      strcat ( command, " -seq tcoffee_test_seq.pep -quiet -no_error_report");
-      fp=vfopen ( name, "w");
-      fprintf ( fp, ">A\nthecat\n>B\nthecat\n");
-      vfclose (fp);
-      result=safe_system (command);
-      printf_system ( "rm %s.*", name);
-      vfree (name);
-      if (result) {myexit (EXIT_FAILURE);return 0;}
-      else return 1;
+      if ( inseq==0)
+      {
+        strcat ( command, " ");
+        strcat ( command, argv[a]);
+      }
     }
+    name=(char*)vcalloc ( 100, sizeof (char));
+    sprintf ( name, "TCIT_%d", (int)rand()%10000);
+    strcat ( command, " -seq tcoffee_test_seq.pep -quiet -no_error_report");
+    fp=vfopen ( name, "w");
+    fprintf ( fp, ">A\nthecat\n>B\nthecat\n");
+    vfclose (fp);
+    result=safe_system (command);
+    printf_system ( "rm %s.*", name);
+    vfree (name);
+    if (result) {myexit (EXIT_FAILURE);return 0;}
+    else return 1;
+  }
 }
 
 char** merge_list ( char **argv, int *argc)
@@ -3019,36 +3033,36 @@ char* string2inverted_string(char *string)
 
 char ** get_list_of_tokens ( char *in_string, char *separators, int *n_tokens)
 {
-    char **list=NULL;
-    char *p=NULL;
-    char *string;
+  char **list=NULL;
+  char *p=NULL;
+  char *string;
 
 
-    n_tokens[0]=0;
-    if ( in_string==NULL || strm(in_string, ""));
-    else if ( in_string[0]=='[')
-      {
-	list=declare_char (1, strlen ( in_string)+1);
-	sprintf ( list[n_tokens[0]], "%s",in_string);
-	n_tokens[0]++;
-      }
-    else
-      {
-	list=declare_char (strlen ( in_string)+1, 1);
-	string=(char*)vcalloc ( strlen(in_string)+1, sizeof (char));
-	sprintf ( string, "%s", in_string);
+  n_tokens[0]=0;
+  if ( in_string==NULL || strm(in_string, ""));
+  else if ( in_string[0]=='[')
+  {
+    list=declare_char (1, strlen ( in_string)+1);
+    sprintf ( list[n_tokens[0]], "%s",in_string);
+    n_tokens[0]++;
+  }
+  else
+  {
+    list=declare_char (strlen ( in_string)+1, 1);
+    string=(char*)vcalloc ( strlen(in_string)+1, sizeof (char));
+    sprintf ( string, "%s", in_string);
 
-	while ( (p=strtok ((p==NULL)?string:NULL, ((separators==NULL)?SEPARATORS:separators)))!=NULL)
-           {
-	   list[n_tokens[0]]=(char*)vrealloc ( list[n_tokens[0]], sizeof (char) *strlen (p)+1);
-	   sprintf ( list[n_tokens[0]], "%s", p);
-	   n_tokens[0]++;
-	   }
+    while ( (p=strtok ((p==NULL)?string:NULL, ((separators==NULL)?SEPARATORS:separators)))!=NULL)
+    {
+      list[n_tokens[0]]=(char*)vrealloc ( list[n_tokens[0]], sizeof (char) *strlen (p)+1);
+      sprintf ( list[n_tokens[0]], "%s", p);
+      n_tokens[0]++;
+    }
 
-	vfree (string);
-	}
-   return list;
-   }
+    vfree (string);
+  }
+  return list;
+}
 
 char **ungap_array ( char **array, int n)
 {
@@ -3604,10 +3618,8 @@ int get_distance2char ( char *x, char*list)
 /*                                                                   */
 /*                                                                   */
 /*********************************************************************/
-static long ref;
+static std::chrono::high_resolution_clock::time_point ref;
 static int child;
-static long ticks;
-static long milli_sec_conv=1000;
 
 
 FILE *print_program_information (FILE *fp, char *comment)
@@ -3626,7 +3638,7 @@ FILE* print_cpu_usage (FILE *fp, char *comment)
 void print_exit_success_message ()
 {
   return;
-  fprintf ( stderr, "\n# TERMINATION STATUS: SUCCESS [PROGRAM: %s pid %d ppid %d]\n#CL: %s\n", PROGRAM, getpid(), getppid(),in_cl);
+//  fprintf ( stderr, "\n# TERMINATION STATUS: SUCCESS [PROGRAM: %s pid %d ppid %d]\n#CL: %s\n", PROGRAM, getpid(), getppid(),in_cl);
 }
 void print_exit_failure_message ()
 {
@@ -3637,72 +3649,37 @@ void print_exit_failure_message ()
 
 
 int get_time ()
-	{
-	static long time;
-        struct tms time_buf[1];
-	long tms_stime, tms_utime;
+{
+  static long time=0;
+  if ( child==1)return get_ctime();
 
-	if ( child==1)return get_ctime();
-
-	if ( ticks==0)ticks = sysconf(_SC_CLK_TCK);
-	times ( time_buf);
-
-	tms_stime=(long)time_buf->tms_stime*milli_sec_conv;
-	tms_utime=(long)time_buf->tms_utime*milli_sec_conv;
-
-
-
-
-	if ( ref==0)
-		{
-		ref=(tms_stime+tms_utime);
-		return 0;
-		}
-	else
-		{
-		time=(tms_utime+tms_stime)-ref;
-		return (int) ((time)/ticks);
-		}
-	}
+  if ( 0==time)
+  {
+    ref=std::chrono::high_resolution_clock::now();
+    return 0;
+  }
+  else
+  {
+    time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()-ref).count();
+    return time;
+  }
+}
 int get_ctime ()
-	{
-	static long time;
-        struct tms time_buf[1];
-	long   tms_cutime, tms_cstime;
+{
+  static long time=0;
 
-	if ( ticks==0)ticks = sysconf(_SC_CLK_TCK);
-	times ( time_buf);
-
-
-
-	tms_cstime=(long)time_buf->tms_cstime*milli_sec_conv;
-	tms_cutime=(long)time_buf->tms_cutime*milli_sec_conv;
-
-	if ( ref==0)
-	        {
-		child=1;
-		ref=tms_cstime+tms_cutime;
-		return 0;
-		}
-	else
-		{
-		time=(tms_cutime+tms_cstime)-ref;
-		return (int)((time)/ticks);
-		}
-	}
-int reset_time()
-        {
-	ref=0;
-	return (int)get_time();
-	}
-int increase_ref_time(int increase)
-        {
-	if ( ref==0)get_time();
-
-	ref-=(long)ticks*(long)increase;
-	if (ref==0)ref++;
-	return (int)ref;
-	}
+  if ( 0==time)
+  {
+    child=1;
+    ref= std::chrono::high_resolution_clock::now();
+    return 0;
+  }
+  else
+  {
+    time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()-ref).count();
+    return time;
+  }
+}
 
 /*********************************************************************/
 /*                                                                   */
@@ -3824,6 +3801,8 @@ int printf_system_direct_check  (char *string, ...)
       vfree (buf);
       return r;
     }
+
+  return 0;
 }
 int printf_system_direct  (char *string, ...)
 {
@@ -3870,84 +3849,84 @@ int my_system_cl (int argc, char *argv[])
 
 int my_system ( char *command0)
 {
-  static char ***unpacked_list;
-  static int n_unpacked;
+  static char ***unpacked_list=NULL;
+  static int n_unpacked=0;
 
   
   if (!unpacked_list)
-    {
-      unpacked_list=(char***)declare_arrayN(3, sizeof (char), 3, 200,vtmpnam_size());
-    }
+  {
+    unpacked_list=(char***)declare_arrayN(3, sizeof (char), 3, 200,vtmpnam_size());
+  }
   
   
   if ( getenv ("DEBUG_PERL"))return safe_system (command0);
   else
+  {
+    char **list;
+    int is_command;
+    int a, c=0;
+    char *command1;
+    char *command2;
+    int return_val;
+
+    command1=(char*)vcalloc ( 3*strlen (command0)+1, sizeof (char));
+    command2=(char*)vcalloc ( 100000, sizeof (char));
+    sprintf ( command1, "%s", command0);
+
+    command1=substitute (command1, "|", " | ");
+    command1=substitute (command1, ";", " ; ");
+
+    list=string2list (command1);
+
+    if ( !list) return EXIT_SUCCESS;
+    is_command=1;
+
+    //Identify T-Coffee self threads and install threads
+
+    for ( a=1; a< atoi(list[0]); a++)
     {
-      char **list;
-      int is_command;
-      int a, c=0;
-      char *command1;
-      char *command2;
-      int return_val;
+      if ( is_command)
+      {
+        if ( strstr ( list[a], "unpack_"))
+        {
+          unpack_all_perl_script (list[a]+strlen ("unpack_"));
+          myexit (EXIT_SUCCESS);
+        }
+        else if ((c=name_is_in_list (list[a], unpacked_list[0], n_unpacked, 100))!=-1);
+        else
+        {
 
-      command1=(char*)vcalloc ( 3*strlen (command0)+1, sizeof (char));
-      command2=(char*)vcalloc ( 100000, sizeof (char));
-      sprintf ( command1, "%s", command0);
+          n_unpacked=unpack_perl_script (list[a], unpacked_list, n_unpacked);c=n_unpacked-1;
 
-      command1=substitute (command1, "|", " | ");
-      command1=substitute (command1, ";", " ; ");
+        }
+        //if non unpacked script check pg is installed:
 
-      list=string2list (command1);
+        if ( strm (unpacked_list[2][c], "shell"))
+        {
+          check_program_is_installed (list[a], NULL, NULL, NULL, INSTALL_OR_DIE);
+        }
+        strcat (command2, ((c!=-1)?unpacked_list[1][c]:list[a]));
+        strcat (command2, " ");
+        is_command=0;
 
-      if ( !list) return EXIT_SUCCESS;
-      is_command=1;
-
-      //Identify T-Coffee self threads and install threads
-
-      for ( a=1; a< atoi(list[0]); a++)
-	{
-	  if ( is_command)
-	    {
-	      if ( strstr ( list[a], "unpack_"))
-		{
-		  unpack_all_perl_script (list[a]+strlen ("unpack_"));
-		  myexit (EXIT_SUCCESS);
-		}
-	      else if ((c=name_is_in_list (list[a], unpacked_list[0], n_unpacked, 100))!=-1);
-	      else
-		{
-
-		  n_unpacked=unpack_perl_script (list[a], unpacked_list, n_unpacked);c=n_unpacked-1;
-
-		}
-	      //if non unpacked script check pg is installed:
-
-	      if ( strm (unpacked_list[2][c], "shell"))
-		{
-		  check_program_is_installed (list[a], NULL, NULL, NULL, INSTALL_OR_DIE);
-		}
-	      strcat (command2, ((c!=-1)?unpacked_list[1][c]:list[a]));
-	      strcat (command2, " ");
-	      is_command=0;
-
-	    }
-	  else
-	    {
-	      strcat (command2, list[a]);
-	      strcat (command2, " ");
-	      if ( strm (list[a], ",") ||strm (list[a], "|")) is_command=1;
-	    }
-	}
-
-      free_char (list,-1);
-      vfree ( command1);
-      command2=substitute ( command2, "//", "/");
-      command2=substitute ( command2, ":/", "://");
-      return_val=safe_system (command2);
-
-      vfree ( command2);
-      return return_val;
+      }
+      else
+      {
+        strcat (command2, list[a]);
+        strcat (command2, " ");
+        if ( strm (list[a], ",") ||strm (list[a], "|")) is_command=1;
+      }
     }
+
+    free_char (list,-1);
+    vfree ( command1);
+    command2=substitute ( command2, "//", "/");
+    command2=substitute ( command2, ":/", "://");
+    return_val=safe_system (command2);
+
+    vfree ( command2);
+    return return_val;
+  }
 }
 int has_warning_lock()
 {
@@ -3964,18 +3943,16 @@ int is_shellpid(int pid)
   if ( lock(pid, LLOCK, LCHECK, NULL) && strstr (lock(pid,LLOCK, LREAD, NULL), "-SHELL-"))return 1;
   else return 0;
 }
-int is_rootpid()
+int is_root_thread()
 {
-  static pid_t root_pid=0;
-  pid_t cp;
-
-  cp=getpid();
-  if( root_pid == 0 ) {
-	  root_pid = cp;
+  //Cache.
+  static thread_local int my_index = -9;
+  if( -9 == my_index )
+  {
+    my_index = get_thread_index();
   }
 
-  int result = (cp == root_pid);
-  return result;
+  return -1 == my_index;
 
   //old is_rootpid
   //
@@ -4013,7 +3990,7 @@ char*lock2name (int pid, int type)
 {
   char *fname;
   char host[1024];
-  gethostname(host, 1023);
+  tc_gethostname(host, 1023);
 
   fname=(char*)vcalloc (strlen(host)+strlen (get_lockdir_4_tcoffee())+1000, sizeof (char));
   if (type == LLOCK)sprintf (fname, "%s/.%d.%s.lock4tcoffee",get_lockdir_4_tcoffee(), pid,host);
@@ -4034,56 +4011,56 @@ int release_all_locks (int pid)
 
 char* lock(int pid,int type, int action,char *string, ...)
 {
-	char *fname;
-	char *r;
-	fname=lock2name (pid, type);
-	if (debug_lock)
-	{
-		fprintf (stderr,"\n\t\t---loc4tc(util.h) %d =>%s [RD: %s]\n", action, fname, getcwd(NULL, 0));
-	}
+  char *fname;
+  char *r;
+  fname=lock2name (pid, type);
+  if (debug_lock)
+  {
+    fprintf (stderr,"\n\t\t---loc4tc(util.h) %d =>%s [RD: %s]\n", action, fname, getcwd(NULL, 0));
+  }
 
-	if (action == LREAD)
-	{
-		r=file2string (fname);
-	}
-	else if ( action == LCHECK)
-	{
-		r=const_cast<char*>( (file_exists (NULL,fname))?"x":NULL );
-	}
-	else if (action== LRELEASE)
-	{
-		if (debug_lock)
-	{
-		printf_system_direct ("mv %s %s.released", fname, fname);
-	}
-		else if (file_exists (NULL, fname))
-	{
-		vremove (fname);
-	//safe_remove (fname);return NULL;
-	}
-		r=" ";
-	}
-	else if ( clean_exit_started)
-		return NULL; //NO MORE LOCK SETTING during EXIT Phase
-	else if (action== LSET || action == LRESET)
-	{
-		char *value;
-		if (string)
-		{
-			cvsprintf (value,string);
-		}
-		else
-		{
-			value=(char*)vcalloc (2, sizeof(char));
-			sprintf (value, " ");
-		}
-		string2file (fname, const_cast<char*>( (action==LSET)?"a":"w"), value);
-		vfree (value);
-		r= " ";
-	}
-	else myexit(fprintf_error ( stderr, "ERROR: Unknown action for LOCK"));
-	vfree (fname);
-	return r;
+  if (action == LREAD)
+  {
+    r=file2string (fname);
+  }
+  else if ( action == LCHECK)
+  {
+    r=const_cast<char*>( (file_exists (NULL,fname))?"x":NULL );
+  }
+  else if (action== LRELEASE)
+  {
+    if (debug_lock)
+    {
+      printf_system_direct ("mv %s %s.released", fname, fname);
+    }
+    else if (file_exists (NULL, fname))
+    {
+      vremove (fname);
+      //safe_remove (fname);return NULL;
+    }
+    r=" ";
+  }
+  else if ( clean_exit_started)
+    return NULL; //NO MORE LOCK SETTING during EXIT Phase
+  else if (action== LSET || action == LRESET)
+  {
+    char *value;
+    if (string)
+    {
+      cvsprintf (value,string);
+    }
+    else
+    {
+      value=(char*)vcalloc (2, sizeof(char));
+      sprintf (value, " ");
+    }
+    string2file (fname, const_cast<char*>( (action==LSET)?"a":"w"), value);
+    vfree (value);
+    r= " ";
+  }
+  else myexit(fprintf_error ( stderr, "ERROR: Unknown action for LOCK"));
+  vfree (fname);
+  return r;
 
 }
 
@@ -4097,147 +4074,128 @@ int check_process (const char *com,int pid,int r, int failure_handling)
 
   if ( failure_handling == IGNORE_FAILURE) return r;
   if ( lock(pid, LWARNING, LCHECK, NULL))
-    {
-      shift_lock (pid, getpid(), LWARNING, LWARNING,LSET);
-    }
+  {
+    shift_lock (pid, getpid(), LWARNING, LWARNING,LSET);
+  }
 
 
   if ( lock(pid, LERROR, LCHECK, NULL))
-    {
-      shift_lock (pid, getpid(), LERROR,LERROR, LSET);
-    }
+  {
+    shift_lock (pid, getpid(), LERROR,LERROR, LSET);
+  }
   else if (r==EXIT_FAILURE)
-    {
-      //Reconstruct missing errorlock
-      lock (getpid(), LERROR,LSET,"%d -- ERROR: UNSPECIFIED UNSPECIFIED\n",pid);
-      lock (getpid(), LERROR,LSET,"%d -- COM: %s\n",pid,com);
-      lock (getpid(), LERROR, LSET,"%d -- STACK: %d -> %d\n",pid,getpid(), pid);
-    }
+  {
+    //Reconstruct missing errorlock
+    lock (getpid(), LERROR,LSET,"%d -- ERROR: UNSPECIFIED UNSPECIFIED\n",pid);
+    lock (getpid(), LERROR,LSET,"%d -- COM: %s\n",pid,com);
+    lock (getpid(), LERROR, LSET,"%d -- STACK: %d -> %d\n",pid,getpid(), pid);
+  }
   //lock is now ready. Shall we use it?
 
   if (lock(getpid(), LERROR, LCHECK, NULL))
+  {
+    if (failure_handling==RETURN_ON_FAILURE)
     {
-      if (failure_handling==RETURN_ON_FAILURE)
-	{
-	  shift_lock(getpid(),getpid(),LERROR, LWARNING,LSET);
-	}
-      else
-	{
-	  myexit (EXIT_FAILURE);
-	}
+      shift_lock(getpid(),getpid(),LERROR, LWARNING,LSET);
     }
+    else
+    {
+      myexit (EXIT_FAILURE);
+    }
+  }
   return r;
 }
 
 
 int safe_system (const char * com_in)
 {
-    pid_t pid;
-    int   status;
-
-    int failure_handling;
-    char *p;
-    char command[1000];
-    static char *com;
+  int failure_handling;
+  char *p;
+  char command[1000];
+  static char *com;
 
 
 
-    if ( clean_exit_started) return system (com_in);
-    if ( com)vfree (com);
-    if ( strstr ( com_in, "SCRATCH_FILE"))
-      {
-	com=(char*)vcalloc ( strlen ( com_in)+1, sizeof (char));
-	sprintf ( com, "%s", com_in);
-	while (strstr ( com, "SCRATCH_FILE"))
-	  {
-	    char *t;
-	    t=vtmpnam(NULL);
-	    com=(char*)vrealloc (com, (strlen (com)+strlen (t)+1)*sizeof (char));
-	    com=substitute (com,"SCRATCH_FILE", t);
-	  }
-      }
-    else
-      {
-	com=(char*)vcalloc (strlen (com_in)+1, sizeof (char));
-	sprintf ( com, "%s", com_in);
-      }
+  if ( clean_exit_started) return system (com_in);
+  if ( com)vfree (com);
+  if ( strstr ( com_in, "SCRATCH_FILE"))
+  {
+    com=(char*)vcalloc ( strlen ( com_in)+1, sizeof (char));
+    sprintf ( com, "%s", com_in);
+    while (strstr ( com, "SCRATCH_FILE"))
+    {
+      char *t;
+      t=vtmpnam(NULL);
+      com=(char*)vrealloc (com, (strlen (com)+strlen (t)+1)*sizeof (char));
+      com=substitute (com,"SCRATCH_FILE", t);
+    }
+  }
+  else
+  {
+    com=(char*)vcalloc (strlen (com_in)+1, sizeof (char));
+    sprintf ( com, "%s", com_in);
+  }
 
 
 
-    if (com == NULL)
-        return (1);
-    else if ( (p=strstr (com, "::IGNORE_FAILURE::")))
-      {
-	p[0]='\0';
-	failure_handling=IGNORE_FAILURE;
+  if (com == NULL)
+    return (1);
+  else if ( (p=strstr (com, "::IGNORE_FAILURE::")))
+  {
+    p[0]='\0';
+    failure_handling=IGNORE_FAILURE;
 
-      }
-    else if ( (p=strstr (com, "::RETURN_ON_FAILURE::")))
-      {
-	p[0]='\0';
-	failure_handling=RETURN_ON_FAILURE;
+  }
+  else if ( (p=strstr (com, "::RETURN_ON_FAILURE::")))
+  {
+    p[0]='\0';
+    failure_handling=RETURN_ON_FAILURE;
 
-      }
-    else if ( (p=strstr (com, "::EXIT_ON_FAILURE::")))
-       {
-	p[0]='\0';
-	failure_handling=EXIT_ON_FAILURE;
+  }
+  else if ( (p=strstr (com, "::EXIT_ON_FAILURE::")))
+  {
+    p[0]='\0';
+    failure_handling=EXIT_ON_FAILURE;
 
-       }
-    else
-      {
-	failure_handling=EXIT_ON_FAILURE;
-      }
-
-
-    sprintf ( command, " -SHELL- %s (tc)", com_in);
-
-    if ((pid = vvfork (command)) < 0)
-        return (-1);
-
-    if (pid == 0)
-      {
-	char * argv [4];
-	argv [0] = "sh";
-	argv [1] = "-c";
-        argv [2] =(char*) com;
-        argv [3] = 0;
-	if ( debug_lock)fprintf (stderr,"\n--- safe_system (util.h): %s (%d)\n", com, getpid());
-	execvp ("/bin/sh", argv);
-
-      }
-    else
-      {
-	set_pid(pid);
-      }
+  }
+  else
+  {
+    failure_handling=EXIT_ON_FAILURE;
+  }
 
 
-    while (1)
-      {
-	int r;
-	r=vwaitpid (pid, &status, 0);
+  sprintf ( command, " -SHELL- %s (tc)", com_in);
 
+  char * argv [4];
+  argv [0] = "sh";
+  argv [1] = "-c";
+  argv [2] =(char*) com;
+  argv [3] = 0;
+  if ( debug_lock)fprintf (stderr,"\n--- safe_system (util.h): %s\n", com);
 
-	if (errno ==EINTR)r=EXIT_SUCCESS;
-	else if (r==-1 || status != EXIT_SUCCESS)r=EXIT_FAILURE;
-	else r=EXIT_SUCCESS;
-	if ( debug_lock)
-	  fprintf ( stderr, "\n--- safe system return (util.c): p:%d c:%d r:%d (wait for %d", getppid(), getpid(), r, pid);
-	return check_process (com_in,pid,r, failure_handling);
-      }
+  // Suggested by MSDN. On success, errno is not touched.
+  errno = 0;
+
+  // Suspends calling thread until execution of the new process is complete.
+  spawnv(  P_WAIT, "sh", argv );
+
+  if ( debug_lock)
+      fprintf ( stderr, "\n--- safe system return (util.c): r:%d", errno);
+
+  return errno ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 
 
 
 
-static int **pidtable;
+static int **pidtable = NULL;
 int assert_pid (pid_t p)
 {
   if ( p>= MAX_N_PID || p<0)
-    {
-      printf_exit (EXIT_FAILURE, stderr, "MAX_N_PID exceded -- Recompile changing the value of MAX_N_PID (current: %d Requested: %d)", MAX_N_PID, p);
-    }
+  {
+    printf_exit (EXIT_FAILURE, stderr, "MAX_N_PID exceded -- Recompile changing the value of MAX_N_PID (current: %d Requested: %d)", MAX_N_PID, p);
+  }
   return 1;
 }
 pid_t **declare_pidtable ()
@@ -4246,9 +4204,9 @@ pid_t **declare_pidtable ()
 
   pidtable=(int**)vcalloc (MAX_N_PID, sizeof (pid_t*));
   for (a=0; a<MAX_N_PID; a++)
-    {
-      pidtable[a]=(int*)vcalloc (2, sizeof (pid_t));
-    }
+  {
+    pidtable[a]=(int*)vcalloc (2, sizeof (pid_t));
+  }
   return pidtable;
 }
 pid_t set_pid (pid_t p)
@@ -4259,84 +4217,41 @@ pid_t set_pid (pid_t p)
   if ( p<=0) return (pid_t)0;
   pidtable[(int)p][0]=getpid();
   pidtable[(int)p][1]=1;
-  return p;}
-
-
-pid_t vvfork (char *type)
-{
-  pid_t p;
-  static int attempt;
-
-  p=fork();
-  if (p==-1)
-    {
-      attempt++;
-      if ( attempt==1000)
-	{
-	  myexit(fprintf_error (stderr,"FORK_ERROR fork returned -1"));
-	  return -1;
-	}
-      else
-	add_warning (stderr, "Could Not Fork %s [%d/%d tries]", PROGRAM, attempt, 1000);
-	add_warning (stderr, "Error forking : %s\n", strerror( errno ) );
-      wait((pid_t*)-1);
-      return vvfork(type);
-    }
-  else
-    {
-      attempt=0;
-      if (p!=0)
-	{
-	  lock (getpid(), LLOCK, LSET, "%d\n",p);//Update the parent lock
-	  set_pid(p);
-	  return p;
-	}
-      else
-	{
-	  release_all_locks (getpid());
-	  lock (getpid(), LLOCK, LSET, "%d%s\n", getppid(), (type)?type:"");//Create lock for the fork
-	  if (debug_lock)fprintf ( stderr, "\nFORKED (util): p=%d child=%d\n", getppid(), getpid());
-
-	  return 0;
-	}
-    }
-}
-int    vwait_npid (int sub, int max, int min)
-{
-  if (max==0)
-    {
-      while (sub>0)
-	{
-	  vwait (NULL);
-	  sub--;
-	}
-    }
-  else if ( sub>=max)
-    {
-      while (sub>=min)
-	{
-	  vwait (NULL);
-	  sub--;
-	}
-    }
-  else{;}
-  return sub;
-}
-
-
-pid_t  vwaitpid (pid_t p, int *status, int options)
-{
-
-
-  p=waitpid (p, status, options);
-
-  if (pidtable)
-    {
-      assert_pid (p);
-      pidtable[(int)p][0]=pidtable[(int)p][1]=0;
-    }
   return p;
 }
+
+#include <list>
+#include <vector>
+#include <mutex>
+static std::vector<std::thread> g_threads;
+static std::mutex g_threads_mutex;
+
+//Main thread will return -1 because not in list.
+//Note, it is not possible to use raw thread ids as integers, no thanks to standard committee choosing to make it opaque.
+int get_thread_index()
+{
+  auto id = std::this_thread::get_id();
+  int index = 0;
+  for( auto & t: g_threads )
+  {
+    if( t.get_id() == id )
+      return index;
+
+    ++index;
+  }
+
+  return -1;
+}
+
+int start_thread(std::function<void(void)> fn)
+{
+  std::lock_guard<std::mutex> guard( g_threads_mutex );
+  int index = g_threads.size();
+  g_threads.push_back( std::thread( fn ) );
+
+  return index;
+}
+
 pid_t vwait (pid_t *p)
 {
   pid_t p2;
@@ -4346,14 +4261,42 @@ pid_t vwait (pid_t *p)
   if (atoigetenv("RETURN_ON_FAILURE"))handle_failure=RETURN_ON_FAILURE;
   else handle_failure=EXIT_ON_FAILURE;
 
-
-  p2=wait(&rv); 
+  p2=wait(&rv);
   if (p2!=-1)rv=check_process("forked::T-Coffee", p2, rv,handle_failure);
   if ( p) p[0]=rv;
 
   return p2;
 }
 
+void join()
+{
+  const int n = g_threads.size();
+  for( int i = 0; i < n; ++i )
+  {
+    join( i );
+  }
+}
+
+void join(int index)
+{
+  if( index < 0 ||
+      index >= g_threads.size() )
+    return;
+
+  auto & t = g_threads[index];
+  if( !t.joinable() )
+    return;
+
+  t.join();
+}
+
+void join(const std::vector<int> & indexes)
+{
+  for( auto i: indexes )
+  {
+    join( i );
+  }
+}
 
 int get_child_list (int pid,int *clist);
 void kill_child_list (int *list);
@@ -4443,7 +4386,7 @@ int get_child_list (int pid,int *clist)
 
 int kill_child_pid_pld()
 {
-  int n;
+  int n=0;
   string2file (logfile, "a","\n----TC: %d kill ALL CHILDREN", getpid());
 
   //  kill (0, SIGTERM); //send a sigterm to ALL children processes
@@ -4451,26 +4394,26 @@ int kill_child_pid_pld()
 
   if ( !pidtable)return 0;
   else
+  {
+    int a;
+    pid_t cpid;
+    cpid=getpid();
+    for (a=0; a<MAX_N_PID; a++)
     {
-      int a;
-      pid_t cpid;
-      cpid=getpid();
-      for (a=0; a<MAX_N_PID; a++)
-	{
-	  if (pidtable[a][1] && pidtable[a][0]==cpid )
-	    {
-	      if (debug_lock)fprintf ( stderr, "\n--- KILL %d from TC (%d)\n", a, getpid());
+      if (pidtable[a][1] && pidtable[a][0]==cpid )
+      {
+        if (debug_lock)fprintf ( stderr, "\n--- KILL %d from TC (%d)\n", a, getpid());
 
-	      pidtable[a][1]=pidtable[a][0]=0;
-	      kill((pid_t)a, SIGTERM);
-	      //lock (a, LLOCK, LRELEASE, "");
-	      shift_lock(a,getpid(),LERROR,LERROR, LSET);
-	      shift_lock(a,getpid(),LWARNING,LWARNING, LSET);
+        pidtable[a][1]=pidtable[a][0]=0;
+        kill((pid_t)a, SIGTERM);
+        //lock (a, LLOCK, LRELEASE, "");
+        shift_lock(a,getpid(),LERROR,LERROR, LSET);
+        shift_lock(a,getpid(),LWARNING,LWARNING, LSET);
 
-	      n++;
-	    }
-	}
+        n++;
+      }
     }
+  }
   return n;
 }
 
@@ -4484,18 +4427,18 @@ void unpack_all_perl_script (char *script)
   char command[1000];
 
   while ( !strm(PerlScriptName[a], "EndList"))
+  {
+    if (script==NULL || strm (script, "all") ||strm (script, "perl_script")|| strm (script,PerlScriptName[a]))
     {
-      if (script==NULL || strm (script, "all") ||strm (script, "perl_script")|| strm (script,PerlScriptName[a]))
-	{
-	  fprintf ( stderr, "\nUnpack Script %s\n", PerlScriptName[a]);
-	  fp=vfopen ( PerlScriptName[a], "w");
-	  fprintf (fp, "%s\n%s\n", PERL_HEADER,PerlScriptFile[a]);
-	  vfclose (fp);
-	  sprintf ( command, "chmod u+x %s",PerlScriptName[a] );
-	  safe_system (command);
-	}
-      a++;
+      fprintf ( stderr, "\nUnpack Script %s\n", PerlScriptName[a]);
+      fp=vfopen ( PerlScriptName[a], "w");
+      fprintf (fp, "%s\n%s\n", PERL_HEADER,PerlScriptFile[a]);
+      vfclose (fp);
+      sprintf ( command, "chmod u+x %s",PerlScriptName[a] );
+      safe_system (command);
     }
+    a++;
+  }
   myexit (EXIT_SUCCESS);
 }
 int satoi (char *);
@@ -4627,9 +4570,9 @@ char *get_home_4_tcoffee ()
     {
       sprintf (home_4_tcoffee, "%s/", getenv ("HOME_4_TCOFFEE"));
     }
-  else if ( check_dir_getenv ("HOME"))
+  else if ( check_dir_getenv (ENV_HOME))
     {
-      sprintf (home_4_tcoffee, "%s/", getenv ("HOME"));
+      sprintf (home_4_tcoffee, "%s/", getenv (ENV_HOME));
       sprintf (home, "%s/", home_4_tcoffee);
     }
   else if ( check_dir_getenv ("TMP"))
@@ -4666,54 +4609,54 @@ char *get_tmp_4_tcoffee ()
 {
   static char *tmp_4_tcoffee;
   if (!tmp_4_tcoffee)
-    {
-      tmp_4_tcoffee=(char*)vcalloc ( 1000, sizeof (char));
+  {
+    tmp_4_tcoffee=(char*)vcalloc ( 1000, sizeof (char));
 
-    }
+  }
 
   if ( tmp_4_tcoffee[0])
-    {
+  {
 
-      return tmp_4_tcoffee;
-    }
+    return tmp_4_tcoffee;
+  }
   else
+  {
+    char *v=getenv("TMP_4_TCOFFEE");
+
+    char buf[1000];
+    char host[1024];
+    tc_gethostname(host, 1023);
+
+    if (getenv ("UNIQUE_DIR_4_TCOFFEE"))
     {
-      char *v=getenv("TMP_4_TCOFFEE");
-
-      char buf[1000];
-      char host[1024];
-      gethostname(host, 1023);
-
-      if (getenv ("UNIQUE_DIR_4_TCOFFEE"))
-	  {
-		  printf("UNIQUE_DIR_4_TCOFFEE\n");
-		  sprintf (tmp_4_tcoffee, "%s/", getenv("UNIQUE_DIR_4_TCOFFEE"));
-	  }
-      if (v && strm (v, "TMP"))sprintf (tmp_4_tcoffee, "%s/", getenv("TMP"));
-      else if (v && strm (v, "LOCAL"))sprintf (tmp_4_tcoffee, "%s/", getcwd(NULL,0));
-      else if (v && strm (v, "."))sprintf (tmp_4_tcoffee, "%s/", getcwd(NULL,0));
-      else if (v)sprintf (tmp_4_tcoffee, "%s", v);
-      else if (isdir("/var/tmp"))sprintf (tmp_4_tcoffee, "/var/tmp/");
-      else if (isdir(get_dir_4_tcoffee ()))sprintf (tmp_4_tcoffee, "%s", get_dir_4_tcoffee());
-      else sprintf (tmp_4_tcoffee, "%s/", getcwd(NULL,0));
-
-      //now that rough location is decided, create the subdir structure
-
-// 	if (getppid() != getsid())
-   if (is_rootpid())
-	{
-	  cputenv ("ROOT_TMP_4_TCOFFEE=%s",  tmp_4_tcoffee);
-	  sprintf (buf, "%s/t_coffee.tmp/tmp.%s.%d/", tmp_4_tcoffee,host,getpid());
-	  sprintf (tmp_4_tcoffee, "%s", buf);
-
-	  my_mkdir(tmp_4_tcoffee);
-	  my_rmdir(tmp_4_tcoffee);
-	  my_mkdir(tmp_4_tcoffee);
-	}
-       substitute (tmp_4_tcoffee, "//", "/");
-       substitute (tmp_4_tcoffee, "//", "/");
-       substitute (tmp_4_tcoffee, "//", "/");
+      printf("UNIQUE_DIR_4_TCOFFEE\n");
+      sprintf (tmp_4_tcoffee, "%s/", getenv("UNIQUE_DIR_4_TCOFFEE"));
     }
+    if (v && strm (v, "TMP"))sprintf (tmp_4_tcoffee, "%s/", getenv("TMP"));
+    else if (v && strm (v, "LOCAL"))sprintf (tmp_4_tcoffee, "%s/", getcwd(NULL,0));
+    else if (v && strm (v, "."))sprintf (tmp_4_tcoffee, "%s/", getcwd(NULL,0));
+    else if (v)sprintf (tmp_4_tcoffee, "%s", v);
+    else if (isdir("/var/tmp"))sprintf (tmp_4_tcoffee, "/var/tmp/");
+    else if (isdir(get_dir_4_tcoffee ()))sprintf (tmp_4_tcoffee, "%s", get_dir_4_tcoffee());
+    else sprintf (tmp_4_tcoffee, "%s/", getcwd(NULL,0));
+
+    //now that rough location is decided, create the subdir structure
+
+    // 	if (getppid() != getsid())
+    if (is_root_thread())
+    {
+      cputenv ("ROOT_TMP_4_TCOFFEE=%s",  tmp_4_tcoffee);
+      sprintf (buf, "%s/t_coffee.tmp/tmp.%s.%d/", tmp_4_tcoffee,host,getpid());
+      sprintf (tmp_4_tcoffee, "%s", buf);
+
+      my_mkdir(tmp_4_tcoffee);
+      my_rmdir(tmp_4_tcoffee);
+      my_mkdir(tmp_4_tcoffee);
+    }
+    substitute (tmp_4_tcoffee, "//", "/");
+    substitute (tmp_4_tcoffee, "//", "/");
+    substitute (tmp_4_tcoffee, "//", "/");
+  }
 
   return tmp_4_tcoffee;
 }
@@ -4788,7 +4731,7 @@ char *get_lockdir_4_tcoffee ()
       else sprintf (lockdir_4_tcoffee, "%s/", get_tmp_4_tcoffee());
     }
 
-  if (is_rootpid())
+  if (is_root_thread())
 	{
 	  my_mkdir(lockdir_4_tcoffee);
 	}
@@ -4812,6 +4755,10 @@ int getNumCores() {
         if(count < 1) { count = 1; }
     }
     return count;
+#elif defined( _MSC_VER )
+  SYSTEM_INFO sysinfo;
+  GetSystemInfo( & sysinfo );
+  return sysinfo.dwNumberOfProcessors;
 #else
     return sysconf(_SC_NPROCESSORS_ONLN);
 #endif
@@ -5262,13 +5209,13 @@ int string_variable_isset (char *name)
 }
 char* set_string_variable (const char name_in[], char * v)
 {
-  char name[strlen(name_in)+1];
+  char name[256];
   strcpy(name,name_in);
   return store_string_variable (name, v, SET);
 }
 char * get_string_variable (const char name_in[])
 {
-  char name[strlen(name_in)+1];
+  char name[256];
   strcpy(name,name_in);
   return store_string_variable (name,NULL, GET);
 }
@@ -5352,7 +5299,7 @@ char* store_string_variable (char *name, char* v, int mode)
 }
 int int_variable_isset (const char *name_in)
 {
-  char name[strlen(name_in)+1];
+  char name[256];
   strcpy(name, name_in);
   return store_int_variable (name,0, ISSET);
 }
@@ -5362,13 +5309,13 @@ int set_int_variable (char *name, int v)
 }
 int get_int_variable (const char name_in[])
 {
-  char name[strlen(name_in)+1];
+  char name[256];
   strcpy(name, name_in);
   return store_int_variable (name, 0, GET);
 }
 int unset_int_variable (const char name_in[])
 {
-  char name[strlen(name_in)+1];
+  char name[256];
   strcpy(name, name_in);
   return store_int_variable (name,0, UNSET);
 }
@@ -5786,8 +5733,8 @@ char *chomp (char *name)
   name[a]='\0';
   return name;
 }
-static Tmpname *tmpname;
-static Tmpname *ntmpname;
+static thread_local Tmpname *tmpname;
+static thread_local Tmpname *ntmpname;
 
 static int n_tmpname;
 static int file2remove_flag;
@@ -5866,7 +5813,7 @@ int vtmpnam_size()
 int get_vtmpnam2_root()
 {
   int MAX_TMPNAM_ROOT=10000;
-  static int v;
+  static int v=0;
 
   if (v) ;
   else
@@ -5878,10 +5825,10 @@ int get_vtmpnam2_root()
 }
 char *tmpnam_2 (char *s)
 {
-	static int root;
-	static int file;
+  static thread_local int root=0;
+  static thread_local int file=0;
 	char buf[VERY_LONG_STRING];
-	static char root2[VERY_LONG_STRING];
+  static thread_local char root2[VERY_LONG_STRING];
 	static char *tmpdir;
 	static int name_size;
 
@@ -5891,7 +5838,7 @@ char *tmpnam_2 (char *s)
 
 		name_size=MAX( 2*L_tmpnam, MAXNAMES*2)+1;
 		root=get_vtmpnam2_root();
-		sprintf ( root2, "%d%d_", root, (int)getpid());
+    sprintf ( root2, "%d_%d_%d_", root, (int)getpid(), get_thread_index());
 
 		vtmpnam_prefixe=(char*)vcalloc (strlen (root2)+strlen (get_tmp_4_tcoffee())+2, sizeof (char));
 		sprintf (vtmpnam_prefixe, "%s/%s", get_tmp_4_tcoffee(), root2);
@@ -6091,115 +6038,115 @@ void ignore_cache()
 
 FILE *fopenN   ( char *fname, char *mode, int max_n_tries, int delay);
 FILE * vfopen  ( char *name_in, char *mode)
+{
+  FILE *fp;
+  int get_new_name;
+  int tolerate_mistake;
+  int cache_used=0;
+  FILE *tmp_fp;
+  int c;
+  static char *name;
+  static char *name2;
+  static char *stdin_file;
+
+  if ( !name_in)return NULL;
+  if (!name){name=(char*)vcalloc (1000, sizeof (char));}
+  if (!name2){name2=(char*)vcalloc (1000, sizeof (char));}
+
+  //intercept net files
+
+  if ( strstr (name_in, "tp:/") && mode && (mode[0]=='r' || mode[0]=='R'))
+  {
+    char *tmpf;
+    tmpf=check_url_exists(name_in);
+
+    if (!tmpf)
     {
-    FILE *fp;
-    int get_new_name;
-    int tolerate_mistake;
-    int cache_used=0;
-    FILE *tmp_fp;
-    int c;
-    static char *name;
-    static char *name2;
-    static char *stdin_file;
-
-    if ( !name_in)return NULL;
-    if (!name){name=(char*)vcalloc (1000, sizeof (char));}
-    if (!name2){name2=(char*)vcalloc (1000, sizeof (char));}
-
-    //intercept net files
-    
-    if ( strstr (name_in, "tp:/") && mode && (mode[0]=='r' || mode[0]=='R'))
-      {
-	char *tmpf;
-	tmpf=check_url_exists(name_in);
-	
-	if (!tmpf)
-	  {
-	    myexit(fprintf_error (stderr, "\nCould not fetch nefile %s -FORCED EXIT (NON INTERACTIVE MODE pid %d)\n", name_in,getpid()));
-	  }
-	else return vfopen (tmpf, mode);
-      }
-
-    sprintf ( name, "%s", name_in);
-    tild_substitute (name, "~", get_home_4_tcoffee());
-
-    get_new_name=tolerate_mistake=0;
-    if ( mode[0]=='g'){get_new_name=1; mode++;}
-    else if ( mode[0]=='t'){tolerate_mistake=1;mode++;}
-/*Use the cached version from CACHE_4_TCOFFEE*/
-    else if ( mode[0]=='c'){cache_used=1;mode++;}
-
-    if (name==NULL ||strm5 ( name, "no","NO","No","NULL","/dev/null") || strm2 (name, "no_file", "NO_FILE"))
-    		{
- 		if ( NFP==NULL)NFP=fopen (NULL_DEVICE, mode);
- 		return NFP;
- 		}
-    
-    else if ( strm3 (name,"stderr","STDERR","Stderr"))return stderr;
-    else if ( strm3 (name,"stdout","STDOUT","Stdout"))return stdout;
-    else if ( strm3 ( name, "stdin","STDIN","Stdin"))
-	{
-	  if (!stdin_file)
-	    {
-	      stdin_file=vtmpnam (NULL);
-	      tmp_fp=vfopen ( stdin_file, "w");
-	      while ( (c=fgetc(stdin))!=EOF)fprintf (tmp_fp, "%c", c);
-	      vfclose ( tmp_fp);
-	    }
-	  return vfopen (stdin_file, "r");
-	}
-
-    else if ( strm (name, "") && (strm (mode, "w") ||strm (mode, "a")) )return stdout;
-    else if ( strm (name, "") && strm (mode, "r"))return stdin;
-    else if ( (fp= fopen ( name, mode))==NULL)
-    		{
-		if ( strcmp (mode, "r")==0 && cache_used==0)
-		  {
-		    sprintf ( name2, "%s%s",get_cache_dir(), name);
-		    return vfopen ( name2, "cr");
-		  }
-    		else if ( strcmp (mode, "r")==0 && cache_used==1)
-    			{
-    			fprintf (stderr, "\n--COULD NOT READ %s\n", name);
-    			if ( get_new_name){fprintf ( stderr, "\nNew name: ");return vfopen (input_name(), mode-1);}
-    			else if ( tolerate_mistake)return NULL;
-			else
-			    {
-			      myexit(fprintf_error (stderr, "\nFORCED EXIT (NON INTERACTIVE MODE pid %d)\n", getpid()));
-			    }
-			}
-    		else if ( strcmp (mode, "a")==0 && cache_used==0)
-		  {
-		    sprintf ( name2, "%s%s",get_cache_dir(), name);
-		    return vfopen ( name, "ca");
-		  }
-		else if ( strcmp (mode, "a")==0 && cache_used==1)
-    			{
-			  fprintf (stderr, "\nCOULD NOT Append anything to %s\n", name);exit (0);
-			  if ( get_new_name){fprintf ( stderr, "\nNew name: ");return vfopen (input_name(), mode-1);}
-			  else if ( tolerate_mistake)return NULL;
-			  else
-			    {
-			      myexit(fprintf_error (stderr, "\nFORCED EXIT (NON INTERACTIVE MODE pid %d)\n", getpid()));
-			    }
-			}
-		else if ( strcmp (mode, "w")==0)
-    			{
-    			fprintf (stderr, "\nCANNOT WRITE %s\n", name);
-    			if ( get_new_name==1){fprintf ( stderr, "\nNew name: ");return vfopen (input_name(), mode-1);}
-    			else if ( tolerate_mistake)return NULL;
-			else
-			    {
-			     myexit(fprintf_error (stderr, "\nFORCED EXIT (NON INTERACTIVE MODE pid %d): %s %s\n", getpid(),(strcmp ( mode, "r")==0)?"READ":"WRITE", name));
-
-			    }
-			}
-    		}
-    else
-	return fp;
-
-    return NULL;
+      myexit(fprintf_error (stderr, "\nCould not fetch nefile %s -FORCED EXIT (NON INTERACTIVE MODE pid %d)\n", name_in,getpid()));
     }
+    else return vfopen (tmpf, mode);
+  }
+
+  sprintf ( name, "%s", name_in);
+  tild_substitute (name, "~", get_home_4_tcoffee());
+
+  get_new_name=tolerate_mistake=0;
+  if ( mode[0]=='g'){get_new_name=1; mode++;}
+  else if ( mode[0]=='t'){tolerate_mistake=1;mode++;}
+  /*Use the cached version from CACHE_4_TCOFFEE*/
+  else if ( mode[0]=='c'){cache_used=1;mode++;}
+
+  if (name==NULL ||strm5 ( name, "no","NO","No","NULL","/dev/null") || strm2 (name, "no_file", "NO_FILE"))
+  {
+    if ( NFP==NULL)NFP=fopen (NULL_DEVICE, mode);
+    return NFP;
+  }
+
+  else if ( strm3 (name,"stderr","STDERR","Stderr"))return stderr;
+  else if ( strm3 (name,"stdout","STDOUT","Stdout"))return stdout;
+  else if ( strm3 ( name, "stdin","STDIN","Stdin"))
+  {
+    if (!stdin_file)
+    {
+      stdin_file=vtmpnam (NULL);
+      tmp_fp=vfopen ( stdin_file, "w");
+      while ( (c=fgetc(stdin))!=EOF)fprintf (tmp_fp, "%c", c);
+      vfclose ( tmp_fp);
+    }
+    return vfopen (stdin_file, "r");
+  }
+
+  else if ( strm (name, "") && (strm (mode, "w") ||strm (mode, "a")) )return stdout;
+  else if ( strm (name, "") && strm (mode, "r"))return stdin;
+  else if ( (fp= fopen ( name, mode))==NULL)
+  {
+    if ( strcmp (mode, "r")==0 && cache_used==0)
+    {
+      sprintf ( name2, "%s%s",get_cache_dir(), name);
+      return vfopen ( name2, "cr");
+    }
+    else if ( strcmp (mode, "r")==0 && cache_used==1)
+    {
+      fprintf (stderr, "\n--COULD NOT READ %s\n", name);
+      if ( get_new_name){fprintf ( stderr, "\nNew name: ");return vfopen (input_name(), mode-1);}
+      else if ( tolerate_mistake)return NULL;
+      else
+      {
+        myexit(fprintf_error (stderr, "\nFORCED EXIT (NON INTERACTIVE MODE pid %d)\n", getpid()));
+      }
+    }
+    else if ( strcmp (mode, "a")==0 && cache_used==0)
+    {
+      sprintf ( name2, "%s%s",get_cache_dir(), name);
+      return vfopen ( name, "ca");
+    }
+    else if ( strcmp (mode, "a")==0 && cache_used==1)
+    {
+      fprintf (stderr, "\nCOULD NOT Append anything to %s\n", name);exit (0);
+      if ( get_new_name){fprintf ( stderr, "\nNew name: ");return vfopen (input_name(), mode-1);}
+      else if ( tolerate_mistake)return NULL;
+      else
+      {
+        myexit(fprintf_error (stderr, "\nFORCED EXIT (NON INTERACTIVE MODE pid %d)\n", getpid()));
+      }
+    }
+    else if ( strcmp (mode, "w")==0)
+    {
+      fprintf (stderr, "\nCANNOT WRITE %s\n", name);
+      if ( get_new_name==1){fprintf ( stderr, "\nNew name: ");return vfopen (input_name(), mode-1);}
+      else if ( tolerate_mistake)return NULL;
+      else
+      {
+        myexit(fprintf_error (stderr, "\nFORCED EXIT (NON INTERACTIVE MODE pid %d): %s %s\n", getpid(),(strcmp ( mode, "r")==0)?"READ":"WRITE", name));
+
+      }
+    }
+  }
+  else
+    return fp;
+
+  return NULL;
+}
 FILE *fopenN   ( char *fname, char *mode, int max_n_tries, int delay)
 {
   FILE *fp;
@@ -6208,7 +6155,12 @@ FILE *fopenN   ( char *fname, char *mode, int max_n_tries, int delay)
   for (a=0; a< max_n_tries; a++)
     {
       if ((fp=fopen (fname, mode))) return fp;
-      else sleep (delay);
+      else
+      #ifdef _MSC_VER
+        Sleep( delay );
+      #else
+        sleep (delay);
+      #endif
       HERE ("---- failed opening: %s", fname);
     }
   return NULL;
@@ -6488,7 +6440,7 @@ int file2size(char *name)
  * \param range_left  min value ( "any" for any)
  * \param range_right max_value ( "any" for any);
 */
-int get_cl_param (int argc, char **argv, FILE **fp,const char para_name_in[], int *set_flag,const char type_in[], int optional, int max_n_val,const char usage_in[], ...)
+int get_cl_param (int argc, char **argv, FILE **fp,const char para_name[], int *set_flag,const char type[], int optional, int max_n_val,const char usage[], ...)
         {
 	
 	int pos=0;
@@ -6526,7 +6478,7 @@ int get_cl_param (int argc, char **argv, FILE **fp,const char para_name_in[], in
 
 
 /*CHECK THAT ALL THE PARAM IN ARG EXIST*/
-	if ( para_name_in==NULL)
+  if ( para_name==NULL)
 	   {
 	   for ( a=1; a< argc; a++)
 	       {
@@ -6546,16 +6498,9 @@ int get_cl_param (int argc, char **argv, FILE **fp,const char para_name_in[], in
 	   return 0;
 	   }
 
-	char para_name[strlen(para_name_in)+1];
-	char type[strlen(type_in)+1];
-	char usage[strlen(usage_in)+1];
-	strcpy(para_name, para_name_in);
-	strcpy(type, type_in);
-	strcpy(usage, usage_in);
-
 
 	if ( parameter_list==NULL)parameter_list=declare_char(MAX_N_PARAM,STRING);
-	para_name_list=get_list_of_tokens(para_name,NULL, &n_para_name);
+  para_name_list=get_list_of_tokens((char*)para_name,NULL, &n_para_name);
 	for ( a=0; a< n_para_name; a++)
 	    {
 	    sprintf ( parameter_list[number_of_parameters++],"%s", para_name_list[a]);
@@ -6567,7 +6512,7 @@ int get_cl_param (int argc, char **argv, FILE **fp,const char para_name_in[], in
 
 
 	set_flag[0]=0;
-	va_start (ap, usage);
+  va_start (ap, usage);
 
 	if (strm3 (type, "S","R_F","W_F"))
 		string_val=va_arg(ap, char**);
@@ -6587,7 +6532,7 @@ int get_cl_param (int argc, char **argv, FILE **fp,const char para_name_in[], in
        	va_end(ap);
 
 
-	para_name_list=get_list_of_tokens(para_name, NULL, &n_para_name);
+  para_name_list=get_list_of_tokens((char*)para_name, NULL, &n_para_name);
 	for ( a=0; a<n_para_name; a++)
 	    {
 	    if ( (pos=name_is_in_list(para_name_list[a], argv,argc, STRING))!=-1)break;
@@ -6597,12 +6542,12 @@ int get_cl_param (int argc, char **argv, FILE **fp,const char para_name_in[], in
 	if (  (name_is_in_list("-help" , argv,argc  ,STRING)!=-1) && (argc==2 || (name_is_in_list( para_name , argv,argc  ,STRING)!=-1)))
 	  {
 
-	       fprintf ( stderr, "PARAMETER   : %s\n",  para_name);
-	       fprintf ( stderr, "USAGE       : %s\n",       usage);
+         fprintf ( stderr, "PARAMETER   : %s\n",  para_name);
+         fprintf ( stderr, "USAGE       : %s\n",       usage);
 	       fprintf ( stderr, "MAX_N_VALUES: %d\n",   max_n_val);
 	       fprintf ( stderr, "DEFAULT     : %s OR %s (when flag set)\n", default_value1, default_value2);
 	       fprintf ( stderr, "RANGE       : [%s]...[%s]\n", range_left,(strm(range_right,"any"))?"":range_right);
-	       fprintf ( stderr, "TYPE        : %s\n\n", type);
+         fprintf ( stderr, "TYPE        : %s\n\n", type);
 	       return 0;
 	  }
 	else if ( name_is_in_list ("-help" , argv,argc  ,STRING)!=-1)
@@ -6616,7 +6561,7 @@ int get_cl_param (int argc, char **argv, FILE **fp,const char para_name_in[], in
 	   }
      	else if (pos==-1)
 	   {
-	   if ( optional==OPTIONAL)
+     if ( optional==TC_OPTIONAL)
 	      {
 	      set_flag[0]=0;
 	      para_val=get_list_of_tokens(default_value1, NULL, &n_para_val);
@@ -6792,7 +6737,7 @@ int get_cl_param (int argc, char **argv, FILE **fp,const char para_name_in[], in
 	free_char ( pv_l, -1);
 	free_char ( pv_r, -1);
 	return n_para;
-	}
+}
 
 
 
@@ -7420,6 +7365,7 @@ int check_internet_connection  (int mode)
   else if ( mode==IS_NOT_FATAL)return internet;
   else proxy_msg(stderr);
   myexit (EXIT_FAILURE);
+  return 0;
 }
 char *pg2path (char *pg)
 {
@@ -7624,17 +7570,29 @@ int file_exists (char *path, char *fname)
   else if (path) sprintf ( file, "%s/%s", path, fname);
   else if (!path)sprintf (file, "%s", fname);
 
+#ifdef _MSC_VER
+  DWORD dwAttrib = GetFileAttributes( file );
+  return INVALID_FILE_ATTRIBUTES != dwAttrib &&
+         !( FILE_ATTRIBUTE_DIRECTORY & dwAttrib );
+#else
   if (stat(file,& s)!=-1)
     return S_ISREG(s.st_mode);
   else return 0;
+#endif
 }
 
 int isdir  (char *file)
 {
+#ifdef _MSC_VER
+  DWORD dwAttrib = GetFileAttributes( file );
+  return INVALID_FILE_ATTRIBUTES != dwAttrib &&
+         FILE_ATTRIBUTE_DIRECTORY & dwAttrib;
+#else
   struct stat s;
   if (stat (file,&s)!=-1)
     return S_ISDIR(s.st_mode);
   else return 0;
+#endif
 }
 int rrmdir (char *s)
 {
@@ -7719,32 +7677,34 @@ int my_mkdir ( char *dir_in)
   sprintf ( dir, "%s", dir_in);
   tild_substitute ( dir, "~",get_home_4_tcoffee());
 
-
-
   a=0;
 
   while (dir[a]!='\0')
+  {
+
+    if ( dir[a]==dir_sep || dir[a+1]=='\0')
     {
+      buf= dir[a+1];
+      dir[a+1]='\0';
 
-      if ( dir[a]==dir_sep || dir[a+1]=='\0')
-	{
-	  buf= dir[a+1];
-	  dir[a+1]='\0';
-
-	  if (access(dir, F_OK)==-1)
-	    {
-		  mode_t oldmask = umask(0);
-	      mkdir (dir, S_IRWXU | S_IRWXG | S_IRWXO);
-	      umask(oldmask);
-
-	      if ( access (dir, F_OK)==-1)
-		{
-		  myexit(fprintf_error ( stderr, "\nERROR: Could Not Create Directory %s [FATAL:%s]", dir, PROGRAM));	}
-	    }
-	  dir[a+1]=buf;
-	}
-      a++;
+      if (access(dir, F_OK)==-1)
+      {
+        #ifdef _MSC_VER
+          tc_mkdir( dir, 0 );
+        #else
+          mode_t oldmask = umask(0);
+          mkdir (dir, S_IRWXU | S_IRWXG | S_IRWXO);
+          umask(oldmask);
+        #endif
+        if ( access (dir, F_OK)==-1)
+        {
+          myexit(fprintf_error ( stderr, "\nERROR: Could Not Create Directory %s [FATAL:%s]", dir, PROGRAM));
+        }
+      }
+      dir[a+1]=buf;
     }
+    a++;
+  }
 
   vfree (dir);
   return 1;
@@ -8814,6 +8774,7 @@ char ** standard_initialisation  (char **in_argv, int *in_argc)
   global_exit_signal=EXIT_SUCCESS;
   atexit (clean_exit);
 
+#ifndef _MSC_VER
   signal (SIGTERM,signal_exit);
   signal (SIGINT, signal_exit);
   signal (SIGKILL, signal_exit);
@@ -8821,6 +8782,7 @@ char ** standard_initialisation  (char **in_argv, int *in_argc)
   signal (SIGFPE, error_exit);
   signal (SIGILL, error_exit);
   signal (SIGSEGV, error_exit);
+#endif
 
   program_name=(char*)vcalloc ( strlen (in_argv[0])+strlen (PROGRAM)+1, sizeof (char));
   if (in_argv)
@@ -8845,7 +8807,7 @@ char ** standard_initialisation  (char **in_argv, int *in_argc)
     {
       //1-set the environment variables;
       file_putenv ("/usr/local/t_coffee/.t_coffee_env");//make sure child processes do not update env
-      sprintf (buf, "%s/.t_coffee/.t_coffee_env", getenv ("HOME"));
+      sprintf (buf, "%s/.t_coffee/.t_coffee_env", getenv(ENV_HOME));
       file_putenv (buf);
       file_putenv ("./.t_coffee_env");
       if (getenv ("ENV_4_TCOFFEE"))file_putenv (getenv ("ENV_4_TCOFFEE"));
@@ -8876,7 +8838,7 @@ char ** standard_initialisation  (char **in_argv, int *in_argc)
   if (!getenv ("UPDATED_ENV_4_TCOFFEE"))
     {
       cputenv4path ("/usr/local/t_coffee/plugins");
-      sprintf (buf, "%s/.t_coffee/plugins", getenv ("HOME"));
+      sprintf (buf, "%s/.t_coffee/plugins", getenv(ENV_HOME));
       cputenv4path (buf);
       cputenv4path ("./.plugins");
       if ( getenv ("PLUGINS_4_TCOFFEE"))cputenv4path (getenv ("PLUGINS_4_TCOFFEE"));
@@ -8930,7 +8892,7 @@ char ** standard_initialisation  (char **in_argv, int *in_argc)
 void signal_exit (int)
  {
 
-   if (is_rootpid())fprintf ( stderr, "****** Forced interuption of main parent process %d\n", getpid());
+   if (is_root_thread())fprintf ( stderr, "****** Forced interuption of main parent process %d\n", getpid());
 
    global_exit_signal=EXIT_SUCCESS;
    myexit (EXIT_SUCCESS);
@@ -8967,7 +8929,7 @@ void clean_exit ()
     }
 
 
-  if (is_rootpid())
+  if (is_root_thread())
     {
 
       kill_child_pid(getpid());
@@ -9049,7 +9011,7 @@ void clean_exit ()
       start=start->next;
       //vfree(b->name);vfree(b);
     }
-  if (!debug && is_rootpid())my_rmdir (get_tmp_4_tcoffee());
+  if (!debug && is_root_thread())my_rmdir (get_tmp_4_tcoffee());
 
 
   //Remove the lock
@@ -9201,16 +9163,15 @@ int km_main (int argc, char *argv[]);
 
 int km_main (int argc, char *argv[])
 {
-  double **data, **sdata;
+  double **data;
 
   int dim, len, n;
-  int a, b;
+  int a;
   int k=2;
   char *infile=NULL;
   char *outfile=NULL;
   double t=0.0001;
   int mode=1;
-  int scan=0;
   char **field_list;
   int nf=0;
 
@@ -9248,6 +9209,7 @@ int km_main (int argc, char *argv[])
     km_make_kmeans (data, n, dim,k,t,NULL, mode);
 
   km_output_data (data,n, dim,len,infile,outfile);
+  return 0;
 }
 
 void km_display_data (double **d, int n, int dim)

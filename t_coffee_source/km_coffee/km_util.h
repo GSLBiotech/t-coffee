@@ -31,9 +31,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <unistd.h>
 #include <signal.h>
 
+#ifndef _MSC_VER
+  #include <unistd.h>
+#endif
 
 /**
  * \brief Wrapper for fopen.

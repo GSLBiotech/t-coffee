@@ -63,6 +63,7 @@ NT_node redundate (Sequence* S,NT_node T, char *seq, char *tree)
   Rredundate (T, S, seq);
   
   print_newick_tree (T,tree);
+  return NULL;
 }
 NT_node Rredundate (NT_node T, Sequence* S, char *seq)
 {

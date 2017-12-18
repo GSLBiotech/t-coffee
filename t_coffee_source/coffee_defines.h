@@ -128,7 +128,7 @@
 
 #define UPPER             18
 #define LOWER             19
-#define DELETE            20
+#define TC_DELETE         20
 #define SWITCHCASE        21 
 
 #define VECTOR            22
@@ -221,8 +221,8 @@
 #define INSTALL          3
 #define INSTALL_OR_DIE   4
 
-#define OPTIONAL         1
-#define NON_OPTIONAL     0
+#define TC_OPTIONAL      1
+#define TC_NON_OPTIONAL  0
 
 #define GV_MAXIMISE      1
 #define GV_MINIMISE      0
@@ -297,7 +297,7 @@
 #define SSPACE           "   "
 
 #define MATCH            1
-#define UNALIGNED        2
+#define TC_UNALIGNED        2
 #define GAP              3
 
 #define MNE 3

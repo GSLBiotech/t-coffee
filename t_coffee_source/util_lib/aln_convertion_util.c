@@ -326,7 +326,7 @@ Alignment *sp3_evaluate (Alignment *RNA, Sequence *ST)
   
   float tot_sc=0;
   float max_sc=0;
-  Alignment *A, *OUT, *IN;
+  Alignment *A, *pOUT, *pIN;
 
   if (!ST)
     {
@@ -336,10 +336,10 @@ Alignment *sp3_evaluate (Alignment *RNA, Sequence *ST)
   
   
   thread_seq_struc2aln (RNA,ST);
-  IN=copy_aln (RNA, NULL);
+  pIN=copy_aln (RNA, NULL);
   
-  A=copy_aln (IN, NULL);
-  OUT=copy_aln (IN, NULL);
+  A=copy_aln (pIN, NULL);
+  pOUT=copy_aln (pIN, NULL);
   
   max_res_sc=declare_float (A->nseq, A->len_aln);
   tot_res_sc=declare_float (A->nseq, A->len_aln);
@@ -398,18 +398,18 @@ Alignment *sp3_evaluate (Alignment *RNA, Sequence *ST)
 	    {
 	      int r1=(max_res_sc[a][c]==0)?0:(tot_res_sc[a][c]*(float)10/max_res_sc[a][c]);
 	      r1=(r1>=10)?9:r1;
-	      OUT->seq_al[a][c]=r1+'0';
+	      pOUT->seq_al[a][c]=r1+'0';
 	    }
 	}
-      OUT->score_seq[a]=(max_seq_sc[a]==0)?0:(tot_seq_sc[a]*(float)100)/max_seq_sc[a];
+      pOUT->score_seq[a]=(max_seq_sc[a]==0)?0:(tot_seq_sc[a]*(float)100)/max_seq_sc[a];
     }
   for (c=0; c<A->len_aln; c++)
     {
       int r1=(max_col_sc[c]==0)?0:(tot_col_sc[c]*(float)10)/max_col_sc[c];
-      OUT->seq_al[A->nseq][c]=(r1>=10)?9:r1;
+      pOUT->seq_al[A->nseq][c]=(r1>=10)?9:r1;
     }
  
-  OUT->score=OUT->score_aln=(int)(max_sc==0)?0:(tot_sc*1000)/max_sc;
+  pOUT->score=pOUT->score_aln=(int)(max_sc==0)?0:(tot_sc*1000)/max_sc;
 
 
 
@@ -418,9 +418,9 @@ Alignment *sp3_evaluate (Alignment *RNA, Sequence *ST)
   free_float (max_res_sc, -1);
   vfree (tot_seq_sc);vfree (max_seq_sc);
   vfree (tot_col_sc);vfree (max_col_sc);
-  copy_aln (OUT, RNA);
-  free_aln (IN);
-  free_aln (OUT);
+  copy_aln (pOUT, RNA);
+  free_aln (pIN);
+  free_aln (pOUT);
   return RNA;
 }
 		
@@ -3291,7 +3291,7 @@ Alignment *filter_convert_aln ( Alignment *A,Alignment *ST, int use_cons, int va
 
 Alignment * filter_aln ( Alignment *A, Alignment *ST, int value)
         {
-	  return filter_aln_convert (A, ST,0,value,DELETE, NULL);
+	  return filter_aln_convert (A, ST,0,value,TC_DELETE, NULL);
 	}
 Alignment * filter_aln_switchcase ( Alignment *A, Alignment *ST,int use_cons, int value)
         {
@@ -3425,7 +3425,7 @@ Alignment * filter_aln_convert ( Alignment *A, Alignment *ST,int use_cons, int v
 			  else if (isupper (A->seq_al[a][b]))A->seq_al[a][b]=tolower (A->seq_al[a][b]);
 			  else if (islower (A->seq_al[a][b]))A->seq_al[a][b]=toupper (A->seq_al[a][b]);
 			}
-		      else if ( n_symbol==DELETE && !symbol_list)A->seq_al[a][b]='-';
+		      else if ( n_symbol==TC_DELETE && !symbol_list)A->seq_al[a][b]='-';
 		      else
 			{
 			  A->seq_al[a][b]=convert(A->seq_al[a][b],n_symbol,symbol_list);
@@ -4450,6 +4450,7 @@ Alignment *aln2conservation ( Alignment *A, int threshold,char *seq)
     }
   fprintf ( stdout, "#average conservation: %.2f", tot);
   myexit (EXIT_SUCCESS);
+  return 0;
 }
 char *aln2cons_seq_mat ( Alignment *A, char *mat_name)
 {
@@ -4855,25 +4856,25 @@ int ** trim_aln_borders (char **seq1, char **seq2, int nseq)
 
 
 
-Sequence * merge_seq( Sequence *IN, Sequence *OUT)
+Sequence * merge_seq( Sequence *pIN, Sequence *pOUT)
 {
 	int a;
 
 
-	if ( OUT==NULL)
+	if ( pOUT==NULL)
 	  {
-	    return duplicate_sequence (IN);
+	    return duplicate_sequence (pIN);
 	  }
 	else
 	  {
-	    if ( IN && check_list_for_dup( IN->name, IN->nseq))
+	    if ( pIN && check_list_for_dup( pIN->name, pIN->nseq))
 	      {
-		fprintf ( stderr, "\nERROR: %s is duplicated in file %s[FATAL]\n", check_list_for_dup( IN->name, IN->nseq), IN->file[0]);
+		fprintf ( stderr, "\nERROR: %s is duplicated in file %s[FATAL]\n", check_list_for_dup( pIN->name, pIN->nseq), pIN->file[0]);
 		myexit (EXIT_FAILURE);
 	      }
-	    for ( a=0; a< IN->nseq; a++)
-	      if ((OUT=add_sequence ( IN, OUT, a))==NULL)return NULL;
-	    return OUT;
+	    for ( a=0; a< pIN->nseq; a++)
+	      if ((pOUT=add_sequence ( pIN, pOUT, a))==NULL)return NULL;
+	    return pOUT;
 	  }
 }
 
@@ -5252,42 +5253,42 @@ int prf_in_seq ( Sequence *S)
 
 
 
-Sequence * add_sequence ( Sequence *IN, Sequence *OUT, int i)
+Sequence * add_sequence ( Sequence *pIN, Sequence *pOUT, int i)
 {
 	int s, a;
 
 
 	char *buf;
-	if (OUT==NULL)
+	if (pOUT==NULL)
 	  {
-	    OUT=duplicate_sequence (IN);
-	    return OUT;
+	    pOUT=duplicate_sequence (pIN);
+	    return pOUT;
 	  }
-	for (a=0; a<OUT->nseq; a++)
+	for (a=0; a<pOUT->nseq; a++)
 	  {
 	    Alignment *P;
-	    P=seq2R_template_profile (OUT, a);
+	    P=seq2R_template_profile (pOUT, a);
 	    if (!P)
 	      continue;
-	    else if (name_is_in_list (IN->name[i], P->name, P->nseq, 100)!=-1)
-	      return OUT;
+	    else if (name_is_in_list (pIN->name[i], P->name, P->nseq, 100)!=-1)
+	      return pOUT;
 	  }
 
 	/*Adds sequence i of IN at the end of OUT*/
 
-	if ((s=name_is_in_list ( IN->name[i], OUT->name, OUT->nseq,STRING))==-1 )
+	if ((s=name_is_in_list ( pIN->name[i], pOUT->name, pOUT->nseq,STRING))==-1 )
 	{
-		OUT=realloc_sequence (OUT, OUT->nseq+1, IN->len[i]);
-		sprintf ( OUT->name[OUT->nseq],"%s",IN->name[i]);
-		sprintf ( OUT->file[OUT->nseq],"%s",IN->file[i]);
-		sprintf ( OUT->seq_comment[OUT->nseq],"%s",IN->seq_comment[i]);
-		sprintf ( OUT->aln_comment[OUT->nseq],"%s",IN->aln_comment[i]);
+		pOUT=realloc_sequence (pOUT, pOUT->nseq+1, pIN->len[i]);
+		sprintf ( pOUT->name[pOUT->nseq],"%s",pIN->name[i]);
+		sprintf ( pOUT->file[pOUT->nseq],"%s",pIN->file[i]);
+		sprintf ( pOUT->seq_comment[pOUT->nseq],"%s",pIN->seq_comment[i]);
+		sprintf ( pOUT->aln_comment[pOUT->nseq],"%s",pIN->aln_comment[i]);
 
-		sprintf ( OUT->seq[OUT->nseq],"%s",IN->seq[i]);
-		if (IN -> genome_co != NULL)
+		sprintf ( pOUT->seq[pOUT->nseq],"%s",pIN->seq[i]);
+		if (pIN -> genome_co != NULL)
 		{
-			Genomic_info *tmp_in = &(IN->genome_co[i]);
-			Genomic_info *tmp_out = &(OUT->genome_co[OUT->nseq]);
+			Genomic_info *tmp_in = &(pIN->genome_co[i]);
+			Genomic_info *tmp_out = &(pOUT->genome_co[pOUT->nseq]);
 			tmp_out->strand = tmp_in->strand;
 			tmp_out->start = tmp_in->start;
 			tmp_out->end = tmp_in->end;
@@ -5297,35 +5298,35 @@ Sequence * add_sequence ( Sequence *IN, Sequence *OUT, int i)
 
 		}
 
-		OUT->len[OUT->nseq]=IN->len[i];
-		OUT->T[OUT->nseq][0]=IN->T[i][0];
-		OUT->nseq++;
-		return OUT;
+		pOUT->len[pOUT->nseq]=pIN->len[i];
+		pOUT->T[pOUT->nseq][0]=pIN->T[i][0];
+		pOUT->nseq++;
+		return pOUT;
 	}
-	else if ( s!=-1 && !case_insensitive_strcmp ( IN->seq[i], OUT->seq[s]))
+	else if ( s!=-1 && !case_insensitive_strcmp ( pIN->seq[i], pOUT->seq[s]))
 	{
-	  fprintf ( stderr,"[DEBUG_RECONCILIATION:add_sequence]\n%s\n%s\n", IN->seq[i], OUT->seq[s]);
-	  if ( getenv4debug("DEBUG_RECONCILIATION"))fprintf ( stderr,"[DEBUG_RECONCILIATION:add_sequence]\n%s\n%s\n", IN->seq[i], OUT->seq[s]);
+	  fprintf ( stderr,"[DEBUG_RECONCILIATION:add_sequence]\n%s\n%s\n", pIN->seq[i], pOUT->seq[s]);
+	  if ( getenv4debug("DEBUG_RECONCILIATION"))fprintf ( stderr,"[DEBUG_RECONCILIATION:add_sequence]\n%s\n%s\n", pIN->seq[i], pOUT->seq[s]);
 
-	  add_warning (stderr, "DISCREPANCY:%s in [%s] and  [%s]\n", IN->name[i], IN->file[i], OUT->file[s]);
+	  add_warning (stderr, "DISCREPANCY:%s in [%s] and  [%s]\n", pIN->name[i], pIN->file[i], pOUT->file[s]);
 
 
-	  if (((buf=build_consensus(IN->seq[i], OUT->seq[s],"cfasta_pair_wise" ))!=NULL) || ((buf=build_consensus(IN->seq[i], OUT->seq[s],"myers_miller_pair_wise" ))!=NULL))
+	  if (((buf=build_consensus(pIN->seq[i], pOUT->seq[s],"cfasta_pair_wise" ))!=NULL) || ((buf=build_consensus(pIN->seq[i], pOUT->seq[s],"myers_miller_pair_wise" ))!=NULL))
 	    {
 
-	      OUT->max_len=MAX(OUT->max_len, strlen(buf));
-	      OUT->min_len=MIN(OUT->min_len, strlen(buf));
-	      OUT->seq    =realloc_char ( OUT->seq, -1, -1,OUT->nseq,OUT->max_len+1);
+	      pOUT->max_len=MAX(pOUT->max_len, strlen(buf));
+	      pOUT->min_len=MIN(pOUT->min_len, strlen(buf));
+	      pOUT->seq    =realloc_char ( pOUT->seq, -1, -1,pOUT->nseq,pOUT->max_len+1);
 
-	      sprintf ( OUT->seq[s],"%s",buf);
-	      OUT->len[s]=strlen (buf);
+	      sprintf ( pOUT->seq[s],"%s",buf);
+	      pOUT->len[s]=strlen (buf);
 	      vfree (buf);
-	      return OUT;
+	      return pOUT;
 	    }
 	  else
 	    {
 	      fprintf ( stderr, "IMPOSSIBLE TO RECONCILIATE SOME SEQUENCES[FATAL:%s]\n", PROGRAM);
-	      print_aln ( align_two_sequences (IN->seq[i], OUT->seq[s], "idmat", 0, 0, "fasta_pair_wise"));
+	      print_aln ( align_two_sequences (pIN->seq[i], pOUT->seq[s], "idmat", 0, 0, "fasta_pair_wise"));
 	      myexit (EXIT_FAILURE);
 	      return NULL;
 	    }
@@ -5333,7 +5334,7 @@ Sequence * add_sequence ( Sequence *IN, Sequence *OUT, int i)
 	}
 	else
 	  {
-	    return OUT;
+	    return pOUT;
 	  }
 }
 
@@ -5678,7 +5679,11 @@ int handle_X_template_files ( X_template *T, char *mode)
 
 char *trim_template_file (char *file, Sequence *S);//Remove from template file all sequences that cannot be used
 
-
+void seq2template_seq_task(char* command)
+{
+  my_system( command );
+  free( command );
+}
 /**
  * Adds templates to a Sequence object.
  *
@@ -5709,7 +5714,7 @@ Sequence * seq2template_seq ( Sequence *S, char *template_list, Fname *F)
   /*Fill the sequences*/
   /*1: No template*/
   char buf[1000];
- 
+
   int PmC,PmI,PMI;
   int BmC,BmI,BMI;
   char *server;
@@ -5722,7 +5727,7 @@ Sequence * seq2template_seq ( Sequence *S, char *template_list, Fname *F)
   remove_template_file=get_int_variable ("remove_template_file");
   server=get_string_variable ("blast_server");
   pdb_db=get_string_variable ("pdb_db");
-  prot_db=get_string_variable ("prot_db");         
+  prot_db=get_string_variable ("prot_db");
 
   PmI=get_int_variable ("pdb_min_sim");
   PMI=get_int_variable ("pdb_max_sim");
@@ -5734,398 +5739,393 @@ Sequence * seq2template_seq ( Sequence *S, char *template_list, Fname *F)
 
   
   if (strm (prot_db, "dataset") || strm (prot_db, "self"))
+  {
+    if (!seqdb)
     {
-      if (!seqdb)
-	{
-	  seqdb=vtmpnam(NULL);
-	  seq2blastdb (seqdb,S->blastdbS);
+      seqdb=vtmpnam(NULL);
+      seq2blastdb (seqdb,S->blastdbS);
 
-	}
-      prot_db=seqdb;
-      strcpy(server,"LOCAL");
     }
+    prot_db=seqdb;
+    strcpy(server,"LOCAL");
+  }
 
 
   //Set the type of the PDB structure
   if ((p=get_string_variable ("pdb_type")))
-    {
-      sprintf ( pdb_type, "%s",p);
-    }
+  {
+    sprintf ( pdb_type, "%s",p);
+  }
   else
-    {
-      sprintf (pdb_type, "dmn");
-    }
+  {
+    sprintf (pdb_type, "dmn");
+  }
 
   if ( (template_list && template_list[0]=='\0') || strm ( template_list, "no_template"))
-    {
-      return S;
-    }
+  {
+    return S;
+  }
   else if ( strstr (template_list, "MODE_"))//pre_set mode
-    {
-      return seq2template_seq ( S,template_list+strlen ("MODE_"),F);
-    }
+  {
+    return seq2template_seq ( S,template_list+strlen ("MODE_"),F);
+  }
   else if ( strm ( template_list, "SSP")|| strm ( template_list, "GOR"))
-    {
+  {
 
-      /*use GOR to Predict the secondary structure*/
-      check_program_is_installed (GOR4_4_TCOFFEE,NULL, NULL,GOR4_ADDRESS, INSTALL_OR_DIE);
-      sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#ssp_template@seq#%s/%s@obs#%s/%s@cache#%s@type#_E_",get_mcoffee_4_tcoffee(), "New_KS.267.seq", get_mcoffee_4_tcoffee(), "New_KS.267.obs", get_cache_dir());
-      S=seq2template_seq (S,buf, F);
-      return S;
-    }
+    /*use GOR to Predict the secondary structure*/
+    check_program_is_installed (GOR4_4_TCOFFEE,NULL, NULL,GOR4_ADDRESS, INSTALL_OR_DIE);
+    sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#ssp_template@seq#%s/%s@obs#%s/%s@cache#%s@type#_E_",get_mcoffee_4_tcoffee(), "New_KS.267.seq", get_mcoffee_4_tcoffee(), "New_KS.267.obs", get_cache_dir());
+    S=seq2template_seq (S,buf, F);
+    return S;
+  }
   else if ( strm ( template_list, "PSISSP") || strm (template_list, "PSIGOR"))
-    {
+  {
 
-      /*Computes a GOR consensus on a psi-blast output*/
-      check_program_is_installed (GOR4_4_TCOFFEE,NULL, NULL,GOR4_ADDRESS, INSTALL_OR_DIE);
-      check_blast_is_installed(server);
+    /*Computes a GOR consensus on a psi-blast output*/
+    check_program_is_installed (GOR4_4_TCOFFEE,NULL, NULL,GOR4_ADDRESS, INSTALL_OR_DIE);
+    check_blast_is_installed(server);
 
-      sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#psissp_template@seq#%s/%s@obs#%s/%s@cache#%s@minid#%d@maxid#%d@mincov#%d@server#%s@type#_E_",get_mcoffee_4_tcoffee(), "New_KS.267.seq", get_mcoffee_4_tcoffee(), "New_KS.267.obs", get_cache_dir(), BmI,BMI,BmC,server);
-      S=seq2template_seq (S,buf, F);
-      return S;
-    }
+    sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#psissp_template@seq#%s/%s@obs#%s/%s@cache#%s@minid#%d@maxid#%d@mincov#%d@server#%s@type#_E_",get_mcoffee_4_tcoffee(), "New_KS.267.seq", get_mcoffee_4_tcoffee(), "New_KS.267.obs", get_cache_dir(), BmI,BMI,BmC,server);
+    S=seq2template_seq (S,buf, F);
+    return S;
+  }
   else if ( strm ( template_list, "TM"))
-    {
+  {
 
-      /*predict transmembrane structure*/
-      check_program_is_installed (HMMTOP_4_TCOFFEE,NULL, NULL,HMMTOP_ADDRESS, INSTALL_OR_DIE);
-      sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#tm_template@arch#%s/%s@psv#%s/%s@type#_T_",get_mcoffee_4_tcoffee(), "hmmtop.arch", get_mcoffee_4_tcoffee(), "hmmtop.psv");
-      S=seq2template_seq (S,buf, F);
-      return S;
-    }
+    /*predict transmembrane structure*/
+    check_program_is_installed (HMMTOP_4_TCOFFEE,NULL, NULL,HMMTOP_ADDRESS, INSTALL_OR_DIE);
+    sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#tm_template@arch#%s/%s@psv#%s/%s@type#_T_",get_mcoffee_4_tcoffee(), "hmmtop.arch", get_mcoffee_4_tcoffee(), "hmmtop.psv");
+    S=seq2template_seq (S,buf, F);
+    return S;
+  }
   else if ( strm ( template_list, "PSITM"))
-    {
+  {
 
-      /*predict transmembrane structure*/
-      check_program_is_installed (HMMTOP_4_TCOFFEE,NULL, NULL,HMMTOP_ADDRESS, INSTALL_OR_DIE);
-      check_blast_is_installed(server);
+    /*predict transmembrane structure*/
+    check_program_is_installed (HMMTOP_4_TCOFFEE,NULL, NULL,HMMTOP_ADDRESS, INSTALL_OR_DIE);
+    check_blast_is_installed(server);
 
-      sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#psitm_template@database#%s@arch#%s/%s@psv#%s/%s@cache#%s@minid#%d@maxid#%d@mincov#%d@server#%s@type#_T_", prot_db, get_mcoffee_4_tcoffee(), "hmmtop.arch", get_mcoffee_4_tcoffee(), "hmmtop.psv",get_cache_dir(), BmI,BMI,BmC,server);
-      S=seq2template_seq (S,buf, F);
-      return S;
-    }
+    sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#psitm_template@database#%s@arch#%s/%s@psv#%s/%s@cache#%s@minid#%d@maxid#%d@mincov#%d@server#%s@type#_T_", prot_db, get_mcoffee_4_tcoffee(), "hmmtop.arch", get_mcoffee_4_tcoffee(), "hmmtop.psv",get_cache_dir(), BmI,BMI,BmC,server);
+    S=seq2template_seq (S,buf, F);
+    return S;
+  }
 
   else if (strm ( template_list, "PSIBLAST"))
-    {
+  {
 
 
-      check_blast_is_installed(server);
+    check_blast_is_installed(server);
 
-      sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#psiprofile_template@database#%s@method#psiblast@cache#%s@minid#%d@maxid#%d@mincov#%d@server#%s@type#_R_", prot_db,get_cache_dir(),BmI,BMI,BmC,server);
-      S=seq2template_seq (S,buf, F);
+    sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#psiprofile_template@database#%s@method#psiblast@cache#%s@minid#%d@maxid#%d@mincov#%d@server#%s@type#_R_", prot_db,get_cache_dir(),BmI,BMI,BmC,server);
+    S=seq2template_seq (S,buf, F);
 
-      return S;
-    }
+    return S;
+  }
   else if (strm ( template_list, "BLAST") )
-    {
+  {
 
-      check_blast_is_installed(server);
+    check_blast_is_installed(server);
 
-      sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#profile_template@database#%s@method#blastp@cache#%s@minid#%d@maxid#%d@mincov#%d@server#%s@type#_R_", prot_db,get_cache_dir(),BmI,BMI,BmC,server);
-      S=seq2template_seq (S,buf, F);
+    sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#profile_template@database#%s@method#blastp@cache#%s@minid#%d@maxid#%d@mincov#%d@server#%s@type#_R_", prot_db,get_cache_dir(),BmI,BMI,BmC,server);
+    S=seq2template_seq (S,buf, F);
 
-      return S;
-    }
+    return S;
+  }
   else if ( strm ( template_list, "EXPRESSO") || strm (template_list, "PDB"))
-    {
-      
-      check_blast_is_installed(server);
-      
-      int isRNA = 0;
-      int i;
-      for (i= 0; i < S->len[0]; ++i)
-	{
-	   isRNA =  (isRNA || is_rna(S->seq[0][i]));
-	}
+  {
 
-      if (isRNA)
-	{
-	  sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#pdb_template@database#%s@method#blastn@cache#%s@minid#%d@maxid#%d@mincov#%d@server#%s@type#_P_@pdb_type#%s",pdb_db, get_cache_dir(),PmI,PMI,PmC, server,pdb_type);
-	}
-      else
-	{
-	  sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#pdb_template@database#%s@method#blastp@cache#%s@minid#%d@maxid#%d@mincov#%d@server#%s@type#_P_@pdb_type#%s",pdb_db, get_cache_dir(),PmI,PMI,PmC, server,pdb_type);
-	}
-      
-      return seq2template_seq (S,buf, F);
+    check_blast_is_installed(server);
+
+    int isRNA = 0;
+    int i;
+    for (i= 0; i < S->len[0]; ++i)
+    {
+      isRNA =  (isRNA || is_rna(S->seq[0][i]));
     }
+
+    if (isRNA)
+    {
+      sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#pdb_template@database#%s@method#blastn@cache#%s@minid#%d@maxid#%d@mincov#%d@server#%s@type#_P_@pdb_type#%s",pdb_db, get_cache_dir(),PmI,PMI,PmC, server,pdb_type);
+    }
+    else
+    {
+      sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#pdb_template@database#%s@method#blastp@cache#%s@minid#%d@maxid#%d@mincov#%d@server#%s@type#_P_@pdb_type#%s",pdb_db, get_cache_dir(),PmI,PMI,PmC, server,pdb_type);
+    }
+
+    return seq2template_seq (S,buf, F);
+  }
 
   else if ( strm (template_list, "RCOFFEE") || strm (template_list, "RNA"))
+  {
+
+    //extract structure from sequences if possible otherwise use RNAPlfold
+    char *file_struc_calc = vtmpnam (NULL);
+    FILE* struc_calc_f =vfopen(file_struc_calc,"w");
+    int i;
+    for (i = 0; i< S->nseq; ++i)
     {
-      
-      //extract structure from sequences if possible otherwise use RNAPlfold
-      char *file_struc_calc = vtmpnam (NULL);
-      FILE* struc_calc_f =vfopen(file_struc_calc,"w");
-      int i;
-      for (i = 0; i< S->nseq; ++i)
-	{
-	  if (S->T[i]->P)
-	    {
-	      fprintf(struc_calc_f,"%s %s\n",S->name[i],S->T[i]->P->template_file);
-	    }
-	  else
-	    fprintf(struc_calc_f,"%s\n",S->name[i]);
-	}
-      vfclose(struc_calc_f);
-      sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#RNA_template@pdbfile#%s@cache#%s@type#_F_", file_struc_calc,get_cache_dir());
-      
-      return seq2template_seq (S,buf,F);
+      if (S->T[i]->P)
+      {
+        fprintf(struc_calc_f,"%s %s\n",S->name[i],S->T[i]->P->template_file);
+      }
+      else
+        fprintf(struc_calc_f,"%s\n",S->name[i]);
     }
+    vfclose(struc_calc_f);
+    sprintf ( buf, "SCRIPT_tc_generic_method.pl@mode#RNA_template@pdbfile#%s@cache#%s@type#_F_", file_struc_calc,get_cache_dir());
+
+    return seq2template_seq (S,buf,F);
+  }
 
 
   /*2: Templates from seqnames (SELF) or named like the sequences (SEQFILE)*/
   else if ( strstr (template_list, "SELF_") ||strstr (template_list, "SEQFILE_") )
+  {
+    int a;
+    char *p;
+
+    //add template
+    for (a=0; a< S->nseq; a++)
     {
-      int a;
-      char *p;
-      
-      //add template
-      for (a=0; a< S->nseq; a++)
-	{
 
-	  if ( (p=strstr (template_list,"SELF_")))p=S->name[a];
-	  else if ( strstr (template_list, "SEQFILE_"))p=template_list;
-	  else
-	    {
-	      fprintf ( stderr, "\nUnkown mode for Template [FATAL:%s]\n", PROGRAM);
-	      myexit (EXIT_FAILURE);
-	    }
+      if ( (p=strstr (template_list,"SELF_")))p=S->name[a];
+      else if ( strstr (template_list, "SEQFILE_"))p=template_list;
+      else
+      {
+        fprintf ( stderr, "\nUnkown mode for Template [FATAL:%s]\n", PROGRAM);
+        myexit (EXIT_FAILURE);
+      }
 
-	  if (      strstr (template_list, "_P_") && !(S->T[a])->P)(S->T[a])->P  =fill_P_template  ( S->name[a], p,S);//PDB
-	  else if ( strstr (template_list, "_S_") && !(S->T[a])->S)(S->T[a])->S  =fill_S_template  ( S->name[a], p,S);//Sequence
-	  else if ( strstr (template_list, "_R_" )&& !(S->T[a])->R)(S->T[a])->R  =fill_R_template  ( S->name[a], p,S);//pRofile
-	  else if ( strstr (template_list, "_G_" )&& !(S->T[a])->G)(S->T[a])->G  =fill_G_template  ( S->name[a], p,S);//Genomic
-	  else if ( strstr (template_list, "_F_" )&& !(S->T[a])->F)(S->T[a])->F  =fill_F_template  ( S->name[a], p,S);//Fold
-	  else if ( strstr (template_list, "_T_" )&& !(S->T[a])->T)(S->T[a])->T  =fill_T_template  ( S->name[a], p,S);//Trans Membrane
-	  else if ( strstr (template_list, "_E_" )&& !(S->T[a])->E)(S->T[a])->E  =fill_E_template  ( S->name[a], p,S);//Secondary Structure
-	  else if ( strstr (template_list, "_U_" )&& !(S->T[a])->U)(S->T[a])->U  =fill_U_template  ( S->name[a], p,S);//unicode, list template
+      if (      strstr (template_list, "_P_") && !(S->T[a])->P)(S->T[a])->P  =fill_P_template  ( S->name[a], p,S);//PDB
+      else if ( strstr (template_list, "_S_") && !(S->T[a])->S)(S->T[a])->S  =fill_S_template  ( S->name[a], p,S);//Sequence
+      else if ( strstr (template_list, "_R_" )&& !(S->T[a])->R)(S->T[a])->R  =fill_R_template  ( S->name[a], p,S);//pRofile
+      else if ( strstr (template_list, "_G_" )&& !(S->T[a])->G)(S->T[a])->G  =fill_G_template  ( S->name[a], p,S);//Genomic
+      else if ( strstr (template_list, "_F_" )&& !(S->T[a])->F)(S->T[a])->F  =fill_F_template  ( S->name[a], p,S);//Fold
+      else if ( strstr (template_list, "_T_" )&& !(S->T[a])->T)(S->T[a])->T  =fill_T_template  ( S->name[a], p,S);//Trans Membrane
+      else if ( strstr (template_list, "_E_" )&& !(S->T[a])->E)(S->T[a])->E  =fill_E_template  ( S->name[a], p,S);//Secondary Structure
+      else if ( strstr (template_list, "_U_" )&& !(S->T[a])->U)(S->T[a])->U  =fill_U_template  ( S->name[a], p,S);//unicode, list template
 
-	}
-      return S;
     }
+    return S;
+  }
 
   /*2: Templates comes in a template_file*/
   else if ( template_list==NULL || format_is_fasta (template_list))
+  {
+    Sequence *T;
+    int a, i;
+    int ntemp=0;
+    T=(template_list!=NULL)?get_fasta_sequence (template_list, NULL):S;
+    for (a=0; a< T->nseq; a++)
     {
-      Sequence *T;
-      int a, i;
-      int ntemp=0;
-      T=(template_list!=NULL)?get_fasta_sequence (template_list, NULL):S;
-      for (a=0; a< T->nseq; a++)
-	{
-	  
-	  
-	  char *p;
-	  if ((i=name_is_in_list(T->name[a], S->name, S->nseq, MAXNAMES))!=-1)
-	    {
-	      
-	      if (       (p=strstr (T->seq_comment[a], " _P_ ")) && !(S->T[i])->P &&( (S->T[i])->P=fill_P_template (S->name[i],p,S)))ntemp++;
-	      else if (  (p=strstr (T->seq_comment[a], " _F_ ")) && !(S->T[i])->F &&( (S->T[i])->F=fill_F_template (S->name[i],p,S)))ntemp++;
-	      else if (  (p=strstr (T->seq_comment[a], " _S_ ")) && !(S->T[i])->S &&( (S->T[i])->S=fill_S_template (S->name[i],p,S)))ntemp++;
 
-	      else if (  (p=strstr (T->seq_comment[a], " _R_ ")) && !(S->T[i])->R &&( (S->T[i])->R=fill_R_template (S->name[i],p,S)))ntemp++;
-	      else if (  (p=strstr (T->seq_comment[a], " _G_ ")) && !(S->T[i])->G &&( (S->T[i])->G=fill_G_template (S->name[i],p,S)))ntemp++;
-	      else if (  (p=strstr (T->seq_comment[a], " _T_ ")) && !(S->T[i])->T &&( (S->T[i])->T=fill_T_template (S->name[i],p,S)))ntemp++;
-	      else if (  (p=strstr (T->seq_comment[a], " _E_ ")) && !(S->T[i])->E &&( (S->T[i])->E=fill_E_template (S->name[i],p,S)))ntemp++;
-	      else if (  (p=strstr (T->seq_comment[a], " _U_ ")) && !(S->T[i])->U &&( (S->T[i])->E=fill_U_template (S->name[i],p,S)))ntemp++;
 
-	      if (T!=S)strcat (S->seq_comment[i], T->seq_comment[a]);
+      char *p;
+      if ((i=name_is_in_list(T->name[a], S->name, S->nseq, MAXNAMES))!=-1)
+      {
 
-	    }
-	}
+        if (       (p=strstr (T->seq_comment[a], " _P_ ")) && !(S->T[i])->P &&( (S->T[i])->P=fill_P_template (S->name[i],p,S)))ntemp++;
+        else if (  (p=strstr (T->seq_comment[a], " _F_ ")) && !(S->T[i])->F &&( (S->T[i])->F=fill_F_template (S->name[i],p,S)))ntemp++;
+        else if (  (p=strstr (T->seq_comment[a], " _S_ ")) && !(S->T[i])->S &&( (S->T[i])->S=fill_S_template (S->name[i],p,S)))ntemp++;
 
-      if (T!=S)free_sequence (T, -1);
+        else if (  (p=strstr (T->seq_comment[a], " _R_ ")) && !(S->T[i])->R &&( (S->T[i])->R=fill_R_template (S->name[i],p,S)))ntemp++;
+        else if (  (p=strstr (T->seq_comment[a], " _G_ ")) && !(S->T[i])->G &&( (S->T[i])->G=fill_G_template (S->name[i],p,S)))ntemp++;
+        else if (  (p=strstr (T->seq_comment[a], " _T_ ")) && !(S->T[i])->T &&( (S->T[i])->T=fill_T_template (S->name[i],p,S)))ntemp++;
+        else if (  (p=strstr (T->seq_comment[a], " _E_ ")) && !(S->T[i])->E &&( (S->T[i])->E=fill_E_template (S->name[i],p,S)))ntemp++;
+        else if (  (p=strstr (T->seq_comment[a], " _U_ ")) && !(S->T[i])->U &&( (S->T[i])->E=fill_U_template (S->name[i],p,S)))ntemp++;
 
-      if ( remove_template_file==2)
-	{
-	  vremove (template_list);
-	}
-      else
-	if (template_list)display_output_filename ( stdout, "Template_List","fasta_seq", template_list, STORE);
-      return S;
+        if (T!=S)strcat (S->seq_comment[i], T->seq_comment[a]);
+
+      }
     }
+
+    if (T!=S)free_sequence (T, -1);
+
+    if ( remove_template_file==2)
+    {
+      vremove (template_list);
+    }
+    else
+      if (template_list)display_output_filename ( stdout, "Template_List","fasta_seq", template_list, STORE);
+    return S;
+  }
 
   /*3 Templates are generated with a script*/
   else if (strstr (template_list, "SCRIPT_") && get_string_variable ("multi_core") && strstr (get_string_variable ("multi_core"), "templates") && get_nproc()>1)
+  {
+    char *tmp1,*command=NULL;
+    Alignment *A;
+    char **temp_file,**seq_file;
+    int  * pid_list, pid, npid, submited;
+    int nproc, max_nproc;
+    int num=0;
+
+    char outfile[1000];
+    static char *script;
+    static int ntemp;
+    char *p;
+    int z, i;
+    int freeF=0;
+
+    if (!script)script=(char*)vcalloc ( 1000, sizeof(char));
+
+    ntemp++;
+
+    command=(char*)vcalloc ( 1000, sizeof (char));
+    tmp1=vtmpnam (NULL);
+
+    A=seq2aln (S,NULL, 0);
+    string_array_upper(A->seq_al, A->nseq);
+    output_fasta_seq (tmp1, A);
+    sprintf ( script, "%s", after_strstr (template_list, "SCRIPT_"));
+
+    if ((p=strstr (template_list, "@type#")))
+      p+=strlen ("@type#");
+
+    if (!F){F=parse_fname (S->file[0]);freeF=1;}
+    sprintf (outfile, "%s%s_%s%d.template_list", F->path,F->name,template_type2short_type_name(p),ntemp);
+    while ( check_file_exists (outfile))
     {
-      char *tmp1,*command;
-      Alignment *A;
-      char **temp_file,**seq_file;
-      int  * pid_list, pid, npid, submited;
-      int nproc, max_nproc;
-      int num=0;
-
-      char outfile[1000];
-      static char *script;
-      static int ntemp;
-      char *p;
-      int z, i;
-      int freeF=0;
-
-      if (!script)script=(char*)vcalloc ( 1000, sizeof(char));
-
-      ntemp++;
-
-      command=(char*)vcalloc ( 1000, sizeof (char));
-      tmp1=vtmpnam (NULL);
-
-      A=seq2aln (S,NULL, 0);
-      string_array_upper(A->seq_al, A->nseq);
-      output_fasta_seq (tmp1, A);
-      sprintf ( script, "%s", after_strstr (template_list, "SCRIPT_"));
-
-      if ((p=strstr (template_list, "@type#")))
-	p+=strlen ("@type#");
-
-      if (!F){F=parse_fname (S->file[0]);freeF=1;}
-      sprintf (outfile, "%s%s_%s%d.template_list", F->path,F->name,template_type2short_type_name(p),ntemp);
-      while ( check_file_exists (outfile))
-	{
-	  sprintf (outfile, "%s%s_%s%d.%d.template_list",F->path, F->name,template_type2short_type_name(p),ntemp, ++num);
-	}
-      if (freeF)free_fname(F);
-
-      nproc=get_nproc();
-      //max_nproc=2*nproc;
-      max_nproc=20; //EBI recommended maximum
-      script=substitute(script, "@", " -");
-      script=substitute(script, "#", "=");
-
-      temp_file=(char**)vcalloc ( A->nseq, sizeof (char*));
-      seq_file =(char**)vcalloc (A->nseq, sizeof (char*));
-      pid_list =(int *)vcalloc (MAX_N_PID, sizeof (int *));
-
-      fprintf ( stderr, "\n\t------ Fetch Templates [Multi Core Mode %d CPUs]\n",get_nproc());
-      for (npid=0, submited=0,i=0; i<S->nseq; i++)
-	{
-	  FILE *fp2;
-	  seq_file[i]=vtmpnam (NULL);
-	  temp_file[i]=vtmpnam (NULL);
-	  fp2=vfopen (seq_file[i], "w");
-	  fprintf ( fp2, ">%s\n%s\n", S->name[i], S->seq[i]);
-	  vfclose (fp2);
-
-	  pid=vvfork(NULL);
-	  if (pid==0)
-	    {
-	      initiate_vtmpnam (NULL);
-	      if  ( strstr (script, "tc_generic_method"))
-		{
-		  //sprintf ( command, "%s -other_pg %s -infile=%s -outfile=%s -tmpdir=%s",get_string_variable ("t_coffee"),script,seq_file[i],temp_file[i],get_tmp_4_tcoffee());
-		  sprintf ( command, "%s -infile=%s -outfile=%s -tmpdir=%s",script,seq_file[i],temp_file[i],get_tmp_4_tcoffee());
-		}
-	      else
-		//sprintf ( command, "%s -other_pg %s -infile=%s -outfile=%s",get_string_variable("t_coffee"),script,seq_file[i],temp_file[i]);
-		sprintf ( command, "%s -infile=%s -outfile=%s",script,seq_file[i],temp_file[i]);
-	      command=substitute(command, "@", " ");
-	      //my_system ( command);
-	      myexit (my_system(command));
-	    }
-	  else
-	    {
-	      pid_list[pid]=npid;
-	      //set_pid(pid);
-	      npid++;
-	      submited++;
-	      submited=vwait_npid(submited,max_nproc,nproc);
-	    }
-	}
-
-      submited=vwait_npid(submited,0,0);
-      //Concatenate all the files
-      vremove (outfile);
-      for (i=0; i<npid; i++)  file_cat (temp_file[i],outfile);
-
-      //Free the process table
-      vfree (temp_file);
-      vfree (pid_list);
-      vfree (seq_file);
-
-      free_aln (A);
-      if ( check_file_exists (outfile) && format_is_fasta(outfile))
-	{
-	  S=seq2template_seq (S, outfile, F);
-	  trim_template_file (outfile,S);
-	}
-      else if (strstr (command, "webblast.pl"))return S;
-      else
-	{
-
-	  add_warning (stderr, "Could not Run %s to find templates[%s](Forked mode)\n",command, PROGRAM);
-	  return NULL;
-	}
-
-      vfree (command);
-      return S;
+      sprintf (outfile, "%s%s_%s%d.%d.template_list",F->path, F->name,template_type2short_type_name(p),ntemp, ++num);
     }
+    if (freeF)free_fname(F);
+
+    nproc=get_nproc();
+    //max_nproc=2*nproc;
+    max_nproc=20; //EBI recommended maximum
+    script=substitute(script, "@", " -");
+    script=substitute(script, "#", "=");
+
+    temp_file=(char**)vcalloc ( A->nseq, sizeof (char*));
+    seq_file =(char**)vcalloc (A->nseq, sizeof (char*));
+    pid_list =(int *)vcalloc (MAX_N_PID, sizeof (int *));
+    std::vector<int> thread_indexes;
+    fprintf ( stderr, "\n\t------ Fetch Templates [Multi Core Mode %d CPUs]\n",get_nproc());
+    for (npid=0, submited=0,i=0; i<S->nseq; i++)
+    {
+      FILE *fp2;
+      seq_file[i]=vtmpnam (NULL);
+      temp_file[i]=vtmpnam (NULL);
+      fp2=vfopen (seq_file[i], "w");
+      fprintf ( fp2, ">%s\n%s\n", S->name[i], S->seq[i]);
+      vfclose (fp2);
+
+      initiate_vtmpnam (NULL);
+      if  ( strstr (script, "tc_generic_method"))
+      {
+        //sprintf ( command, "%s -other_pg %s -infile=%s -outfile=%s -tmpdir=%s",get_string_variable ("t_coffee"),script,seq_file[i],temp_file[i],get_tmp_4_tcoffee());
+        sprintf ( command, "%s -infile=%s -outfile=%s -tmpdir=%s",script,seq_file[i],temp_file[i],get_tmp_4_tcoffee());
+      }
+      else
+        //sprintf ( command, "%s -other_pg %s -infile=%s -outfile=%s",get_string_variable("t_coffee"),script,seq_file[i],temp_file[i]);
+        sprintf ( command, "%s -infile=%s -outfile=%s",script,seq_file[i],temp_file[i]);
+      command=substitute(command, "@", " ");
+      //my_system ( command);
+      char* threadCommand = (char*) malloc( strlen( command ) + 1 );
+      strcpy( threadCommand, command );
+      pid=start_thread( [=]{ seq2template_seq_task( threadCommand ); } );
+      thread_indexes.push_back( pid );
+      pid_list[pid]=npid;
+      //set_pid(pid);
+      npid++;
+      submited++;
+    }
+
+    join( thread_indexes );
+    //Concatenate all the files
+    vremove (outfile);
+    for (i=0; i<npid; i++)  file_cat (temp_file[i],outfile);
+
+    //Free the process table
+    vfree (temp_file);
+    vfree (pid_list);
+    vfree (seq_file);
+
+    free_aln (A);
+    if ( check_file_exists (outfile) && format_is_fasta(outfile))
+    {
+      S=seq2template_seq (S, outfile, F);
+      trim_template_file (outfile,S);
+    }
+    else if (strstr (command, "webblast.pl"))return S;
+    else
+    {
+
+      add_warning (stderr, "Could not Run %s to find templates[%s](Forked mode)\n",command, PROGRAM);
+      return NULL;
+    }
+
+    vfree (command);
+    return S;
+  }
 
   else if (strstr (template_list, "SCRIPT_"))
+  {
+    char x[299];
+    char *tmp1,*command;
+    Alignment *A;
+    char outfile[1000];
+    static char *script;
+    static int ntemp;
+    char *p;
+    int z;
+    if (!script)script=(char*)vcalloc ( 1000, sizeof(char));
+
+    ntemp++;
+
+    command=(char*)vcalloc ( 1000, sizeof (char));
+    tmp1=vtmpnam (NULL);
+
+    A=seq2aln (S,NULL, 0);
+    string_array_upper(A->seq_al, A->nseq);
+    output_fasta_seq (tmp1, A);
+    sprintf ( script, "%s", after_strstr (template_list, "SCRIPT_"));
+    fprintf ( stderr, "\n");
+    if ((p=strstr (template_list, "@type#")))
+      p+=strlen ("@type#");
+    if (F)
     {
-	  char x[299];
-      char *tmp1,*command;
-      Alignment *A;
-      char outfile[1000];
-      static char *script;
-      static int ntemp;
-      char *p;
-      int z;
-      if (!script)script=(char*)vcalloc ( 1000, sizeof(char));
-
-      ntemp++;
-
-      command=(char*)vcalloc ( 1000, sizeof (char));
-      tmp1=vtmpnam (NULL);
-
-      A=seq2aln (S,NULL, 0);
-      string_array_upper(A->seq_al, A->nseq);
-      output_fasta_seq (tmp1, A);
-      sprintf ( script, "%s", after_strstr (template_list, "SCRIPT_"));
-      fprintf ( stderr, "\n");
-      if ((p=strstr (template_list, "@type#")))
-	p+=strlen ("@type#");
-      if (F)
-	{
-	  sprintf (outfile, "%s%s_%s%d.template_list", F->path,F->name,template_type2short_type_name(p),ntemp);
-	}
-      else
-	{
-	  F=parse_fname (S->file[0]);
-	  sprintf (outfile, "%s%s_%s%d.template_list",F->path, F->name,template_type2short_type_name(p),ntemp);
-	  free_fname (F);
-	}
-
-      script=substitute(script, "@", " -");
-      script=substitute(script, "#", "=");
-
-      if  ( strstr (script, "tc_generic_method"))
-	{
-	  sprintf ( command, "%s -other_pg %s -infile=%s -outfile=%s -tmpdir=%s",get_string_variable ("t_coffee"),script, tmp1,outfile,get_tmp_4_tcoffee());
-	}
-      else sprintf ( command, "%s -other_pg %s -infile=%s -outfile=%s",get_string_variable("t_coffee"),script, tmp1, outfile);
-
-      vremove (outfile);
-      command=substitute(command, "@", " ");
-
-      my_system ( command);
-
-      free_aln (A);
-
-      if ( check_file_exists (outfile) && format_is_fasta(outfile))
-	{
-	  S=seq2template_seq (S, outfile, F);
-	  trim_template_file (outfile,S);
-	}
-      else if (strstr (command, "webblast.pl"))return S;
-      else
-	{
-
-	  add_warning (stderr, "Could not Run %s to find templates[%s](unforked mode)\n",command, PROGRAM);
-	  return NULL;
-	}
-
-      vfree (command);
-      return S;
+      sprintf (outfile, "%s%s_%s%d.template_list", F->path,F->name,template_type2short_type_name(p),ntemp);
     }
+    else
+    {
+      F=parse_fname (S->file[0]);
+      sprintf (outfile, "%s%s_%s%d.template_list",F->path, F->name,template_type2short_type_name(p),ntemp);
+      free_fname (F);
+    }
+
+    script=substitute(script, "@", " -");
+    script=substitute(script, "#", "=");
+
+    if  ( strstr (script, "tc_generic_method"))
+    {
+      sprintf ( command, "%s -other_pg %s -infile=%s -outfile=%s -tmpdir=%s",get_string_variable ("t_coffee"),script, tmp1,outfile,get_tmp_4_tcoffee());
+    }
+    else sprintf ( command, "%s -other_pg %s -infile=%s -outfile=%s",get_string_variable("t_coffee"),script, tmp1, outfile);
+
+    vremove (outfile);
+    command=substitute(command, "@", " ");
+
+    my_system ( command);
+
+    free_aln (A);
+
+    if ( check_file_exists (outfile) && format_is_fasta(outfile))
+    {
+      S=seq2template_seq (S, outfile, F);
+      trim_template_file (outfile,S);
+    }
+    else if (strstr (command, "webblast.pl"))return S;
+    else
+    {
+
+      add_warning (stderr, "Could not Run %s to find templates[%s](unforked mode)\n",command, PROGRAM);
+      return NULL;
+    }
+
+    vfree (command);
+    return S;
+  }
 
   return S;
 }
@@ -7504,6 +7504,7 @@ Alignment * aln2N_replicate (Alignment *A,char *nn, char *name)
       fprintf ( stdout, ">%s Alignment Replicate #%d\n",fname, a+1);
     }
   myexit (EXIT_SUCCESS);
+  return 0;
 }
 FILE *aln2replicate (Alignment *A, FILE *fp)
 {

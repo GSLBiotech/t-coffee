@@ -69,7 +69,7 @@ int output_header_mat (int **mat, char *fname);
 
 int tree2nnode_unresolved (NT_node R, int *l);      			/* Is declared in tree_util.c */
 NT_node redundate (Sequence* S,NT_node T, char *seq, char *tree);	/* Is declared in util_make_tree_.c */
-int  sp_triplet_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL, char *fname);  /* Is declared in evaluate.c */
+int  sp_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL, char *fname);  /* Is declared in evaluate.c */
 /**************************************************************************************************/
 /*****************************    SEQ_REFORMAT     ******************************************/
 /**************************************************************************************************/
@@ -2120,79 +2120,81 @@ int format_is_fasta_aln ( char *file, int i_know_that_it_not_seq)
  */
 int fast_format_determination  ( char *in_f)
 {
-	const unsigned int READ_LENGTH = 401;
-	char line[READ_LENGTH];
-	FILE *in_F = fopen(in_f, "r");
-	int is_pir = 1;
-	int is_aln = 1;
-	char *tmp;
-	if (fgetc(in_F) != '>')
-	{
-		fclose(in_F);
-		return 0;
-	}
-	ungetc('>',in_F);
-	int last_length = -1;
-	int current_length = -1;
-	unsigned int n_seqs = 0;
-	char last='/';
-	int has_gap = 0;
-	int line_len;
-	while (fgets(line, READ_LENGTH, in_F) != NULL)
-	{
-		if (line[0] == '>')
-		{
-			++n_seqs;
-			if (!is_pir_name(&line[1]))
-				is_pir = 0;
-			if ((last_length != -1))
-			{
-				if (last != '*')
-					is_pir = 0;
-				if (current_length != last_length)
-					is_aln = 0;
-			}
-			last_length = current_length;
-			current_length = 0;
-		}
-		else
-		{
-			tmp = &(line[0]);
-			while (*tmp != '\0')
-			{
-				if ((*tmp != '\n') && (*tmp != ' '))
-				{
-					if ((*tmp == '-') || (*tmp == '.')|| (*tmp == '*')|| (*tmp == '#')|| (*tmp == '~'))
-						has_gap = 1;
-					++current_length;
-					last = *tmp;
-				}
-				++tmp;
-			}
-		}
-	}
+  const unsigned int READ_LENGTH = 401;
+  char line[READ_LENGTH];
+  FILE *in_F = fopen(in_f, "r");
+  int is_pir = 1;
+  int is_aln = 1;
+  char *tmp;
+  if (fgetc(in_F) != '>')
+  {
+    fclose(in_F);
+    return 0;
+  }
+  ungetc('>',in_F);
+  int last_length = -1;
+  int current_length = -1;
+  unsigned int n_seqs = 0;
+  char last='/';
+  int has_gap = 0;
+  int line_len;
+  while (fgets(line, READ_LENGTH, in_F) != NULL)
+  {
+    if (line[0] == '>')
+    {
+      ++n_seqs;
+      if (!is_pir_name(&line[1]))
+        is_pir = 0;
+      if ((last_length != -1))
+      {
+        if (last != '*')
+          is_pir = 0;
+        if (current_length != last_length)
+          is_aln = 0;
+      }
+      last_length = current_length;
+      current_length = 0;
+    }
+    else
+    {
+      tmp = &(line[0]);
+      while (*tmp != '\0')
+      {
+        if ((*tmp != '\n') && (*tmp != ' '))
+        {
+          if ((*tmp == '-') || (*tmp == '.')|| (*tmp == '*')|| (*tmp == '#')|| (*tmp == '~'))
+            has_gap = 1;
+          ++current_length;
+          last = *tmp;
+        }
+        ++tmp;
+      }
+    }
+  }
 
-	if (has_gap)
-		is_aln = 1;
-	else
-		is_aln = 0;
-	if (last != '*')
-		is_pir = 0;
+  if (has_gap)
+    is_aln = 1;
+  else
+    is_aln = 0;
+  if (last != '*')
+    is_pir = 0;
 
 
-	fclose(in_F);
-	if (!is_pir)
-	{
-		if (is_aln && (n_seqs >1))
-			return 2;
-		return 1;
-	}
-	if (is_pir)
-	{
-		if (is_aln && (n_seqs >1))
-			return 4;
-		return 3;
-	}
+  fclose(in_F);
+  if (!is_pir)
+  {
+    if (is_aln && (n_seqs >1))
+      return 2;
+    return 1;
+  }
+  if (is_pir)
+  {
+    if (is_aln && (n_seqs >1))
+      return 4;
+    return 3;
+  }
+
+  return 0;
 }
 
 
@@ -2470,25 +2472,25 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 	    int r1,r2,s1, s2,s;
 	    Constraint_list *CL;
 	    FILE *fp;
-	    Alignment *IN;
+	    Alignment *pIN;
 	    int **pos;
 
 	    if (!D1)return 1;
-	    IN=D1->A;
+	    pIN=D1->A;
 	    CL=(D1->A)->CL;
-	    pos=aln2pos_simple(IN, IN->nseq);
+	    pos=aln2pos_simple(pIN, pIN->nseq);
 	    fp=vfopen (out_file, "w");
 	    fp=save_list_header (fp,CL);
 
 
-	    for ( b=0; b< IN->nseq-1; b++)
+	    for ( b=0; b< pIN->nseq-1; b++)
 	      {
-		for ( c=b+1; c< IN->nseq; c++)
+		for ( c=b+1; c< pIN->nseq; c++)
 		  {
-		    s1=IN->order[b][0];
-		    s2=IN->order[c][0];
+		    s1=pIN->order[b][0];
+		    s2=pIN->order[c][0];
 		    fprintf ( fp, "#%d %d\n", s1+1, s2+1);
-		    for ( a=0; a< IN->len_aln; a++)
+		    for ( a=0; a< pIN->len_aln; a++)
 		      {
 			r1=pos[b][a];
 			r2=pos[c][a];
@@ -3948,7 +3950,7 @@ char ** read_lib_list (char *name, int *n)
 
   char **lines;
   char **list;
-  int a, b, l;
+  int a, b=0, l;
 
   lines=file2lines (name);
   l=atoi (lines[0]);
@@ -7121,6 +7123,7 @@ int output_suchard_aln (char *out_file, Alignment *A)
     }
   vfclose (fp);
   myexit (EXIT_SUCCESS);
+  return 0;
 }
 void output_mfasta_aln (char *fname, Alignment *A )
 {
@@ -7943,7 +7946,7 @@ void output_glalign ( char *name, Alignment *B, Alignment *S)
     }
   vfclose ( fp);
 }
-Alignment *input_conc_aln ( char *name, Alignment *IN)
+Alignment *input_conc_aln ( char *name, Alignment *pIN)
 {
   FILE *fp;
   char *string, *p, *file;
@@ -7977,7 +7980,7 @@ Alignment *input_conc_aln ( char *name, Alignment *IN)
 
 	  if ( !A)
 	    {
-	      if (IN){copy_aln (B, IN);F=A=IN;}
+	      if (pIN){copy_aln (B, pIN);F=A=pIN;}
 	      else F=A=B;
 	    }
 	  else
@@ -10892,2276 +10895,2275 @@ int ls_compare (const void * a, const void * b)
 }
 
 void modify_data  (Sequence_data_struc *D1in, Sequence_data_struc *D2in, Sequence_data_struc *DSTin, char **action_list,int n_actions, Action_data_struc *RAD)
-     {
-       Sequence  *COOR=NULL, *NS=NULL,*BUFS=NULL, *OUT_S=NULL;
-       Constraint_list *CL;
-       char *s;
-       int value,upper_value, lower_value, start, end, a, b,c;
-       int *count_table=NULL;
-       char *action;
-       Sequence_data_struc *D1;
-       Sequence_data_struc *D2;
-       Sequence_data_struc *DST;
-       int s1, s2, r1, r2;
-       
-       Alignment *BUF;
-       
-       //Switches
-       static int evaluate2tree;
-       static int clean_flag;
-       
-       /*Switches*/
-
-       action=action_list[0];
-
-       if (action[0]=='2')
-	 {
-
-	   D1=D2in;
-	   D2=D1in;
-	   DST=DSTin;
-	   action++;
-	 }
-       else if ( action[0]=='1')
-	 {
-	   D1=D1in;
-	   D2=D2in;
-	   DST=DSTin;
-	   action++;
-	 }
-       else if ( action[0]=='3')
-	 {
-	   D1=DSTin;
-	   D2=D1in;
-	   DST=DSTin;
-	   action++;
-	 }
-       else
-	 {
-	   D1=D1in;
-	   D2=D2in;
-	   DST=DSTin;
-	 }
-       if (!D1->A)D1->A=copy_aln (D1in->A, NULL);
-
-       if (  strm(action, "seqnos"))
-	 {
-	  (D1->A)->output_res_num=1;
-	 }
-       else if ( strm (action,"aln2bootstrap"))
-	 {
-	   (D1->A)=aln2bootstrap (D1->A, ATOI_ACTION (1));
-	   D1->S=aln2seq (D1->A);
-	 }
-       else if ( strm (action,"aln2sample"))
-	 {
-	   (D1->A)=aln2sample (D1->A, ATOI_ACTION (1));
-	   D1->S=aln2seq (D1->A);
-	 }
-       else if ( strm (action,"aln2random_aln"))
-	 {
-	   (D1->A)=aln2random_aln (D1->A, ACTION (1));
-	   D1->S=aln2seq (D1->A);
-	 }
-       else if ( strm (action, "or_scan"))
-	 {
-	   HERE ("OR SCAN");
-	   D1->A=or_scan(D1->A, D2->A, ACTION(1));
-	   D1->S=aln2seq (D1->A);
-	 }
-       else if ( strm (action, "or_sar"))
-	 {
-	   D1->A=or_sar(D1->A, D2->A, ACTION(1), PRINT);
-	   D1->S=aln2seq (D1->A);
-	 }
-       else if ( strm ( action, "sar2subsar"))
-	 {
-	   /*in->sequences
-	     in2->sar data
-	   */
-	   Alignment *subA, *subS;
-
-	   if ( n_actions==1)
-	     {
-	       fprintf ( stderr, "\nin=aln, in2=sar sar2subsar [filter value compound1 compound2...] | [jack1] | [file]\n");
-	       myexit (EXIT_FAILURE);
-	     }
-
-	   sarset2subsarset ( D1->A, D2->A, &subA, &subS, main_read_aln (action_list[2], NULL));
-	   D1->A=subA;D2->A=subS;
-	 }
-       else if ( strm (action, "display_sar"))
-	 {
-	   D1->A=display_sar (D1->A, D2->A, action_list[1]);
-	 }
-       else if ( strm ( action, "sar2simpred"))
-	 {
-	   /*in->sequences
-	     in2->sar data
-	   */
-	   sar2simpred ( D1->A, D2->A, action_list[1], action_list[2], atoi(action_list[3]), atoi (action_list[4]));
-	 }
-       else if ( strm ( action, "sar2simpred2"))
-	 {
-	   /*in->sequences
-	     in2->sar data
-	   */
-	   if ( n_actions!=5)
-	     {
-	       fprintf ( stderr, "\nERROR: +sar2simpred2 seqnamesfile posfile compound limit");
-	       myexit (EXIT_FAILURE);
-	     }
-	   sar2simpred2 ( D1->A, D2->A, action_list[1], action_list[2], action_list[3], atoi (action_list[4]));
-	 }
-        else if ( strm ( action, "sar_analyze"))
-	 {
-	   /*in->sequences
-	     in2->sar data
-	   */
-	   sar_analyze ( D1->A, D2->A,action_list[1]);
-	 }
-       	else if ( strm ( action, "simple_sar_predict"))
-	  {
-	    //displays each column with ist score;
-	    simple_sar_predict (D1->A, D2->A,ACTION(1));
-	    myexit (EXIT_SUCCESS);
-	  }
-	else if ( strm ( action, "display_sar_analyze"))
-	  {
-	    //displays each column with ist score;
-	    display_simple_sar_analyze_col (D1->A, D2->A,ACTION(1));
-	    myexit (EXIT_SUCCESS);
-	  }
-       else if ( strm ( action, "display_sar_analyze_pc"))
-	  {
-	    //displays each column with ist score;
-	    display_simple_sar_analyze_pair_col (D1->A, D2->A,ACTION(1));
-	    myexit (EXIT_SUCCESS);
-	  }
-       else if ( strm ( action, "weight2sar"))
-	 {
-	   /*in->sequences
-	     in2->sar data
-	   */
-	   if ( n_actions!=3)
-	     {
-	       fprintf ( stderr, "\nERROR: +weight2sar <weight_file> <limit>");
-	       myexit (EXIT_FAILURE);
-	     }
-	   D1->A=weight2sar ( D1->A,D2->A, action_list[1], atoi(action_list[2]));
-
-	 }
-	else if ( strm ( action, "sar_weight"))
-	 {
-	   /*in->sequences
-	     in2->sar data
-	   */
-	   if ( n_actions!=3)
-	     {
-	       fprintf ( stderr, "\nERROR: +sar_weight <sar_analyze> <compound>");
-	       myexit (EXIT_FAILURE);
-	     }
-	   D1->A=aln2weighted_sar_score ( D1->A,D2->A, action_list[1], action_list[2]);
-	   D1->S=aln2seq ( D1->A);
-	 }
-
-       else if ( strm (action, "name2unique_name"))
-	 {
-	   char *tmp1, *tmp2;
-	   char command[1000];
-	   tmp1=vtmpnam (NULL); tmp2=vtmpnam (NULL);
-
-	   output_fasta_aln (tmp1,D1->A);
-	   free_aln (D1->A);free_sequence (D1->S, -1);
-	   sprintf ( command, "fasta_aln2fasta_aln_unique_name.pl %s >%s", tmp1, tmp2);
-	   my_system ( command);
-	   D1->S=get_fasta_sequence ( tmp2, NULL);
-	   D1->A=seq2aln (D1->S,NULL, 1);
-	 }
-       else if ( strm (action, "rm_tag") || strm (action, "rm_template"))
-	 {
-
-	   char **temp_name=NULL,**temp_list=NULL, temp_nseq=0;
-	   int z;
-
-	   if ( D1 && D1->A){temp_name=(D1->A)->name;temp_nseq=(D1->A)->nseq;}
-	   else if ( D1 && D1->S){temp_name=(D1->S)->name;temp_nseq=(D1->S)->nseq;}
-           temp_list=rm_name_tag (temp_name,temp_nseq, NULL);
-	   if ( n_actions>1 && strm (action_list[1], "template"))
-	      {
-
-               for ( z=0; z<temp_nseq; z++)
-		{
-		if (temp_list[z][0])
-			{fprintf (stdout, "%s\n", temp_list[z]);}
-	       	}
-	      	myexit (EXIT_SUCCESS);
-	      }
-	 }
-       else if (strm (action, "add_template") || strm (action, "swap_header") || strm (action, "seq2template"))
-	 {
-	   int n=1;
-	   while (ACTION(n))
-	     {
-	       D1->S=seq2template_seq (D1->S, action_list[n++], NULL);
-	     }
-	   D1->A=seq2aln(D1->S, NULL, 1);
-	 }
-       else if ( strm ( action, "seq2year"))
-	 {
-	   D1->S=seq2year (D1->S, (n_actions>1)?atoi(action_list[1]):1);
-	   D1->A=seq2aln(D1->S, NULL, 1);
-	 }
-       else if ( strm (action, "swap_lib_header"))
-	 {
-	   Sequence *S;
-	   S=main_read_seq (action_list[1]);
-	   (D1->CL)->S=S;
-
-	 }
-       else if ( strm (action, "weight_lib"))
-	 {
-	   int l;
-	   int w;
-	   w=atoi (action_list[1]);
-	   if ( D1->CL)
-	     {
-	       int s1, s2,r1,r2;
-	       Sequence *S=(D1->CL)->S;
-	       int ***r=(D1->CL)->residue_index;
-
-	       for (s1=0; s1<S->nseq; s1++)
-		 for (r1=1; r1<=S->len[s1]; r1++)
-		   for (b=1; b<r[s1][r1][0]; b+=3)
-		     {
-		       r[s1][r1][b+2]=w;
-		     }
-	     }
-	 }
-       else if ( strm (action, "struc2nb"))
-	 {
-	   int c;
-	   for ( c=0; c< (D1->S)->nseq; c++)
-	     {
-	       struclist2nb ((D1->S)->name[c],(D1->S)->seq[c], (D1->S)->seq_comment[c], atof(action_list[1]),ACTION(2),ACTION(3) );
-	     }
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm (action, "pdb2contacts"))
-	 {
-	   	   
-	   //param1: mode 
-	   //param2: max distance, in Angstrom
-	   float D=0;
-	   ungap_seq(D1->S);
-	   if (ACTION(2))D=atof (ACTION(2));
-	   D1->CL=pdb2contacts (D1->S, D2?(D2->S):NULL,D1->CL, ACTION (1), D);
-	 }
-       else if ( strm (action, "seq2contacts"))
-	 {
-	   //param1: mode
-	   ungap_seq(D1->S); 
-	   D1->CL=seq2contacts (D1->S, D2?(D2->S):NULL, D1->CL, ACTION (1));
-	 }
-       else if ( strm(action, "redundate"))
-	 {
-	   char *seq;
-	   char *tree;
-
-	   seq=(char*)vcalloc (100, sizeof (char));
-	   tree=(char*)vcalloc (100, sizeof (char));
-	   sprintf ( seq, "%s.redundated", (D1->S)->file[0]);
-	   sprintf (tree, "%s.redundated", (D2->T)->file);
-
-	   HERE ("%s %s", tree, seq);
-	   redundate (D1->S, D2->T,seq, tree);
-	 }
-       else if ( strm(action, "treelist_prune")|| strm(action, "prune_treelist"))
-	 {
-	   Sequence *TS;
-	   if (D2 && D2->S)TS=D2->S;
-	   else TS=treelist2sub_seq((D1->S),ATOI_ACTION(1));
-	   treelist2prune_treelist ( D1->S,TS, NULL);
-	   D1->A=seq2aln (D1->S, NULL, NO_PAD);
-	 }
-       else if ( strm (action, "tree2unresolved_nodes"))
-	 {
-	   int ns;
-	   int *l;
-	   ns=tree2nseq (D1->T);
-	   l=(int*)vcalloc (ns, sizeof (int));
-	   tree2nnode_unresolved (D1->T, l);
-	   for ( a=0; a<ns; a++)if (l[a])fprintf ( stdout, "SIZE: %d COUNT: %d\n", a, l[a]);
-	   vfree (l);
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm(action, "tree_prune") || strm(action, "prune_tree"))
-	 {
-	   D1->T=main_prune_tree ( D1->T, D2->S);
-	 }
-       else if ( strm ( action, "tree2seq"))
-	 {
-	   D1->S=tree2seq(D1->T, NULL);
-	   D1->A=seq2aln (D1->S, D1->A, 1);
-	   (D1->A)->len_aln=1;
-	   for ( a=0; a< (D1->A)->nseq; a++)sprintf ( (D1->A)->seq_al[a], "sequence");
-	 }
-       else if ( strm (action, "seq2dpatree"))
-	 {
-	   D1->T= seq2dpa_tree(D1->S,"ktup");
-	 }
-       else if ( strm (action, "tree2dpatree"))
-	 {
-	   D1->T= tree2dpa_tree(D1->T,(D2 && D2->A)?D2->A:D1->A, const_cast<char*>( (n_actions==1)?"idmat":action_list[1]) );
-	 }
-       else if ( strm (action, "tree2group"))
-	 {
-	   vfclose (tree2group (D1->T, (tree2seq(D1->T,NULL)), atoi(action_list[1]), atoi(action_list[2]),(n_actions==4)?action_list[3]:NULL, stdout));
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm(action, "unroot"))
-	 {
-	   D1->T=unroot_tree(D1->T);
-	 }
-
-
-       else if ( strm(action, "treelist2group")|| strm(action, "treelist2groups") )
-	 {
-	   Sequence *TS;
-
-	   if (D2 && D2->S)TS=D2->S;
-	   else TS=treelist2seq((D1->S));
-	   treelist2groups (D1->S, TS, ACTION(1), stdout);
-	   myexit (EXIT_SUCCESS);
-
-	   //	   treelist2groups (D1->S,(D2)?D2->S:NULL, ACTION(1), stdout );
-	   //exit (EXIT_SUCCESS);
-	 }
-       else if ( strm(action, "splits2tree"))
-	  {
-
-	   D1->T=split2tree ((D2)?D2->T:NULL,D1->S, ACTION(1));
-
-	 }
-       else if ( strm(action, "count_splits"))
-	 {
-
-	   count_splits ((D2)?D2->T:NULL,D1->S, ACTION(1));
-	   myexit (EXIT_SUCCESS);
-	 }
-        else if ( strm(action, "count_groups"))
-	 {
-	   count_tree_groups (D1->S, ACTION(1));
-	 }
-       else if ( strm (action, "tree2dist"))
-	 {
-	   int ta, tb, ***td;
-	   Sequence *TS;
-
-	   TS=(D2)?D2->S:NULL;
-	   td=tree2dist (D1->T,TS, NULL);
-	   if (!TS)TS=tree2seq(D1->T, NULL);
-	   for (ta=0; ta<TS->nseq; ta++)
-	     {
-	       fprintf ( stdout, "%-15s ",TS->name[ta]);
-	       for ( tb=0; tb<TS->nseq; tb++)
-		 {
-		   int n=0;
-		   if ( ACTION(1) && strm (ACTION(1), "length"))n=1;
-
-		   fprintf (stdout, " %4d", td [n][ta][tb]);
-		 }
-	       fprintf ( stdout, "\n");
-	     }
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm (action, "treelist2lti"))
-	 {
-	   Sequence *TS;
-	   if (D2 && D2->S)TS=D2->S;
-	   else TS=treelist2sub_seq((D1->S),ATOI_ACTION(2));
-	   treelist2lti (D1->S,TS, (int)ATOI_ACTION(1), stdout );
-	   myexit (0);
-	 }
-       else if ( strm (action,"treelist2frame"))
-	 {
-	   Sequence *TS;
-	   if (D2 && D2->S)TS=D2->S;
-	   else TS=treelist2sub_seq((D1->S),ATOI_ACTION(1));
-	   treelist2frame (D1->S, TS);
-	   myexit (EXIT_SUCCESS);
-	 }
-
-       else if ( strm (action, "treelist2seq"))
-	 {
-	   D1->S=treelist2sub_seq (D1->S,ATOI_ACTION(1));
-	   D1->A=seq2aln(D1->S, NULL, 1);
-	 }
-       else if ( strm (action, "treelist2leafgroup"))
-	 {
-	   treelist2leafgroup (D1->S, (D2)?D2->S:NULL, ACTION(1));
-	   myexit (0);
-	 }
-       else if ( strm(action, "treelist2splits"))
-	 {
-	   if (D1->T)D1->S=add_file2file_list ((D1->T)->file, NULL);
-	   treelist2splits (D1->S, (D2)?D2->S:NULL);
-	 }
-
-       else if ( strm(action, "treelist2dmat"))
-	 {
-	   treelist2dmat (D1->S);
-	 }
-       else if ( strm(action, "tree2collapse") )
-	 {
-	   char *string;
-	   int x,ng,l;
-	   
-	   if (!D1->T && (D1->A)->Tree)D1->T=newick_string2tree (((D1->A)->Tree)->seq_al[0]);
-	   
-	   l=0;
-	   if ( strm (ACTION(1), "groups"))
-	     {
-	       ng=atoi(ACTION (2))+1;
-	       l=1;
-	       string=(char*)vcalloc ( 1000, sizeof (char));
-	     }
-	   else 
-	     ng=n_actions;
-	   
-	   for (x=1; x<ng; x++)
-	     {
-	       if (!l)
-		 {
-		   string=ACTION(x);
-		   string=substitute_char (string, '\\', 0);
-		 }
-	       else
-		 {
-		   sprintf (string, "-%d", x);
-		 }
-	       D1->T=collapse_tree (D1->T, NULL,string);
-	     }
-	   D1->S=tree2seq(D1->T, NULL);
-	   D1->A=seq2aln (D1->S, NULL, RM_GAP);
-	 }
-       else if ( strm(action, "tree2node") )
-	 {
-	   print_node_list ( D1->T,(DST)?DST->S:NULL);
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm(action, "tree_cmp_list") )
-	 {
-	   D1->T=main_compare_trees_list ( D1->T, D2->S, stdout);
-	 }
-       else if ( strm(action, "tree_cmp") || strm (action, "tree_compare"))
-	 {
-	   D1->T=main_compare_trees ( D1->T, D2->T, stdout);
-	 }
-       else if ( strm (action, "tree_scan"))
-	 {
-	   D1->T=tree_scan (D1->A, D2->T, ACTION(1), ACTION(2));
-	 }
-       else if ( strm (action, "split_cmp"))
-	 {
-	   main_compare_splits (D1->T, D2->T, ACTION(1), stdout);
-	 }
-
-       else if ( strm(action, "node_sort"))
-	 {
-	   node_sort ( action_list[1], D1->T);
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm ( action, "treelist2bs") ||strm ( action, "tree2bs") )
-	 {
-	   if (ACTION(1) && strm (ACTION(1), "best"))treelist2node_support_best (D1->A);
-	   else if (ACTION(1) && strm (ACTION(1), "cons"))treelist2cons (D1->A);
-	   else treelist2node_support (D1->A);
-	 }
-       else if ( strm ( action, "tree2nni"))
-	 {
-	   tree2nni (D1->T, NULL);
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm ( action, "tree2ns"))
-	 {
-	   treelist2ns (D1->T, D2->S, ACTION(1));
-	 }
-	     
-       else if ( strm ( action, "print"))
-	 {
-	   int x;
-	   
-	   for (x=1; x<n_actions;x++)
-	     {
-	       if ( strm (ACTION(x), "bs"))
-		 {
-		   float bs;
-		   if (D1->T)bs=tree2avg_bs(D1->T);
-		   else if (D1->A && (D1->A)->Tree)bs=newick2avg_bs (((D1->A)->Tree)->seq_al[0]);
-		   else bs=newick2avg_bs ((D1->A)->seq_al[0]);
-		   fprintf ( stdout, "AVERAGE_BS: %.2f\n", bs);
-		 }
-	       else if ( strm (ACTION(x), "nseq"))
-		 {
-		   fprintf (stdout, "NSEQ: %d\n", (D1->A)->nseq);
-		 }
-	     }
-	 }
-       else if ( strm (action, "genepred2acc"))
-	 {
-	   //D2->S=reference
-	   //D1->S=prediction
-	   vfree (display_accuracy (genepred_seq2accuracy_counts (D2->S, D1->S, NULL),stderr));
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm (action, "tree_cog_cmp"))
-	 {
-	   main_compare_cog_tree (D1->T,action_list[1]);
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm (action, "tree_aln_cmp"))
-	 {
-	   main_compare_aln_tree (D1->T, D2->A, stdout);
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm(action, "change_bootstrap"))
-	 {
-	   D1->T=reset_boot_tree ( D1->T, (n_actions>=2)?atoi(action_list[1]):0);
-	 }
-       else if ( strm(action, "change_distances"))
-	 {
-	   D1->T=reset_dist_tree ( D1->T, (n_actions>=2)?atof(action_list[1]):0.00);
-	 }
-
-       else if ( strm(action, "aln2tree"))
-	 {
-	   D1->T=tree_compute (D1->A, n_actions-1, action_list+1);
-	 }
-       else if  ( strm(action, "aln2km_tree"))
-	 {
-	   if (!ACTION(1))myexit(fprintf_error (stderr,"-aln2km_tree <mode:diaa|triaa|aln> <nboot>"));
-	   D1->T= aln2km_tree(D1->A, (ACTION(1)), ATOI_ACTION(2));
-	 }
-       else if ( strm(action, "similarities2tree"))
-	 {
-	   D1->T=similarities_file2tree (ACTION(1));
-	 }
-
-       else if (  strm(action, "original_seqnos"))
-	 {
-	  (D1->A)->output_res_num=2;
-	 }
-      	   
-       else if ( strm (action, "aln2pred"))
-	 {
-	   aln2pred (D1->A, D2->A, ACTION (1));
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm(action, "color"))
-	 {
-	   cputenv ("TREE_MODE_4_TCOFFEE=%s",ACTION(1));
-	 }
-       else if ( strm(action, "tree"))
-	 {
-	   if      (!ACTION(1))cputenv ("REPLICATES_4_TCOFFEE=1");
-	   else if (is_number(ACTION(1)))cputenv ("REPLICATES_4_TCOFFEE=%s",ACTION(1));
-	   else
-	     {
-	       int j;
-	       for (j=1; j<n_actions; j+=2)
-		 {
-		   if      (strm (action_list[j], "mode")) cputenv ("TREE_MODE_4_TCOFFEE=%s",action_list[j+1]);
-		   else if (strm (action_list[j], "gap" )) cputenv ("TREE_GAP_4_TCOFFEE=%s" ,action_list[j+1]);
-		   else if (strm (action_list[j], "replicates"))cputenv ("REPLICATES_4_TCOFFEE=%s" ,action_list[j+1]);
-		   else if (strm (action_list[j], "group"))cputenv ("SGROUP_4_TCOFFEE=%s" ,action_list[j+1]);
-		   
-		   else printf_exit ( EXIT_FAILURE,stderr, "\nERROR: %s is not a known +tree parameter (replicates <int>|mode <string>|gap <float>|goup <seqfile>)[FATAL]",action_list[j]);
-		 }
-	     }
-	 }
-       
-       else if ( strm(action, "evaluateGroup"))
-	 {
-	   
-	   if(ACTION(1))D1->A=evaluate_tree_group ((D1->A), main_read_seq(ACTION(1)));
-	   else printf_exit ( EXIT_FAILURE,stderr, "\nERROR: -evaluateGroup requires a sequence list in FASTA formal [FATAL]") ;
-	 }
-       else if ( strm(action, "evaluateTree"))
-	 {
-	   if (ACTION(1))
-	     {
-	       Sequence *G=main_read_seq (ACTION(1));
-	       DST->A=treealn_evaluate4tcoffee (D1->A,G);
-	     }
-	   else printf_exit ( EXIT_FAILURE,stderr, "\nERROR: -evaluateTree requires a sequence list in FASTA formal [FATAL]") ;
-	 }
-       else if ( strm(action, "evaluate3D"))
-	 {
-	   int enb;
-	   float max=0;
-	   char *strikem=NULL;
-	   Constraint_list *CL;
-	   Alignment *A;
-	   int na=1;
-	   DST->A=copy_aln (D1->A, NULL);
-	   DST->S=aln2seq(DST->A);
-	   char *ev3d;
-	   if (ACTION(na) && strm (ACTION(na), "group"))
-	     {
-	        cputenv ("SGROUP_4_TCOFFEE=%s" ,ACTION(na+1));
-		cputenv ("REPLICATES_4_TCOFFEE=columns");
-		na+=2;
-	     }
-	   if ( !ACTION(na) || strm (ACTION(na), "strike"))
-	     {
-	       ev3d="strike";
-	       strikem=(char*)vcalloc (100, sizeof (char));
-	       if (!ACTION(na)||!ACTION(na+1))sprintf (strikem, "strike");
-	       else sprintf (strikem, "%s", ACTION(na+1));
-	       enb=3;
-	     }
-	   else if (strm (ACTION(na), "distances"))
-	     {
-	       ev3d="distances";
-	       enb=3;
-	       max=15;//Angstrom
-	       
-	       if (ACTION(na+1))max=atof(ACTION(na+1));
-	       if (ACTION(na+2))enb=atoi(ACTION(na+2));
-	     }
-	   else if (strm (ACTION(na), "contacts"))
-	     {
-	       ev3d="contacts";
-	       enb=3;
-	       max=1.2;
-		   
-	       if (ACTION(na+1))max=atof(ACTION(na+1));
-	       if (ACTION(na+2))enb=atoi(ACTION(na+2));
-	     }
-	   
-	   if (!D2)CL=D1->CL;
-	   else if (!D2->CL)CL=D1->CL;
-	   else CL=D2->CL;
-	   if (!CL)//do a default contact based evaluation
-	     {
-	       
-	       ungap_seq(D1->S);
-	       if (strm (ev3d, "distances"))
-		 D1->CL=pdb2contacts (D1->S, D2?(D2->S):NULL,D1->CL, "distances",2*max);
-	       else if (strm (ev3d, "contacts"))
-		 D1->CL=pdb2contacts (D1->S, D2?(D2->S):NULL,D1->CL, "all",0);
-	       else
-		 {
-		   D1->CL=pdb2contacts (D1->S, D2?(D2->S):NULL,D1->CL, "all",0);
-		   D1->CL=seq2contacts (D1->S, D2?(D2->S):NULL,D1->CL, NULL);
-		 }
-	       CL=D1->CL;
-	     }
-	   
-	   DST->A=struc_evaluate4tcoffee (D1->A,CL,ev3d,max,enb, strikem);
-	 }
-       else if ( strm(action, "evaluate"))
-	 {
-	   Alignment *A;
-	   DST->A=copy_aln (D1->A, NULL);
-	   DST->S=aln2seq(DST->A);
-	   
-	   
-	   if    (strm (action_list[1], "id2"))
-	     {
-	       fprintf ( stdout, "ID2: %d\n", aln2sim2(D1->A));
-	       exit (EXIT_SUCCESS);
-	     }
-	   else if    (strm (action_list[1], "id") || is_matrix(ACTION(1)))
-	     {
-	       Constraint_list *CL;
-	       CL=(Constraint_list*)vcalloc (1, sizeof (Constraint_list));
-	       if (is_matrix(ACTION(2)))CL->M=read_matrice (ACTION(2));
-	       else if (is_matrix (ACTION(1)))CL->M=read_matrice (ACTION(1));
-	       else CL->M=read_matrice ("idmat");
-
-
-	       DST->A=matrix_evaluate_output (D1->A, CL);
-	       
-		    
-	       
-	       (D1->A)->score=(D1->A)->score_aln=(DST->A)->score=(DST->A)->score_aln;
-	       
-	       //fprintf ( stdout, "ID: %d\n", aln2sim ((D1->A), "idmat"));
-	       //exit (EXIT_SUCCESS);
-	       free_int (CL->M, -1);
-	       vfree (CL);
-	     }
-	   else if (n_actions>1 && strm (  action_list[1], "categories"))
-	     {
-	       CL=declare_constraint_list ( DST->S,NULL, NULL, 0,NULL, read_matrice("pam250mt"));
-	       DST->A=  main_coffee_evaluate_output(DST->A, CL, "categories");
-	     }
-	   else if (n_actions>1 && strm (  action_list[1], "sar"))
-	     {
-	       CL=declare_constraint_list ( DST->S,NULL, NULL, 0,NULL, read_matrice("pam250mt"));
-	       DST->A=  main_coffee_evaluate_output(DST->A, CL, "sar");
-	       (D1->A)->score=(D1->A)->score_aln=(DST->A)->score=(DST->A)->score_aln;
-	       (DST->A)->score_seq[(D1->A)->nseq]*=10;
-	     }
-	   else if (n_actions>1 && strstr (  action_list[1], "boxshade"))
-	     {
-	       char color_mode[1000];
-	       sprintf (color_mode,"boxshade_%d", atoi(ACTION2(2,"30")));
-	       CL=declare_constraint_list ( DST->S,NULL, NULL, 0,NULL, read_matrice("pam250mt"));
-	       DST->A=  main_coffee_evaluate_output(DST->A, CL, color_mode);
-	     }
-	  
-	   else
-	     {
-	       printf_exit ( EXIT_FAILURE,stderr, "\nERROR: +evaluate mode [%s] is unknown[FATAL]", action_list[1]);
-	     }
-	   
-	   DST->S=aln2seq ( DST->A);
-
-	   A=D1->A;
-
-	   //sprintf ( A->name[A->nseq], "cons");
-	   //sprintf ( A->seq_al[A->nseq], "%s", aln2cons_seq_mat (A, "idmat"));
-
-	 }
-       else if ( strm (action, "sp_evaluate"))
-	 {
-	   fprintf ( stdout, "SP Score: %.2f", sum_pair ((DST && DST->A)?DST->A:D1->A,ACTION(1),atoi(ACTION2(2,"0")),atoi(ACTION2(3,"0"))));
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm (action, "lat_evaluate"))
-	 {
-	   float score;
-	   score=lat_sum_pair ( D1->A, action_list[1]);
-	   fprintf ( stdout, "\nLAT_SCORE: %.2f", score);
-	   myexit (EXIT_SUCCESS);
-
-	 }
-       else if ( strm (action, "add_scale"))
-	 {
-	   D1->A=aln2scale (D1->A, ACTION(1));
-	 }
-       else if ( strm (action, "RNAfold_cmp"))
-	 {
-	   D1->A=compare_RNA_fold (D1->A, D2->A);
-	 }
-       else if ( strm (action, "aln2alifold"))
-	 {
-	   D1->A=aln2alifold (D1->A);
-	   D1->S=aln2seq ( D1->A);
-	 }
-
-
-       else if ( strm (action, "add_alifold"))
-	 {
-	   D1->A=add_alifold2aln (D1->A, (D2)?D2->A:NULL);
-
-	 }
-       else if ( strm (action, "alifold2analyze"))
-	 {
-	   D1->A=alifold2analyze (D1->A, (D2)?D2->A:NULL, ACTION(1));
-	   D1->S=aln2seq(D1->A);
-	 }
-       else if ( strm (action, "aln2conservation"))
-	 {
-	   D1->A=aln2conservation ( D1->A, ATOI_ACTION (1), ACTION (2));
-	   myexit (EXIT_FAILURE);
-	 }
-       else if ( strm (action, "aln2cons"))
-	 {
-	   char *cons_seq;
-	   char *cons_name;
-	   cons_name=(char*)vcalloc (100, sizeof (char));
-	   sprintf(cons_name, "%s", (n_actions<=2)?"Cons":action_list[2]);
-	   cons_seq=aln2cons_seq_mat (D1->A, const_cast<char*>( (n_actions==1)?"blosum62mt":action_list[1]) );
-	   free_aln (D1->A);free_sequence(D1->S, -1);
-	   D1->S=fill_sequence_struc (1, &cons_seq, &cons_name, NULL);
-	   /*keep the gaps*/
-	   (D1->S)->len[0]=strlen (cons_seq); sprintf ( (D1->S)->seq[0], "%s", cons_seq);
-	   D1->A=seq2aln (D1->S, NULL, KEEP_GAP);
-	   vfree (cons_name);vfree (cons_seq);
-	 }
-       else if ( strm (action, "seq2filter"))
-	 {
-	   D1->S=seq2filter ( D1->S, atoi(action_list[1]), atoi(action_list[2]));
-
-	 }
-       else if ( strm (action, "aln2resindex"))
-	 {
-	   //-in: aln, file: ref_seq ref_res target_seq
-	   //-in2 target sequences
-	   aln2resindex (D1->A, (D2)?D2->A:NULL, stdout);
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if (strm(action, "keep_name"))
-	 {
-	   RAD->keep_name=1-RAD->keep_name;
-	 }
-        else if (strm(action, "use_consensus") ||strm(action, "use_cons") )
-	 {
-	   RAD->use_consensus=1-RAD->use_consensus;
-	 }
-       else if ( strm(action, "ungap"))
-	 {
-	   seq2aln (D1->S, D1->A, 1);
-	 }
-       else if ( strm2(action, "rmlower", "rm_lower"))
-	 {
-	   
-	   RmLowerInAln(D1->A, ACTION(1));
-	   D1->S=aln2seq ( D1->A);
-	   (D1->A)->S=D1->S;
-	 }
-       else if ( strm2(action, "rmgap", "rm_gap"))
-	 {
-
-	   ungap_aln_n (D1->A, (n_actions==1)?100:atoi(action_list[1]));
-	   //free_sequence ( D1->S, (D1->S)->nseq);
-	   D1->S=aln2seq ( D1->A);
-	   (D1->A)->S=D1->S;
-	 }
-       else if ( strm(action, "rmgap_col"))
-	 {
-	   D1->A=remove_gap_column ( D1->A,action_list[1]);
-	 }
-       else if ( strm(action,"random"))
-	 {
-
-	   D1->A= make_random_aln(NULL,(n_actions==1)?1:atoi(action_list[1]),(n_actions==2)?100:atoi(action_list[2]),"acdefghiklmnpqrstvwy");
-
-	   D1->S=aln2seq ( D1->A);
-	 }
-
-       else if ( strm(action, "landscape"))
-	  {
-
-	    set_landscape_msa ((n_actions==1)?0:atoi(action_list[1]));
-	  }
-       else if ( strm(action, "clean_maln"))
-	  {
-	    if ( !DST)
-		   {
-		   fprintf ( stderr,"\n[You Need an evaluation File: Change the output format][FATAL:%s]\n", PROGRAM);
-		   myexit(EXIT_FAILURE);
-		   }
-	    (DST->A)=aln2number (DST->A);
-	    D1->A=clean_maln(D1->A, DST->A,(n_actions==1)?1:atoi(action_list[1]),(n_actions==1)?1:atoi(action_list[2]));
-	  }
-       else if ( strm (action, "extract"))
-	 {
-
-	   COOR=get_pir_sequence  (RAD->coor_file, NULL);
-	   D1->S=extract_sub_seq ( COOR, D1->S);
-	   free_aln (D1->A);
-	   D1->A=declare_Alignment(D1->S);
-	   seq2aln (D1->S, D1->A, RAD->rm_gap);
-	   free_sequence (COOR, COOR->nseq);
-	 }
-       else if ( strm (action, "reorder_column"))
-	 {
-
-
-
-	       Alignment *RO1, *RO2;
-	       Sequence *OUT_S;
-	       int s;
-
-	       RO1=rotate_aln (D1->A,NULL);
-	       if (ACTION(1) && strm (ACTION(1), "tree"))
-		 {
-		   D1->T=tree_compute (RO1,n_actions-2, action_list+2);
-		    OUT_S=tree2seq(D1->T, NULL);
-		    RO1=reorder_aln(RO1, OUT_S->name, OUT_S->nseq);
-		  }
-	       else if ( ACTION(1) && strm (ACTION(1), "random"))
-		 {
-		   RO1=reorder_aln ( RO1, NULL, RO1->nseq);
-		 }
-
-	       RO2=rotate_aln (RO1, NULL);
-	       for (s=0; s< RO2->nseq; s++)
-		 sprintf ( RO2->name[s], "%s", (D1->A)->name[s]);
-	       free_aln (RO1);
-	       free_aln (D1->A);
-	       D1->A=RO2;
-	       D1->S=aln2seq(D1->A);
-	 }
-
-       else if ( strm (action, "reorder"))
-	 {
-
-	   if ( n_actions==2 && strm (action_list[1], "random"))
-	     {
-	       D1->A=reorder_aln ( D1->A, NULL, (D1->A)->nseq);
-	     }
-	   else if (n_actions==2 && strm (action_list[1], "invert"))
-	     {
-	       char **nname;
-	       int z, y;
-
-	       nname=declare_char ((D1->A)->nseq, 100);
-	       for ( z=0,y=(D1->A)->nseq-1; z<(D1->A)->nseq; z++, y--)
-		 {
-		   sprintf (nname[z], "%s",(D1->A)->name[y]);
-		 }
-
-	       D1->A=reorder_aln ( D1->A, nname, (D1->A)->nseq);
-	       free_char (nname, -1);
-	     }
-	   else if (n_actions==2 && strm (action_list[1], "scramble"))
-	     {
-	       D1->A=aln2scramble_seq(D1->A);
-	     }
-
-	   else if ( n_actions==2 && strm (action_list[1], "tree"))
-	     {
-
-	       OUT_S=tree2seq (D2->T, NULL);
-	       D1->A=reorder_aln(D1->A, OUT_S->name, OUT_S->nseq);
-	       free_sequence (D1->S,(D1->S)->nseq);
-	       D1->S=aln2seq (D1->A);
-	     }
-	   else
-	     {
-	       (D2->A)->S=aln2seq (D2->A);
-	       (D1->A)->S=aln2seq (D1->A);
-	       OUT_S=trim_aln_seq_name(D2->A, D1->A);
-	       D1->A=reorder_aln(D1->A, OUT_S->name, OUT_S->nseq);
-	       free_sequence (D1->S,(D1->S)->nseq);
-	       D1->S=aln2seq (D1->A);
-	     }
-	 }
-       else if ( strm (action, "aln2replicate"))
-	 {
-	   aln2N_replicate (D1->A, ACTION(1), ACTION(2));
-	 }
-       else if ( strm (action, "paralogous_cat"))
-	 {
-	   D1->A=orthologous_concatenate_aln (D1->A,D2->S, ACTION (1));
-	 }
-
-       else if ( strm (action, "cat_aln"))
-	 {
-	   /*D1->A=aln_cat ( D1->A, D2 ->A);*/
-
-	   if (D2 && D2->A && !ACTION(1))
-	     D1->A=concatenate_aln (D1->A, D2->A, ACTION(1));
-	   else if (ACTION(1) && is_aln(ACTION(1)))
-	     {
-	         Alignment *B;
-		 int n=1;
-
-		 while (ACTION(n))
-		   {
-
-		     B=main_read_aln (ACTION(n), NULL);
-		     D1->A=concatenate_aln (D1->A, B, NULL);
-		     n++;
-		   }
-		 D1->S=aln2seq(D1->A);
-	     }
-
-	   else
-	     {
-	       Alignment *A, *B;
-
-	       A=main_read_aln ((D1->A)->name[0], NULL);
-
-	       for ( a=1; a<(D1->A)->nseq; a++)
-		 {
-		   B=main_read_aln ((D1->A)->name[a], NULL);
-		   A=concatenate_aln (A, B, ACTION(1));
-
-		 }
-	       D1->A=A;
-	       D1->S=aln2seq(D1->A);
-	     }
-	 }
-
-       else if ( strm ( action, "msalist2cat_pwaln"))
-	 {
-	   int a, b, c;
-	   int sim, min, max;
-
-	   if (n_actions!=3)
-	     {
-	       min=0;
-	       max=100;
-	     }
-	   else
-	     {
-	       min=atoi(action_list[1]);
-	       max=atoi(action_list[2]);
-	     }
-
-	   fprintf ( stdout, ">A\n");
-	   for (a=0;a<(D1->S)->nseq; a++)
-	     {
-	       Alignment *A;
-	       HERE ("process %s",  (D1->S)->name[a]);
-	       A=main_read_aln((D1->S)->name[a],NULL);
-	       for (b=0; b<A->nseq-1; b++)
-		 {
-		   for ( c=b+1; c<A->nseq; c++)
-		     {
-		       sim=get_seq_sim (A->seq_al[b], A->seq_al[c], "-", "");
-		       if (sim>=min && sim<=max)fprintf (stdout, "xxx%s", A->seq_al[b]);
-		     }
-		 }
-	       free_aln (A);
-	     }
-	   fprintf ( stdout, "\n>B\n");
-	   for (a=0;a<(D1->S)->nseq; a++)
-	     {
-	       Alignment *A;
-	       HERE ("process %s",  (D1->S)->name[a]);
-	       A=main_read_aln((D1->S)->name[a],NULL);
-	       for (b=0; b<A->nseq-1; b++)
-		 {
-		   for ( c=b+1; c<A->nseq; c++)
-		     {
-		       sim=get_seq_sim (A->seq_al[b], A->seq_al[c], "-", "");
-		       if (sim>=min && sim<=max)fprintf (stdout, "xxx%s", A->seq_al[c]);
-		     }
-		 }
-	       free_aln (A);
-	     }
-
-	   fprintf ( stdout, "\n");
-	   myexit (EXIT_SUCCESS);
-	 }
-
-       else if ( strm (action, "collapse_tree"))
-	 {
-	   D1->T=tree2collapsed_tree (D1->T, n_actions-1, action_list+1);
-	 }
-       else if ( strm (action, "collapse_aln"))
-	 {
-	   D1->A=aln2collapsed_aln (D1->A, n_actions-1, action_list+1);
-	 }
-       else if ( strm (action, "extract_aln"))
-	 {
-	   D1->A=aln2sub_aln_file (D1->A, n_actions-1, action_list+1);
-	   myexit (EXIT_SUCCESS);
-	 }
-
-
-
-       else if ( strm (action, "remove_aa"))
-	 {
-	   int pos,len, n;
-	   pos=atoi(action_list[1]);
-	   len=atoi(action_list[2]);
-	   n=atoi (action_list[3]);
-	   if ( atoi (action_list[4])==1)len=-len;
-	   if (pos && n>1)
-	     {
-	       fprintf ( stderr, "\nWARNING: rm_aa, position (pos) and iteration number (n) simulatneously defined. Iteration number reset to 1 [%s]\n", PROGRAM);
-	       n=1;
-	     }
-	   for ( a=0; a< n; a++)
-	     D1->A=probabilistic_rm_aa (D1->A, pos, len);
-	 }
-       else if ( strm (action, "remove_nuc"))
-	 {
-	   int pos;
-	   pos=atoi(action_list[1]);
-
-	   if ( pos>3 || pos<1)
-	     printf_exit (EXIT_FAILURE, stderr, "Remove_nuc: indicate a number between 1 and 3\n");
-
-	   pos--;
-	   for ( c=0,a=0; a<(D1->A)->len_aln; a++, c++)
-	     {
-	       if (c==3)c=0;
-	       for (b=0; b<(D1->A)->nseq; b++)
-		 {
-		 if (c==pos)
-		   {
-		     (D1->A)->seq_al[b][a]='-';
-		   }
-		 }
-	     }
-
-	   D1->S=aln2seq (D1->A);
-	 }
-
-       else if (strm ( action, "conserved_positions"))
-	 {
-	   Alignment *A;
-	   int  a, b, c;
-	   int *cache=NULL;
-
-
-	   A=D1->A;
-	   for ( a=0; a< A->nseq && !cache; a++)
-	     {
-	       if ( strm (action_list[1], A->name[a]))
-		 {
-		   cache=(int*)vcalloc ( A->len_aln+1, sizeof (int));
-		   for ( c=0,b=0; b<A->len_aln; b++)
-		     {
-		       if ( is_gap (A->seq_al[a][b]))cache[b]=-1;
-		       else cache[b]=++c;
-		     }
-		 }
-	     }
-
-	   for ( a=0; a< A->len_aln; a++)
-	     {
-	       r1=A->seq_al[0][a];
-	       if ( is_gap(r1))continue;
-	       for ( c=0,b=0; b<A->nseq; b++)
-		 {
-		   r2=A->seq_al[b][a];
-		   c+=(r1==r2)?1:0;
-		 }
-	       if ( (c*100)/A->nseq>=atoi(action_list[2]))
-		 fprintf ( stdout, "COL: %d Res: %c %s %d\n", a+1, r1, action_list[1], cache[a]+atoi(action_list[3]));
-	     }
-	   myexit (EXIT_FAILURE);
-	 }
-       else if (strm ( action, "extract_block") )
-	 {
-
-	   BUF=copy_aln (D1->A, NULL);
-	   if ( check_file_exists(action_list[1]))
-	     BUF=extract_aln3(BUF,action_list[1]);
-	   else
-	     BUF=extract_aln2(BUF,atoi(action_list[2]),atoi(action_list[3]),action_list[1]);
-	   D1->A=copy_aln (BUF,D1->A);
-
-	 }
-       else if ( strm ( action, "extract_pos_list"))
-	 {
-	   D1->A=alnpos_list2block (D1->A, n_actions-1, action_list+1);
-	 }
-       else if ( strm ( action, "seq2msa"))
-	 {
-	   D1->A=simple_progressive_aln ( D1->S, NULL, NULL, action_list[1]);
-	 }
-       else if ( strm ( action, "realign_block") )
-	 {
-	   D1->A=realign_block ( D1->A, atoi (action_list[1]), atoi (action_list[2]), (n_actions==4)?action_list[3]:NULL);
-	 }
-       else if ( strm (action, "extract_seq"))
-	 {
-		 int is_file;
-		 if ( check_file_exists (action_list[1])&& format_is_fasta (action_list[1]))
-		 {
-			 is_file=1;
-			 BUFS=main_read_seq (action_list[1]);
-			 action_list=BUFS->name;
-			 n_actions=BUFS->nseq;
-		 }
-		 else
-		 {
-			 is_file=0;
-			 action_list++;
-			 n_actions--;
-		 }
-
-		 for ( a=0; a< n_actions;)
-		 {
-			 s=action_list[a];
-
-			 if ( n_actions==1 || is_file==1)
-			 {
-				 start=1;
-				 end=0;
-				 a+=1;
-			 }
-			 else
-			 {
-
-				 start=(strm2 (s,"#","*"))?1:(atoi(action_list[a+1]));
-				 end=  (strm2 (action_list[a+2],"#","*"))?0:(atoi(action_list[a+2]));
-				 a+=3;
-			 }
-
-			 if ( strm2 (s, "#", "*"))
-			 {
-				 OUT_S=extract_one_seq((D1->A)->name[0],start, end, D1->A, RAD->keep_name);
-				 for (b=1; b< (D1->A)->nseq; b++)
-				 {
-					 NS=extract_one_seq((D1->A)->name[b],start, end, D1->A, RAD->keep_name);
-					 if (count_n_res_in_array(NS->seq[0], -1))
-						 OUT_S=add_sequence ( NS,OUT_S, 0);
-				 }
-			 }
-			 else
-			 {
-				 if ( a==1)OUT_S=extract_one_seq(s,start, end, D1->A, RAD->keep_name);
-				 else
-				 {
-					 NS=extract_one_seq(s,start, end, D1->A, RAD->keep_name);
-					 OUT_S=add_sequence ( NS,OUT_S, 0);
-				 }
-			 }
-		 }
-		 D1->S=OUT_S;
-		 free_aln (D1->A);
-		 D1->A=declare_Alignment(D1->S);
-		 seq2aln (D1->S, D1->A, RAD->rm_gap);
-	 }
-	 else if ( strm (action, "ls_extract_seq"))
-	 {
-		 // if given a file, read it
-		 if ( check_file_exists (action_list[1]) && format_is_fasta (action_list[1]))
-		 {
-
-			 BUFS=main_read_seq (action_list[1]);
-			 action_list=BUFS->name;
-			 n_actions=BUFS->nseq;
-		 }
-		 else
-		 {
-			 action_list++;
-			 n_actions--;
-		 }
-
-		//sort names for binary search
-		char **seq_found;
-		qsort(action_list, n_actions, sizeof(char*), ls_compare);
-		char *names;
-		size_t i,pos = 0;
-		size_t n_seqs = D1->S->nseq;
-		int max_len=0;
-		int min_len=INT_MAX;
-		for (i=0; i<n_seqs; ++i)
-		{
-			seq_found = (char**)bsearch(&D1->S->name[i], action_list, n_actions, sizeof(char*), ls_compare);
-			if (seq_found != NULL)
-			{	//copy values of a sequence to unused position
-				D1->S->name[pos]=D1->S->name[i];
-				D1->S->seq[pos]=D1->S->seq[i];
-				D1->S->len[pos]=D1->S->len[i];
-				if (max_len < D1->S->len[pos])
-					max_len=D1->S->len[pos];
-				if (min_len > D1->S->len[pos])
-					min_len=D1->S->len[pos];
-				D1->S->seq_comment[pos]=D1->S->seq_comment[i];
-				D1->S->file[pos]=D1->S->file[i];
-				D1->S->T[pos]=D1->S->T[i];
-				if (D1->S->genome_co != NULL)
-					D1->S->genome_co[pos]=D1->S->genome_co[i];
-				++pos;
-			}
-			else
-			{	//free memory of deleted sequences
-				vfree(D1->S->name[i]);
-				vfree(D1->S->seq[i]);
-				vfree(D1->S->seq_comment[i]);
-				vfree(D1->S->T[i]);
-				vfree(D1->S->file[i]);
-			}
-		}
-
-		//update values
-
-
-		D1->S->max_nseq=pos;
-		D1->S->nseq=pos;
-		D1->S->max_len=max_len;
-		D1->S->min_len=min_len;
-
-		//free memory
-		D1->S->name=(char**)vrealloc(D1->S->name, pos*sizeof(char*));
-		D1->S->seq=(char**)vrealloc(D1->S->seq, pos*sizeof(char*));
-		D1->S->seq_comment=(char**)vrealloc(D1->S->seq_comment, pos*sizeof(char*));
-		D1->S->file=(char**)vrealloc(D1->S->file, pos*sizeof(char*));
-		D1->S->T=(Template**)vrealloc(D1->S->T, pos*sizeof(Template*));
-		D1->S->len=(int*)vrealloc(D1->S->len, pos*sizeof(int));
-		if (D1->S->genome_co != NULL)
-			vrealloc(D1->S->genome_co, pos*sizeof(Genomic_info));
-
-		D1->A=declare_Alignment(D1->S);
-		seq2aln (D1->S, D1->A, RAD->rm_gap);
-	 }
-	 else if ( strm (action, "extract_lib_list"))
-	   {
-	     D1->CL=constraint_list2sub_constraint_list (D1->CL,main_read_seq (action_list[1]));
-	   }
-       else if ( strm (action, "extract_seq_list"))
-	 {
-	   
-	   if (D1->CL)
-	      D1->CL=constraint_list2sub_constraint_list (D1->CL,main_read_seq (action_list[1]));
-	   else
-	     {
-	       int nadded=0;
-	       if ( check_file_exists (action_list[1]) && format_is_fasta (action_list[1]))
-		 {
-		   
-		   BUFS=main_read_seq (action_list[1]);
-		   action_list=BUFS->name;
-		   n_actions=BUFS->nseq;
-		 }
-	       else
-		 {
-		   action_list++;
-		   n_actions--;
-		 }
-	       
-	       for ( a=0; a< n_actions;a++)
-		 {
-		   if ( (name_is_in_list (action_list[a], (D1->S)->name, (D1->S)->nseq, 100))!=-1)
-		     {
-		       nadded++;
-		       HERE ("%s", action_list[a]);
-		       NS=extract_one_seq(action_list[a],1,0, D1->A, KEEP_NAME);
-		       OUT_S=add_sequence ( NS,OUT_S, 0);
-		     }
-		   else 
-		     {
-		       fprintf (stderr, "WARNING: %s could not be extracted\n", action_list[a]);
-		     }
-		 }
-	       if (nadded==0)exit (0);
-	       D1->S=OUT_S;
-	       free_aln (D1->A);
-	       D1->A=declare_Alignment(D1->S);
-	       seq2aln (D1->S, D1->A, RAD->rm_gap);
-	     }
-	 }
-       else if ( strm (action, "remove_seq") || strm (action, "rm_seq"))
-	 {
-	   char *buf;
-	   char **list;
-	   int n;
-	   int l;
-
-	   list=declare_char ((D1->S)->nseq, 200);
-
-	   buf=(char*)vcalloc ((D1->S)->max_len+1, sizeof (char));
-	   for ( n=0,a=0; a< (D1->A)->nseq; a++)
-	     {
-
-	       sprintf (buf, "%s", (D1->S)->seq[a]);
-	       ungap (buf);
-	       l=strlen(buf);
-
-	       for (c=1, b=1; b< n_actions; b++)
-		 {
-		   if ( strm (action_list[b], (D1->S)->name[a])){(D1->S)->seq[a]=NULL;break;}
-		   else if ( strm (action_list[b], "empty") && l==0)
-		     {
-		       fprintf ( stderr, "WARNING: Sequence %s does not contain any residue: automatically removed from the set [WARNING:%s]\n",(D1->S)->name[a], PROGRAM);
-		       (D1->S)->seq[a]=NULL;break;
-		     }
-		   else if ( strm (action_list[b], "unique"))
-		     {
-		       if ( name_is_in_list ((D1->S)->name[a], list,n, 100)!=-1)
-			 {
-			   (D1->S)->seq[a]=NULL;break;
-			 }
-		       else
-			 {
-			   sprintf ( list[n++], "%s", (D1->S)->name[a]);
-			 }
-		     }
-		 }
-	     }
-	   D1->S=duplicate_sequence (D1->S);
-	   free_aln (D1->A);
-	   free_char ( list, -1);
-	   D1->A=declare_Alignment(D1->S);
-	   seq2aln (D1->S, D1->A, RAD->rm_gap);
-	 }
-
-       else if (  strm (action, "aln2overaln")|| strm (action,"overaln_param"))
-	 {
-	   //mode (lower|number|uanlign) Penalty (0-100) Thresold (0-9)
-	   int  p1,p2,p3,f, t;
-	   char *s;
-	   int eb=0;
-	   char clean_mode[100];
-	   OveralnP *F;
-
-	   F=(OveralnP*)vcalloc (1, sizeof (OveralnP));
-	   if ( D2 && D2->A)
-	     {
-	       D1->A=mark_exon_boundaries (D1->A, D2->A);
-	       eb=1;
-	     }
-	   else if ( (s=get_string_variable ("exon_boundaries")))
-	     {
-	      Sequence *S;
-	      Alignment *EB;
-	      EB=seq2aln(S=main_read_seq(s),NULL, 0);
-	      D1->A=mark_exon_boundaries (D1->A, EB);
-	      free_sequence (S, S->nseq); free_aln (EB);
-	      eb=1;
-	     }
-
-
-	   if (ACTION(1)==NULL)sprintf (F->mode, "lower");
-	   else if (strstr (ACTION(1), "h"))
-	     {
-	       fprintf ( stdout, "aln2unalign lower|number|unalign|uanlign2 F P1 P2 P3 T\n");
-	       myexit (EXIT_SUCCESS);
-	     }
-	   else sprintf (F->mode, "%s", ACTION(1));
-
-	   F->t=ATOI_ACTION(2);
-	   F->f=ATOI_ACTION(3);
-	   F->p1=ATOI_ACTION(4);
-	   F->p2=ATOI_ACTION(5);
-	   F->p3=ATOI_ACTION(6);
-	   F->p3=ATOI_ACTION(7);
-
-	   if (int_variable_isset ("overaln_target"))f=get_int_variable ("overaln_target");
-	   if (int_variable_isset ("overaln_threshold"))t=get_int_variable ("overaln_threshold");
-	   if (eb)sprintf (F->model, "fsa2");
-	   else   sprintf (F->model, "fsa1");
-
-	   D1->A=aln2clean_pw_aln (D1->A, F);
-
-	 }
-       else if (  strm (action, "unalign_groups"))
-	 {
-	   //unalign everything in lower case
-	   unalign_aln_2 (D1->A, NULL, 0);
-	 }
-       else if (  strm (action,"aln2unalign"))
-	 {
-	   Alignment *SA;
-	   Sequence *SS;
-	   SA=copy_aln (D1->A, NULL);
-	   SS=aln2seq(SA);
-
-	   thread_seq_struc2aln (SA, SS);
-	   D1->A=unalign_aln (D1->A,SA, ATOI_ACTION(1));
-	   D1->S=aln2seq ( D1->A);
-	 }
-       else if (  strm (action, "clean_cdna"))
-	 {
-	   Alignment *A;
-	   A=D1->A;
-	   for (a=0; a< A->nseq; a++)
-	     {
-	       char *d, *buf, f;
-
-	       d=A->seq_al[a];
-	       f=get_longest_frame (d, 3);
-	       buf=(char*)vcalloc ( strlen (d)+1, sizeof (char));
-	       sprintf (buf, "%s", d+f);
-	       sprintf (d, "%s", buf);
-	       vfree (buf);
-	     }
-	 }
-       else if ( strm (action, "clean_cdna2"))
-	 {
-	   D1->A=clean_cdna_aln ( D1->A);
-	   free_sequence ( D1->S, (D1->S)->nseq);
-	   D1->S=aln2seq ( D1->A);
-	 }
-       else if ( strm  (action, "aln2short_aln"))
-	   {
-	     D1->A=aln2short_aln (D1->A, action_list[1], action_list[2], atoi(action_list[3]));
-	     free_sequence ( D1->S, (D1->S)->nseq);
-	     D1->S=aln2seq ( D1->A);
-	   }
-       else if ( strm ( action, "complement"))
-	 {
-	   D1->A=complement_aln (D1->A);
-	   free_sequence ( D1->S, (D1->S)->nseq);
-	   D1->S=aln2seq ( D1->A);
-	 }
-       else if ( strm ( action, "extend"))
-	 {
-	   extend_seqaln( NULL,D1->A);
-	   free_sequence ( D1->S, (D1->S)->nseq);
-	   D1->S=aln2seq ( D1->A);
-	 }
-       else if ( strm ( action, "unextend"))
-	 {
-	   unextend_seqaln( NULL,D1->A);
-	   free_sequence ( D1->S, (D1->S)->nseq);
-	   D1->S=aln2seq ( D1->A);
-	 }
-       else if ( strm ( action, "translate"))
-	 {
-	   D1->A=translate_dna_aln( D1->A,(n_actions==1)?0:atoi(action_list[1]));
-	   free_sequence ( D1->S, (D1->S)->nseq);
-	   D1->S=aln2seq ( D1->A);
-	 }
-       else if (strm2 ( action, "back_translate","backtranslate"))
-	 {
-	  D1->A=back_translate_dna_aln( D1->A);
-	  free_sequence ( D1->S, (D1->S)->nseq);
-	  D1->S=aln2seq ( D1->A);
-	 }
-       else if (strm ( action, "rotate"))
-	 {
-	   D1->A=rotate_aln( D1->A, action_list[1]);
-	   free_sequence ( D1->S, (D1->S)->nseq);
-	   D1->S=aln2seq ( D1->A);
-	 }
-       else if (strm ( action, "invert"))
-	 {
-	  D1->A=invert_aln( D1->A);
-	  free_sequence ( D1->S, (D1->S)->nseq);
-	  D1->S=aln2seq ( D1->A);
-	 }
-       else if (strm ( action, "test_dna2gene"))
-	 {
-	   testdna2gene ((D1->S)->seq[0]);
-	 }
-       else if (strm ( action, "code_dna_aln"))
-	 {
-	  D1->A=code_dna_aln( D1->A);
-	  free_sequence ( D1->S, (D1->S)->nseq);
-	  D1->S=aln2seq ( D1->A);
-	 }
-
-       else if ( strm ( action, "mutate"))
-	 {
-	   D1->A=mutate_aln( D1->A, const_cast<char*>( (n_actions==1)?"0":action_list[1]) );
-	   free_sequence ( D1->S, (D1->S)->nseq);
-	   D1->S=aln2seq (D1->A);
-	 }
-       else if ( strm ( action, "thread_profile_on_msa"))
-	 {
-	   (D1->A)->S=NULL;
-	   D1->A=thread_profile_files2aln (D1->A, action_list[1], NULL);
-	   D1->S=aln2seq(D1->A);
-	 }
-       else if ( strm ( action, "thread_dna_on_prot_aln"))
-	 {
-	   if (D1->S)fast_get_sequence_type(D1->S);
-	   if (D2->S)fast_get_sequence_type(D2->S);
-	   
-	   if (D1->S && strm ((D1->S)->type, "DNA"))
-	     D1->A=thread_dnaseq_on_prot_aln (D1->S, D2->A);
-	   else if (D2->S && strm ((D2->S)->type, "DNA"))
-	     D1->A=thread_dnaseq_on_prot_aln (D2->S, D1->A);
-	   else
-	     printf_exit (EXIT_FAILURE, stderr, "Error: +thread_dna_on_prot_aln requires -in=<prot_aln> -in2=<dna sequence>");
-	   
-	   free_sequence (D1->S,(D1->S)->nseq);
-	   D1->S=aln2seq (D1->A);
-	 }
-       
-       //else if ( strm ( action, "thread_dna_on_prot_aln"))
-       //{
-       //   D1->A=thread_dnaseq_on_prot_aln (D1->S, D2->A);
-       //   free_sequence (D1->S,(D1->S)->nseq);
-       //   D1->S=aln2seq (D1->A);
-       // }
-       else if ( strm ( action, "thread_struc_on_aln"))
-	 {
-	   thread_seq_struc2aln ( D2->A, D1->S);
-	   D1->A=copy_aln(D2->A, NULL);
-	   D1->S=aln2seq (D1->A);
-	 }
-      
-       else if ( strm (action, "sim_filter"))
-	 {
-	   D1->A=sim_filter (D1->A, action_list[1], ACTION (2));
-	   free_sequence (D1->S,(D1->S)->nseq);
-	   D1->S=aln2seq (D1->A);
-	 }
-       else if ( strm (action, "seq2blast"))
-	 {
-	   D1->A=seq2blast (D1->S);
-	   free_sequence (D1->S,(D1->S)->nseq);
-	   D1->S=aln2seq (D1->A);
-	 }
-       else if ( strm (action, "kmeans"))
-	 {
-	   //k, mode: diaa,triaa, name
-	   if (!ATOI_ACTION(1))myexit(fprintf_error (stderr,"-kmeans <nclusters> <mode:diaa|triaa> <outputname>"));
-	   km_seq (D1->A,ATOI_ACTION (1),ACTION(2),ACTION(3));
-	 }
-       else if ( strm (action, "gap_trim"))
-	 {
-	   D1->A=gap_trim (D1->A,ATOI_ACTION(1));
-
-	   free_sequence (D1->S,(D1->S)->nseq);
-	   D1->S=aln2seq (D1->A);
-	 }
-       else if ( strm (action, "trimRNA"))
-	 {
-	   D1->A=trim_RNA(D1->A, D2->S, ATOI_ACTION(1));
-	 }
-       else if ( strm (action, "trim"))
-	 {
-	   D1->A=simple_trimseq (D1->A,(D2)?D2->A:NULL, action_list[1], ACTION (2), NULL);
-
-	   free_sequence (D1->S,(D1->S)->nseq);
-	   D1->S=aln2seq (D1->A);
-	 }
-
-       else if (strm ( action, "trimTC"))
-	 {
-	   value=(n_actions==1)?10:atoi(action_list[1]);
-
-	   D1->A=tc_trimseq(D1->A,D1->S,action_list[1]);
-	   free_sequence (D1->S,(D1->S)->nseq);
-	   D1->S=aln2seq (D1->A);
-	 }
-       else if (strm ( action, "trimTC2"))
-	 {
-	   char *group_file;
-	   Alignment *B=NULL;
-	   char trim_mode[100];
-	   if ( n_actions==1 || !(strm (action_list[1], "NSEQ") ||strm (action_list[1], "MINID")) )
-	     {
-	       fprintf ( stderr, "\nTrimTC2 <NSEQ | MINID>  <number sequences| minimum identity> (<matrix>)\n");
-	       myexit (EXIT_FAILURE);
-	     }
-	   sprintf (trim_mode, "%s", action_list[1]);action_list+=2; n_actions-=2;
-
-	   if ( strm ( trim_mode, "NSEQ"))
-	     {
-	       group_file=tree2Ngroup( (D1)?D1->A:NULL, (D2)?D2->T:NULL, atoi (action_list[0]), vtmpnam(NULL), const_cast<char*>( (n_actions==1)?"idmat":action_list[1]) );
-	     }
-	   else
-	     {
-	       group_file=tree2Ngroup( (D1)?D1->A:NULL, (D2)?D2->T:NULL, -1*atoi (action_list[0]), vtmpnam(NULL), const_cast<char*>( (n_actions==1)?"idmat":action_list[1]) );
-	     }
-
-	   B=copy_aln (D1->A, B);
-	   B=aln2sub_aln_file (B,1,&group_file);
-	   B=aln2sub_seq (B, 1, &group_file);
-	   D1->A=extract_sub_aln2 (D1->A, B->nseq, B->name);
-	 }
-       else if ( strm (action, "chain"))
-	 {
-	   D1->A=seq2seq_chain (D1->A,D2->A, ACTION(2));
-	 }
-
-
-       else if (strm ( action, "master_trim"))
-	 {
-	   value=(n_actions==1)?10:atoi(action_list[1]);
-
-	   D1->A=master_trimseq(D1->A,D1->S,action_list[1]);
-	   free_sequence (D1->S,(D1->S)->nseq);
-	   D1->S=aln2seq (D1->A);
-	 }
-        else if ( strm (action, "force_aln"))
-	 {
-	   char ***rlist=NULL;
-	   int count=0;
-
-	   if ( n_actions==2)
-	     {
-	       if (!is_lib_02(action_list[1]))
-		 {
-		   fprintf ( stderr, "\nERROR: force_aln requires files in TC_LIB_FORMAT_02 [FATAL:%s]", PROGRAM);
-		   myexit (EXIT_FAILURE);
-		 }
-	       else
-		   rlist=file2list (action_list[1], " ");
-	     }
-	   else
-	     {
-	       rlist=(char***)declare_arrayN(3, sizeof (char),3,7, 10);
-
-	       strcat (rlist[1][1],action_list[1]);strcat (rlist[1][3],action_list[2]);
-	       strcat (rlist[1][4],action_list[3]);strcat (rlist[1][6],action_list[4]);
-	       sprintf ( rlist[2][0], "-1");
-	     }
-	   count=1;
-	   while (rlist[count] && atoi(rlist[count][0])!=-1)
-	     {
-	       char st1[100], st2[100], st3[100], st4[100];
-
-	       sprintf ( st1, "%s", rlist[count][1]);sprintf ( st2, "%s", rlist[count][3]);
-	       sprintf ( st3, "%s", rlist[count][4]);sprintf ( st4, "%s", rlist[count][6]);
-	       fprintf ( stderr, "\nFORCE: %s %s %s %s", st1, st2, st3, st4);
-
-	       if (is_number (st1))s1=atoi (st1)-1;
-	       else s1=name_is_in_list (st1,(D1->A)->name, (D1->A)->nseq, 100);
-	       if ( s1<0 || s1>= (D1->A)->nseq)crash ("wrong sequence index");
-	       r1=atoi (st2)-1;
-
-	       if (is_number (st3))s2=atoi (st3)-1;
-	       else s2=name_is_in_list (st3,(D1->A)->name, (D1->A)->nseq, 100);
-	       if ( s2<0 || s2>= (D1->A)->nseq)crash ("wrong sequence index");
-	       r2=atoi (st4)-1;
-
-	       (D1->A)=add_constraint2aln ((D1->A), s1, r1, s2, r2);
-	       count++;
-	     }
-	   fprintf ( stderr, "\n");
-	   free_arrayN((void*)rlist,3);
-	 }
-
-        else if (strm ( action, "grep"))
-	  {
-	    D1->A=grep_seq (D1->A, ACTION(1),ACTION(2), ACTION(3));
-	    if (D1->A==NULL) myexit (EXIT_SUCCESS);
-	    else D1->S=aln2seq (D1->A);
-	  }
-
-	else if (strm (action, "find"))
-	  {
-	    int r, l;
-	    char *search_string;
-
-	    search_string=(char*)vcalloc ( 30, sizeof (char));
-	    if ( strm (action_list[1], "lower"))sprintf ( search_string, "abcdefghijklmnopqrstuvwxyz");
-	    else if ( strm ( action_list[1], "upper"))sprintf ( search_string, "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-	    else
-	      {
-		vfree (search_string);search_string=(char*)vcalloc ( strlen (action_list[1])+1, sizeof (char));
-		sprintf (search_string, "%s", action_list[1]);
-	      }
-
-	    for (a=0; a<(D1->A)->nseq; a++)
-	      for ( l=0,b=0; b< (D1->A)->len_aln; b++)
-		{
-		  r=(D1->A)->seq_al[a][b];
-		  l+=!is_gap(r);
-		  if ( r!='\0' && strrchr (search_string, r))
-		    {
-		      /*fprintf ( stdout, "%-15s res %c alnpos %4d seqpos %4d\n", (D1->A)->name[a], r, b+1, l);*/
-		      fprintf ( stdout, "%s %d %d\n", (D1->A)->name[a], l, l+1);
-		    }
-		}
-	    myexit (EXIT_SUCCESS);
-	  }
-        else if ( strm (action, "merge_annotation"))
-	  {
-	    D1->A=merge_annotation (D1->A, DST?DST->A:NULL, ACTION(1));
-	    D1->S=aln2seq (D1->A);
-	  }
-	else if ( strm  (action, "color_residue"))
-	  {
-	    int i;
-	    Alignment *A;
-	    A=D1->A;
-
-	    DST->A=copy_aln (D1->A, NULL);
-	    DST->S=aln2seq (DST->A);
-	    for (a=0; a< (DST->S)->nseq; a++)ungap ((DST->S)->seq[a]);
-
-	    if (n_actions>2)
-	      {
-		for (a=1; a<n_actions; a+=3)
-		  {
-		    i=name_is_in_list(action_list[a], (D1->A)->name, (D1->A)->nseq, 100);
-		    if (i!=-1)
-		      {
-			(DST->S)->seq[i][atoi(action_list[a+1])-1]='0'+atoi(action_list[a+2])-1;
-		      }
-		    else fprintf (stderr, "\nWARNING: Could not find Sequence %s", action_list[a]);
-		  }
-	      }
-	    else
-	      {
-		char name[1000];
-		int pos, val;
-		FILE *fp;
-
-		fp=vfopen (action_list[1], "r");
-		while (fscanf (fp, "%s %d %d\n", name, &pos, &val)==3)
-		  {
-
-		     i=name_is_in_list(name, (D1->A)->name, (D1->A)->nseq, 100);
-		     if (i!=-1)(DST->S)->seq[i][pos-1]='0'+val;
-		     else fprintf (stderr, "\nWARNING: Could not find Sequence %s", action_list[a]);
-		  }
-		vfclose (fp);
-	      }
-	    DST->A=seq2aln (DST->S, NULL, 1);
-	  }
-       else if ( strm  (action, "edit_residue"))
-	  {
-	    FILE *fp;
-	    int i, pos;
-	    int **p;
-	    char mod[100], name[100];
-	    Alignment *A;
-
-	    A=D1->A;
-
-	    p=aln2inv_pos (A);
-	    if (n_actions>2)
-	      {
-		for (a=1; a<n_actions; a+=3)
-		  {
-
-		    i=name_is_in_list(action_list[a], (D1->A)->name, (D1->A)->nseq, 100);
-		    if (i!=-1)
-		      {
-			pos=atoi(action_list[a+1]);
-
-			pos=p[i][pos]-1;
-			sprintf (mod, "%s", action_list[a+2]);
-			if ( strm (mod, "upper"))(D1->A)->seq_al[i][pos]=toupper((D1->A)->seq_al[i][pos]);
-			else if ( strm (mod, "lower"))(D1->A)->seq_al[i][pos]=tolower((D1->A)->seq_al[i][pos]);
-			else (D1->A)->seq_al[i][pos]=mod[0];
-		      }
-		    else fprintf (stderr, "\nWARNING: Could not find Sequence %s", action_list[a]);
-
-		  }
-	      }
-	    else
-	      {
-		fp=vfopen (action_list[1], "r");
-		while (fscanf (fp, "%s %d %s\n", name, &pos, mod)==3)
-		  {
-
-		     i=name_is_in_list(name, (D1->A)->name, (D1->A)->nseq, 100);
-		     if (i!=-1)
-		       {
-			 pos=p[i][pos]-1;
-			 if ( strm (mod, "upper"))(D1->A)->seq_al[i][pos]=toupper(A->seq_al[i][pos]);
-			 else if ( strm (mod, "lower"))A->seq_al[i][pos]=tolower(A->seq_al[i][pos]);
-			 else A->seq_al[i][pos]=mod[0];
-		       }
-		      else fprintf(stderr, "\nWARNING: Could not find Sequence %s", action_list[1]);
-		  }
-		vfclose (fp);
-	      }
-	    D1->S=aln2seq (D1->A);
-	  }
-       else if ( strm (action, "clean_flag"))
-	 {
-	   clean_flag=1-clean_flag;
-	 }
-       else if ( strm  (action, "aln2case"))
-	 {
-	   D1->A=aln2case_aln (D1->A, ACTION(1), ACTION(2));
-	   D1->S=aln2seq(D1->A);
-	 }
-
-       else if ( strm5 (action, "convert","upper","lower", "keep", "switchcase"))
-	 {
-	   b=1;
-
-	   if ( n_actions>1 && is_number (action_list[b]))
-	     {
-	       lower_value=upper_value=atoi(action_list[b++]);
-	     }
-	   else if ( n_actions>1 && strm (action_list[b], "gap"))
-	     {
-	       DST=(Sequence_data_struc*)vcalloc (1,sizeof(Sequence_data_struc));
-	       DST->A=aln2gap_cache (D1->A,0);
-	       lower_value=0;
-	       upper_value=0;
-	       b++;
-	     }
-	   else if (n_actions>1 && action_list[b] && action_list[b][0]=='[')
-
-	     {
-	       lower_value=atoi(strtok (action_list[b]+1, "-[]"));
-	       upper_value=atoi(strtok (NULL, "-[]"));
-
-	       b++;
-	     }
-	   else
-	     {
-	       lower_value=upper_value=-1;
-	     }
-
-	   if ( n_actions >b ||strm (action, "keep") )
-	     {
-	       if ( !RAD->symbol_list)RAD->symbol_list=declare_char (STRING, STRING);
-	       RAD->n_symbol=0;
-	       if ( strm (action, "keep") )sprintf ( RAD->symbol_list[RAD->n_symbol++], "#-");
-	       else
-		 {
-		   for (a=b; a< n_actions; a++)
-		     {
-		       sprintf ( RAD->symbol_list[RAD->n_symbol], "%s", action_list[a]);
-		       RAD->n_symbol++;
-		     }
-		 }
-	     }
-
-	   for ( value=0; value<=9; value++)
-	     {
-	       if ( lower_value==-1)value=-1;
-
-	       if ( (value>=lower_value && value<=upper_value)|| value==-1)
-		 {
-		   if (strm(action,"convert")) D1->A=filter_aln_convert (D1->A, DST?DST->A:NULL,RAD->use_consensus,value,RAD->n_symbol, RAD->symbol_list);
-		   else if (strm(action,"upper"))D1->A=filter_aln_lower_upper (D1->A, DST?DST->A:NULL,RAD->use_consensus,value);
-		   else if (strm(action,"lower"))D1->A=filter_aln_upper_lower (D1->A, DST?DST->A:NULL,RAD->use_consensus,value);
-		   else if (strm(action,"switchcase"))D1->A=filter_aln_switchcase (D1->A, DST?DST->A:NULL,RAD->use_consensus,value);
-		 }
-	       else
-		 {
-		   if (strm(action,"keep")) D1->A=filter_aln_convert (D1->A, DST?DST->A:NULL,RAD->use_consensus,value,RAD->n_symbol, RAD->symbol_list);
-		 }
-	       if (value==-1)break;
-
-	     }
-
-	   /*free_sequence (D1->S,(D1->S)->nseq);*/
-	   if (!D1->S)D1->S=aln2seq (D1->A);
-	 }
-	else if ( strm ( action, "count_pairs"))
-	  {
-	    int a, b,c,v, **matrix;
-	    Alignment *A;
-	    matrix=declare_int (300,300);
-	    A=D1->A;
-	    for ( a=0; a< A->nseq-1; a++)
-	      for (b=0; b< A->nseq; b++)
-		for (c=0; c<A->len_aln; c++)
-		  matrix[(int)A->seq_al[a][c]][(int)A->seq_al[b][c]]++;
-	    for ( a=0; a<255; a++)
-	      for ( b=a; b<256; b++)
-		{
-		  v=matrix[a][b]+matrix[b][a];
-		  if (v)fprintf ( stdout, "\n%c %c %d", a, b, v);
-		}
-	    myexit (EXIT_SUCCESS);
-	  }
-	else if ( strm (action, "count_misc"))
-	  {
-	    count_misc (D1->A, (!D2)?NULL:D2->A);
-	  }
-       else if ( strm (action, "count"))
-	 {
-	   b=1;
-	   if ( n_actions>1 && is_number (action_list[b]))
-	     {
-	       lower_value=upper_value=atoi(action_list[b++]);
-	     }
-	   else if (n_actions>1 && action_list[b] && action_list[b] && action_list[b][0]=='[')
-
-	     {
-	       lower_value=atoi(strtok (action_list[b]+1, "-[]"));
-	       upper_value=atoi(strtok (NULL, "-[]"));
-
-	       b++;
-	     }
-	   else
-	     {
-	       lower_value=upper_value=-1;
-	     }
-	   if ( n_actions >b)
-	     {
-	       if ( !RAD->symbol_list)RAD->symbol_list=declare_char (STRING, STRING);
-	       RAD->n_symbol=0;
-	       for (a=b; a< n_actions; a++)
-		 {
-		   sprintf ( RAD->symbol_list[RAD->n_symbol], "%s", action_list[a]);
-		   RAD->n_symbol++;
-		 }
-	     }
-	   for ( value=lower_value; value<=upper_value; value++)
-	     {
-	       count_table=count_in_aln (D1->A, DST?DST->A:NULL,value,RAD->n_symbol, RAD->symbol_list, count_table);
-	     }
-	   for ( a=0; a<RAD->n_symbol; a++)
-	     {
-	       fprintf ( stdout, "%s %d\n", RAD->symbol_list[a], count_table[a]);
-	     }
-	   free_sequence (D1->S,(D1->S)->nseq);
-	   D1->S=aln2seq (D1->A);
-	   vfree(count_table);
-	   myexit(EXIT_SUCCESS);
-	 }
-       else if ( strm (action, "species_weight"))
-	 {
-	   seq_weight2species_weight (D1->A, D2->S);
-	   exit (0);
-	 }
-       else if ( strm (action, "aln2voronoi"))
-	 {
-	   aln2voronoi_weights (D1->A);
-
-	 }
-       else if ( strm (action, "msa_weight"))
-	 {
-	   int random_value;
-	   char command [LONG_STRING];
-	   char aln_name[FILENAMELEN];
-	   char tree_name[FILENAMELEN];
-	   char dist_matrix_name[FILENAMELEN];
-	   char weight_name[FILENAMELEN];
-	   char method_4_msa_weights[1000];
-
-	   if ( n_actions==1)
-	     {
-	       fprintf ( stderr, "\nError: msa_weight requires a weight_method");
-	     }
-
-	   sprintf ( method_4_msa_weights, "%s", (get_env_variable ("METHOD_4_MSA_WEIGHTS",NO_REPORT))?get_env_variable ("METHOD_4_MSA_WEIGHTS",NO_REPORT):METHOD_4_MSA_WEIGHTS);
-
-	   /*1 Computation of the tree and the distance matrix*/
-	   random_value=addrand ((unsigned long) 100000)+1;
-	   sprintf (aln_name, "%d.aln", random_value);
-	   sprintf (tree_name, "%d.ph", random_value);
-	   sprintf (dist_matrix_name, "%d.dst", random_value);
-	   sprintf (weight_name, "%d.weight", random_value);
-	   output_fasta_aln (aln_name, D1->A);
-
-	   sprintf ( command, "clustalw -infile=%s -tree -outputtree=dist %s", aln_name, TO_NULL_DEVICE);
-	   my_system ( command);
-	   sprintf ( command, "%s -method %s -aln %s -tree %s -dmatrix %s -weightfile %s %s",method_4_msa_weights, action_list[1],aln_name, tree_name, dist_matrix_name,weight_name, TO_NULL_DEVICE);
-	   my_system ( command);
-
-	   (D1->A)->S=aln2seq (D1->A);
-	   ((D1->A)->S)->W=read_seq_weight ( (D1->A)->name, (D1->A)->nseq,weight_name);
-	   vremove (weight_name);
-	   vremove (aln_name);
-	   vremove (tree_name);
-	   vremove (dist_matrix_name);
-	 }
-       else if ( strm (action, "pavie_seq2random_seq"))
-	 {
-	   D1->S=pavie_seq2random_seq (D1->S, action_list[1]);
-	   D1->A=seq2aln (D1->S,NULL,1);
-	 }
-       else if ( strm ( action, "pavie_seq2noisy_seq"))
-	 {
-	   /*<amount of noise: 0-100> (<alp>)*/
-
-	   D1->S=pavie_seq2noisy_seq (D1->S, atoi(action_list[1]),ACTION(2));
-	   D1->A=seq2aln (D1->S,NULL,1);
-	 }
-       else if ( strm (action, "pavie_seq2pavie_mat"))
-	 {
-
-	   pavie_seq2trained_pavie_mat ( D1->S, (n_actions==2)?action_list[1]:NULL);
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm (action, "pavie_seq2pavie_aln"))
-	 {
-
-	   pavie_seq2pavie_aln ( D1->S, action_list[1], ACTION(2));
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm (action, "pavie_seq2pavie_dm"))
-	 {
-	    if (strstr (ACTION2(2,""), "_MSA_"))
-	      D1->S=aln2seq_main(D1->A, KEEP_GAP);
-
-
-	   pavie_seq2pavie_aln ( D1->S, action_list[1],  const_cast<char*>( (n_actions==3)?action_list[2]:"_MATDIST_") );
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm (action, "pavie_seq2pavie_msa"))
-	 {
-	   D1->A=pavie_seq2pavie_msa ( D1->S, action_list[1], (n_actions==3)?action_list[2]:NULL);
-	 }
-       else if ( strm (action, "pavie_seq2pavie_tree"))
-	 {
-	   D1->T=pavie_seq2pavie_tree ( D1->S, action_list[1], (n_actions==3)?action_list[2]:NULL);
-	 }
-       else if ( strm (action, "pavie_seq2pavie_sort"))
-	 {
-	   D1->A=pavie_seq2pavie_sort ( D1->S, action_list[1], (n_actions==3)?action_list[2]:NULL);
-	 }
-
-       else if ( strm (action, "aln2mat_diaa"))
-	 {
-	   aln2mat_diaa (D1->S);
-	 }
-       else if ( strm (action, "aln2proba_mat"))
-	 {
-	   aln2proba_mat(D1->S);
-	 }
-
-       else if ( strm (action, "aln2mat"))
-	 {
-	   aln2mat(D1->S);
-	 }
-
-       else if ( strm (action, "seq2latmat"))
-	 {
-	   seq2latmat ( D1->S, "stdout");
-	   myexit (EXIT_SUCCESS);
-	 }
-       else if ( strm (action , "rm_target_pdb"))
-	 {
-	   int i, j;
-	   char *buf;
-
-	   for (i=0; i< (D1->A)->nseq; i++)
-	     {
-	       j=1;buf=(D1->A)->name[i];
-	       while (buf[j]!='_' && buf[j-1]!='_' && buf[j]!='\0')j++;
-	       buf[j]='\0';
-	     }
-	 }
-       else if ( strm ( action, "mat2cmp"))
-	 {
-	   double *r;
-	   r=mat2cmp (D1->M, D2->M);
-	   fprintf ( stdout, "\nMATRIX COMPARISON: R=%.3f R2=%.3f On %d pairs of values\n", (float)r[0], (float)r[1], (int)r[2]);
-	   myexit (EXIT_SUCCESS);
-	 }
-//Special modes
-       else if ( strm ( action, "overaln_list"))
-	 {
-	   float *re, tre=0,sn, tsn=0, sp, tsp=0;
-	   int p1,p2,p3, t, f;
-	   FILE *fp;
-	   char fname [100];
-	   Alignment **LA;
-	   Alignment **LB;
-
-	   HERE ("F P1 P2 P3 T");
-
-	   t=ATOI_ACTION(1);
-	   f=ATOI_ACTION(2);
-	   p1=ATOI_ACTION(3);
-	   p2=ATOI_ACTION(4);
-	   p3=ATOI_ACTION(5);
-
-
-
-	   LA=(Alignment**)vcalloc ((D1->A)->nseq, sizeof (Alignment*));
-	   LB=(Alignment**)vcalloc ((D2->A)->nseq, sizeof (Alignment*));
-	   for (a=0; a<(D1->A)->nseq; a++)
-	     {
-	        LA[a]=main_read_aln ((D1->A)->name[a], NULL);
-		LB[a]=main_read_aln ((D2->A)->name[a], NULL);
-	     }
-
-	   for ( a=0; a<(D1->A)->nseq; a++)
-	     {
-	       Alignment *A, *B;
-	       A=LA[a];
-	       B=LB[a];
-	       re=analyze_overaln (A, B, "_case_l_",t,f,p1,p2,p3);
-	       fprintf (stdout, "\n%d: sn: %.2f sp: %.2f re: %.2f F: %d P: %d P2: %d T: %d",a, re[0],re[1],re[2],f, p1,p2,t);
-	       tsn+=re[0];
-	       tsp+=re[1];
-	       tre+=re[2];
-	       vfree(re);
-	     }
-	   fprintf (stdout, "\nTOT: sn: %.2f sp: %.2f re: %.2f F: %d P: %d P2: %d T: %d", tsn/(D1->A)->nseq,tsp/(D1->A)->nseq, tre/(D1->A)->nseq,f,p1,p2,t);
-
-	   myexit (0);
-	 }
-       else if ( strm ( action, "overaln_list_scan"))
-	 {
-	   float *re, tre=0, tsn=0, tsp;
-	   int p1,p2, p3, t, f;
-	   FILE *fp;
-	   char fname [100];
-	   Alignment **LA;
-	   Alignment **LB;
-
-	   if ( ACTION(1))sprintf ( fname, "%s", ACTION(1));
-	   else sprintf ( fname, "scan_results.txt");
-
-	   fprintf ( stdout, "SCAN Results will be ouput in %s\n", fname);
-
-
-	   LA=(Alignment**)vcalloc ((D1->A)->nseq, sizeof (Alignment*));
-	   LB=(Alignment**)vcalloc ((D2->A)->nseq, sizeof (Alignment*));
-	   for (a=0; a<(D1->A)->nseq; a++)
-	     {
-	        LA[a]=main_read_aln ((D1->A)->name[a], NULL);
-		LB[a]=main_read_aln ((D2->A)->name[a], NULL);
-	     }
-	   for (f=32; f<=40; f++)
-	     {
-	       for (p1=90; p1<=100; p1+=5)
-		 {
-		   for ( t=1; t<=3; t++)
-		     {
-		       for (p2=0; p2<=40; p2+=5)
-			 {
-			   for (p3=0;p3<=0;p3+=5)
-			     {
-			       tre=tsn=tsp=0;
-			       for ( a=0; a<(D1->A)->nseq; a++)
-				 {
-				   Alignment *A, *B;
-				   A=LA[a];
-				   B=LB[a];
-				   re=analyze_overaln (A, B, "_case_l_",t,f,p1,p2,p3);
-
-				   tsn+=re[0];
-				   tsp+=re[1];
-				   tre+=re[2];
-				   vfree (re);
-				 }
-			       fp=vfopen (fname, "a");
-			       fprintf (fp, "\nTOT: sn: %.2f sp: %.2f re: %.2f P: %d P2: %d P3: %d T: %d F: %d", tsn/(D1->A)->nseq,tsp/(D1->A)->nseq, tre/(D1->A)->nseq, p1,p2, p3,t,f);
-			       fprintf (stderr, "\nTOT: sn: %.2f sp: %.2f re: %.2f P: %d P2: %d P3: %d T: %d F: %d", tsn/(D1->A)->nseq,tsp/(D1->A)->nseq, tre/(D1->A)->nseq, p1,p2, p3,t,f);
-			       vfclose (fp);
-			     }
-			 }
-		     }
-		 }
-	     }
-	   myexit (0);
-	 }
-       else if ( strm ( action, "overaln"))//Evaluate the capacity to predict over-aligned regions
-	 {
-	   OveralnP *F;
-	   F=(OveralnP*)vcalloc (1, sizeof (OveralnP));
-	   //al1: ref
-	   //al2: alignment
-	   //ATOI(1): P (0-100)
-	   //ATOI(2): T (0-9)
-
-	   float *r;
-	   DST=(Sequence_data_struc*)vcalloc (1,sizeof(Sequence_data_struc));
-	   DST->A=aln2gap_cache (D1->A,0);
-	   lower_value=0;
-	   upper_value=0;
-	   D1->A=filter_aln_upper_lower (D1->A, DST->A, 0, 0);
-
-	   sprintf (F->mode, "%s", ((s=get_string_variable ("overaln_mode")))?s:"lower");
-	   if (!strm (F->mode, "lower") && !strstr (F->mode, "unalign"))printf_exit (EXIT_FAILURE,stderr,"\nERROR: unknown overal_mode in overal output [%s] [FATAL:%s]", F->mode, PROGRAM);
-
-	   if (int_variable_isset ("overaln_threshold"))F->t=get_int_variable ("overaln_threshold");
-	   if (int_variable_isset ("overaln_target"))F->f=get_int_variable ("overaln_target");
-	   if (int_variable_isset ("overaln_P1"))F->f=get_int_variable ("overaln_P1");
-	   if (int_variable_isset ("overaln_P1"))F->f=get_int_variable ("overaln_P2");
-	   if (int_variable_isset ("overaln_P1"))F->f=get_int_variable ("overaln_P3");
-	   if (int_variable_isset ("overaln_P1"))F->f=get_int_variable ("overaln_P4");//F P1 P2 P3 T;
-
-	   D2->A=aln2clean_pw_aln (D2->A, F);
-	   r=aln2pred (D1->A, D2->A,"case_l_");
-	   fprintf ( stdout, "sn %.2f sp %.2f re %.2f\n", r[0], r[1], r[2]);
-	   myexit (0);
-	 }
-       else if ( strm (action, "seq2ngs"))
-	 {
-	 
-	   int cov=10;
-	   int rl=50;
-	   
-	   int len,ni,nj,nk,nl;
-	   nl=0;
-	   for (ni=0; ni<(D1->S)->nseq; ni++)
-	       {
-		 len=strlen ((D1->S)->seq[ni]);
-		 for (nj=0; nj<len-50; nj+=rl/cov)
-		   {
-		     fprintf (stdout, ">%d\n", ++nl);
-		     for (nk=nj; nk<nj+rl && nk<len; nk++) 
-		       {
-			 fprintf (stdout, "%c", (D1->S)->seq[ni][nk]);
-		       }
-		     fprintf (stdout, "\n");
-		   }
-	       }
-	   exit (0);
-	 }
-       		     
-//JM_START
-       else if ( strm ( action, "aln2hitMat"))
-	 {
- 		aln2hitMat(D1->A, ACTION(1));
- 		myexit (EXIT_SUCCESS);
-	 }
-//JM_END
-
-       else
-	 {
-	   fprintf ( stderr, "\nWARNING: ACTION %s UNKNOWN and IGNORED\n", action);
-	 }
-
-     }
+{
+  Sequence  *COOR=NULL, *NS=NULL,*BUFS=NULL, *OUT_S=NULL;
+  Constraint_list *CL;
+  char *s;
+  int value,upper_value, lower_value, start, end, a, b,c;
+  int *count_table=NULL;
+  char *action;
+  Sequence_data_struc *D1;
+  Sequence_data_struc *D2;
+  Sequence_data_struc *DST;
+  int s1, s2, r1, r2;
+
+  Alignment *BUF;
+
+  //Switches
+  static int evaluate2tree;
+  static int clean_flag;
+
+  /*Switches*/
+
+  action=action_list[0];
+
+  if (action[0]=='2')
+  {
+
+    D1=D2in;
+    D2=D1in;
+    DST=DSTin;
+    action++;
+  }
+  else if ( action[0]=='1')
+  {
+    D1=D1in;
+    D2=D2in;
+    DST=DSTin;
+    action++;
+  }
+  else if ( action[0]=='3')
+  {
+    D1=DSTin;
+    D2=D1in;
+    DST=DSTin;
+    action++;
+  }
+  else
+  {
+    D1=D1in;
+    D2=D2in;
+    DST=DSTin;
+  }
+  if (!D1->A)D1->A=copy_aln (D1in->A, NULL);
+
+  if (  strm(action, "seqnos"))
+  {
+    (D1->A)->output_res_num=1;
+  }
+  else if ( strm (action,"aln2bootstrap"))
+  {
+    (D1->A)=aln2bootstrap (D1->A, ATOI_ACTION (1));
+    D1->S=aln2seq (D1->A);
+  }
+  else if ( strm (action,"aln2sample"))
+  {
+    (D1->A)=aln2sample (D1->A, ATOI_ACTION (1));
+    D1->S=aln2seq (D1->A);
+  }
+  else if ( strm (action,"aln2random_aln"))
+  {
+    (D1->A)=aln2random_aln (D1->A, ACTION (1));
+    D1->S=aln2seq (D1->A);
+  }
+  else if ( strm (action, "or_scan"))
+  {
+    HERE ("OR SCAN");
+    D1->A=or_scan(D1->A, D2->A, ACTION(1));
+    D1->S=aln2seq (D1->A);
+  }
+  else if ( strm (action, "or_sar"))
+  {
+    D1->A=or_sar(D1->A, D2->A, ACTION(1), PRINT);
+    D1->S=aln2seq (D1->A);
+  }
+  else if ( strm ( action, "sar2subsar"))
+  {
+    /*in->sequences
+       in2->sar data
+     */
+    Alignment *subA, *subS;
+
+    if ( n_actions==1)
+    {
+      fprintf ( stderr, "\nin=aln, in2=sar sar2subsar [filter value compound1 compound2...] | [jack1] | [file]\n");
+      myexit (EXIT_FAILURE);
+    }
+
+    sarset2subsarset ( D1->A, D2->A, &subA, &subS, main_read_aln (action_list[2], NULL));
+    D1->A=subA;D2->A=subS;
+  }
+  else if ( strm (action, "display_sar"))
+  {
+    D1->A=display_sar (D1->A, D2->A, action_list[1]);
+  }
+  else if ( strm ( action, "sar2simpred"))
+  {
+    /*in->sequences
+       in2->sar data
+     */
+    sar2simpred ( D1->A, D2->A, action_list[1], action_list[2], atoi(action_list[3]), atoi (action_list[4]));
+  }
+  if ( strm ( action, "sar2simpred2"))
+  {
+    /*in->sequences
+       in2->sar data
+     */
+    if ( n_actions!=5)
+    {
+      fprintf ( stderr, "\nERROR: +sar2simpred2 seqnamesfile posfile compound limit");
+      myexit (EXIT_FAILURE);
+    }
+    sar2simpred2 ( D1->A, D2->A, action_list[1], action_list[2], action_list[3], atoi (action_list[4]));
+  }
+  else if ( strm ( action, "sar_analyze"))
+  {
+    /*in->sequences
+       in2->sar data
+     */
+    sar_analyze ( D1->A, D2->A,action_list[1]);
+  }
+  else if ( strm ( action, "simple_sar_predict"))
+  {
+    //displays each column with ist score;
+    simple_sar_predict (D1->A, D2->A,ACTION(1));
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm ( action, "display_sar_analyze"))
+  {
+    //displays each column with ist score;
+    display_simple_sar_analyze_col (D1->A, D2->A,ACTION(1));
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm ( action, "display_sar_analyze_pc"))
+  {
+    //displays each column with ist score;
+    display_simple_sar_analyze_pair_col (D1->A, D2->A,ACTION(1));
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm ( action, "weight2sar"))
+  {
+    /*in->sequences
+       in2->sar data
+     */
+    if ( n_actions!=3)
+    {
+      fprintf ( stderr, "\nERROR: +weight2sar <weight_file> <limit>");
+      myexit (EXIT_FAILURE);
+    }
+    D1->A=weight2sar ( D1->A,D2->A, action_list[1], atoi(action_list[2]));
+
+  }
+  else if ( strm ( action, "sar_weight"))
+  {
+    /*in->sequences
+       in2->sar data
+     */
+    if ( n_actions!=3)
+    {
+      fprintf ( stderr, "\nERROR: +sar_weight <sar_analyze> <compound>");
+      myexit (EXIT_FAILURE);
+    }
+    D1->A=aln2weighted_sar_score ( D1->A,D2->A, action_list[1], action_list[2]);
+    D1->S=aln2seq ( D1->A);
+  }
+
+  else if ( strm (action, "name2unique_name"))
+  {
+    char *tmp1, *tmp2;
+    char command[1000];
+    tmp1=vtmpnam (NULL); tmp2=vtmpnam (NULL);
+
+    output_fasta_aln (tmp1,D1->A);
+    free_aln (D1->A);free_sequence (D1->S, -1);
+    sprintf ( command, "fasta_aln2fasta_aln_unique_name.pl %s >%s", tmp1, tmp2);
+    my_system ( command);
+    D1->S=get_fasta_sequence ( tmp2, NULL);
+    D1->A=seq2aln (D1->S,NULL, 1);
+  }
+  else if ( strm (action, "rm_tag") || strm (action, "rm_template"))
+  {
+
+    char **temp_name=NULL,**temp_list=NULL, temp_nseq=0;
+    int z;
+
+    if ( D1 && D1->A){temp_name=(D1->A)->name;temp_nseq=(D1->A)->nseq;}
+    else if ( D1 && D1->S){temp_name=(D1->S)->name;temp_nseq=(D1->S)->nseq;}
+    temp_list=rm_name_tag (temp_name,temp_nseq, NULL);
+    if ( n_actions>1 && strm (action_list[1], "template"))
+    {
+
+      for ( z=0; z<temp_nseq; z++)
+      {
+        if (temp_list[z][0])
+        {fprintf (stdout, "%s\n", temp_list[z]);}
+      }
+      myexit (EXIT_SUCCESS);
+    }
+  }
+  else if (strm (action, "add_template") || strm (action, "swap_header") || strm (action, "seq2template"))
+  {
+    int n=1;
+    while (ACTION(n))
+    {
+      D1->S=seq2template_seq (D1->S, action_list[n++], NULL);
+    }
+    D1->A=seq2aln(D1->S, NULL, 1);
+  }
+  else if ( strm ( action, "seq2year"))
+  {
+    D1->S=seq2year (D1->S, (n_actions>1)?atoi(action_list[1]):1);
+    D1->A=seq2aln(D1->S, NULL, 1);
+  }
+  else if ( strm (action, "swap_lib_header"))
+  {
+    Sequence *S;
+    S=main_read_seq (action_list[1]);
+    (D1->CL)->S=S;
+
+  }
+  else if ( strm (action, "weight_lib"))
+  {
+    int l;
+    int w;
+    w=atoi (action_list[1]);
+    if ( D1->CL)
+    {
+      int s1, s2,r1,r2;
+      Sequence *S=(D1->CL)->S;
+      int ***r=(D1->CL)->residue_index;
+
+      for (s1=0; s1<S->nseq; s1++)
+        for (r1=1; r1<=S->len[s1]; r1++)
+          for (b=1; b<r[s1][r1][0]; b+=3)
+          {
+            r[s1][r1][b+2]=w;
+          }
+    }
+  }
+  else if ( strm (action, "struc2nb"))
+  {
+    int c;
+    for ( c=0; c< (D1->S)->nseq; c++)
+    {
+      struclist2nb ((D1->S)->name[c],(D1->S)->seq[c], (D1->S)->seq_comment[c], atof(action_list[1]),ACTION(2),ACTION(3) );
+    }
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm (action, "pdb2contacts"))
+  {
+
+    //param1: mode
+    //param2: max distance, in Angstrom
+    float D=0;
+    ungap_seq(D1->S);
+    if (ACTION(2))D=atof (ACTION(2));
+    D1->CL=pdb2contacts (D1->S, D2?(D2->S):NULL,D1->CL, ACTION (1), D);
+  }
+  else if ( strm (action, "seq2contacts"))
+  {
+    //param1: mode
+    ungap_seq(D1->S);
+    D1->CL=seq2contacts (D1->S, D2?(D2->S):NULL, D1->CL, ACTION (1));
+  }
+  else if ( strm(action, "redundate"))
+  {
+    char *seq;
+    char *tree;
+
+    seq=(char*)vcalloc (100, sizeof (char));
+    tree=(char*)vcalloc (100, sizeof (char));
+    sprintf ( seq, "%s.redundated", (D1->S)->file[0]);
+    sprintf (tree, "%s.redundated", (D2->T)->file);
+
+    HERE ("%s %s", tree, seq);
+    redundate (D1->S, D2->T,seq, tree);
+  }
+  else if ( strm(action, "treelist_prune")|| strm(action, "prune_treelist"))
+  {
+    Sequence *TS;
+    if (D2 && D2->S)TS=D2->S;
+    else TS=treelist2sub_seq((D1->S),ATOI_ACTION(1));
+    treelist2prune_treelist ( D1->S,TS, NULL);
+    D1->A=seq2aln (D1->S, NULL, NO_PAD);
+  }
+  else if ( strm (action, "tree2unresolved_nodes"))
+  {
+    int ns;
+    int *l;
+    ns=tree2nseq (D1->T);
+    l=(int*)vcalloc (ns, sizeof (int));
+    tree2nnode_unresolved (D1->T, l);
+    for ( a=0; a<ns; a++)if (l[a])fprintf ( stdout, "SIZE: %d COUNT: %d\n", a, l[a]);
+    vfree (l);
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm(action, "tree_prune") || strm(action, "prune_tree"))
+  {
+    D1->T=main_prune_tree ( D1->T, D2->S);
+  }
+  else if ( strm ( action, "tree2seq"))
+  {
+    D1->S=tree2seq(D1->T, NULL);
+    D1->A=seq2aln (D1->S, D1->A, 1);
+    (D1->A)->len_aln=1;
+    for ( a=0; a< (D1->A)->nseq; a++)sprintf ( (D1->A)->seq_al[a], "sequence");
+  }
+  else if ( strm (action, "seq2dpatree"))
+  {
+    D1->T= seq2dpa_tree(D1->S,"ktup");
+  }
+  else if ( strm (action, "tree2dpatree"))
+  {
+    D1->T= tree2dpa_tree(D1->T,(D2 && D2->A)?D2->A:D1->A, const_cast<char*>( (n_actions==1)?"idmat":action_list[1]) );
+  }
+  else if ( strm (action, "tree2group"))
+  {
+    vfclose (tree2group (D1->T, (tree2seq(D1->T,NULL)), atoi(action_list[1]), atoi(action_list[2]),(n_actions==4)?action_list[3]:NULL, stdout));
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm(action, "unroot"))
+  {
+    D1->T=unroot_tree(D1->T);
+  }
+
+
+  else if ( strm(action, "treelist2group")|| strm(action, "treelist2groups") )
+  {
+    Sequence *TS;
+
+    if (D2 && D2->S)TS=D2->S;
+    else TS=treelist2seq((D1->S));
+    treelist2groups (D1->S, TS, ACTION(1), stdout);
+    myexit (EXIT_SUCCESS);
+
+    //	   treelist2groups (D1->S,(D2)?D2->S:NULL, ACTION(1), stdout );
+    //exit (EXIT_SUCCESS);
+  }
+  else if ( strm(action, "splits2tree"))
+  {
+
+    D1->T=split2tree ((D2)?D2->T:NULL,D1->S, ACTION(1));
+
+  }
+  else if ( strm(action, "count_splits"))
+  {
+
+    count_splits ((D2)?D2->T:NULL,D1->S, ACTION(1));
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm(action, "count_groups"))
+  {
+    count_tree_groups (D1->S, ACTION(1));
+  }
+  else if ( strm (action, "tree2dist"))
+  {
+    int ta, tb, ***td;
+    Sequence *TS;
+
+    TS=(D2)?D2->S:NULL;
+    td=tree2dist (D1->T,TS, NULL);
+    if (!TS)TS=tree2seq(D1->T, NULL);
+    for (ta=0; ta<TS->nseq; ta++)
+    {
+      fprintf ( stdout, "%-15s ",TS->name[ta]);
+      for ( tb=0; tb<TS->nseq; tb++)
+      {
+        int n=0;
+        if ( ACTION(1) && strm (ACTION(1), "length"))n=1;
+
+        fprintf (stdout, " %4d", td [n][ta][tb]);
+      }
+      fprintf ( stdout, "\n");
+    }
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm (action, "treelist2lti"))
+  {
+    Sequence *TS;
+    if (D2 && D2->S)TS=D2->S;
+    else TS=treelist2sub_seq((D1->S),ATOI_ACTION(2));
+    treelist2lti (D1->S,TS, (int)ATOI_ACTION(1), stdout );
+    myexit (0);
+  }
+  else if ( strm (action,"treelist2frame"))
+  {
+    Sequence *TS;
+    if (D2 && D2->S)TS=D2->S;
+    else TS=treelist2sub_seq((D1->S),ATOI_ACTION(1));
+    treelist2frame (D1->S, TS);
+    myexit (EXIT_SUCCESS);
+  }
+
+  else if ( strm (action, "treelist2seq"))
+  {
+    D1->S=treelist2sub_seq (D1->S,ATOI_ACTION(1));
+    D1->A=seq2aln(D1->S, NULL, 1);
+  }
+  else if ( strm (action, "treelist2leafgroup"))
+  {
+    treelist2leafgroup (D1->S, (D2)?D2->S:NULL, ACTION(1));
+    myexit (0);
+  }
+  else if ( strm(action, "treelist2splits"))
+  {
+    if (D1->T)D1->S=add_file2file_list ((D1->T)->file, NULL);
+    treelist2splits (D1->S, (D2)?D2->S:NULL);
+  }
+
+  else if ( strm(action, "treelist2dmat"))
+  {
+    treelist2dmat (D1->S);
+  }
+  else if ( strm(action, "tree2collapse") )
+  {
+    char *string;
+    int x,ng,l;
+
+    if (!D1->T && (D1->A)->Tree)D1->T=newick_string2tree (((D1->A)->Tree)->seq_al[0]);
+
+    l=0;
+    if ( strm (ACTION(1), "groups"))
+    {
+      ng=atoi(ACTION (2))+1;
+      l=1;
+      string=(char*)vcalloc ( 1000, sizeof (char));
+    }
+    else
+      ng=n_actions;
+
+    for (x=1; x<ng; x++)
+    {
+      if (!l)
+      {
+        string=ACTION(x);
+        string=substitute_char (string, '\\', 0);
+      }
+      else
+      {
+        sprintf (string, "-%d", x);
+      }
+      D1->T=collapse_tree (D1->T, NULL,string);
+    }
+    D1->S=tree2seq(D1->T, NULL);
+    D1->A=seq2aln (D1->S, NULL, RM_GAP);
+  }
+  else if ( strm(action, "tree2node") )
+  {
+    print_node_list ( D1->T,(DST)?DST->S:NULL);
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm(action, "tree_cmp_list") )
+  {
+    D1->T=main_compare_trees_list ( D1->T, D2->S, stdout);
+  }
+  else if ( strm(action, "tree_cmp") || strm (action, "tree_compare"))
+  {
+    D1->T=main_compare_trees ( D1->T, D2->T, stdout);
+  }
+  else if ( strm (action, "tree_scan"))
+  {
+    D1->T=tree_scan (D1->A, D2->T, ACTION(1), ACTION(2));
+  }
+  else if ( strm (action, "split_cmp"))
+  {
+    main_compare_splits (D1->T, D2->T, ACTION(1), stdout);
+  }
+
+  else if ( strm(action, "node_sort"))
+  {
+    node_sort ( action_list[1], D1->T);
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm ( action, "treelist2bs") ||strm ( action, "tree2bs") )
+  {
+    if (ACTION(1) && strm (ACTION(1), "best"))treelist2node_support_best (D1->A);
+    else if (ACTION(1) && strm (ACTION(1), "cons"))treelist2cons (D1->A);
+    else treelist2node_support (D1->A);
+  }
+  else if ( strm ( action, "tree2nni"))
+  {
+    tree2nni (D1->T, NULL);
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm ( action, "tree2ns"))
+  {
+    treelist2ns (D1->T, D2->S, ACTION(1));
+  }
+
+  else if ( strm ( action, "print"))
+  {
+    int x;
+
+    for (x=1; x<n_actions;x++)
+    {
+      if ( strm (ACTION(x), "bs"))
+      {
+        float bs;
+        if (D1->T)bs=tree2avg_bs(D1->T);
+        else if (D1->A && (D1->A)->Tree)bs=newick2avg_bs (((D1->A)->Tree)->seq_al[0]);
+        else bs=newick2avg_bs ((D1->A)->seq_al[0]);
+        fprintf ( stdout, "AVERAGE_BS: %.2f\n", bs);
+      }
+      else if ( strm (ACTION(x), "nseq"))
+      {
+        fprintf (stdout, "NSEQ: %d\n", (D1->A)->nseq);
+      }
+    }
+  }
+  else if ( strm (action, "genepred2acc"))
+  {
+    //D2->S=reference
+    //D1->S=prediction
+    vfree (display_accuracy (genepred_seq2accuracy_counts (D2->S, D1->S, NULL),stderr));
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm (action, "tree_cog_cmp"))
+  {
+    main_compare_cog_tree (D1->T,action_list[1]);
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm (action, "tree_aln_cmp"))
+  {
+    main_compare_aln_tree (D1->T, D2->A, stdout);
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm(action, "change_bootstrap"))
+  {
+    D1->T=reset_boot_tree ( D1->T, (n_actions>=2)?atoi(action_list[1]):0);
+  }
+  else if ( strm(action, "change_distances"))
+  {
+    D1->T=reset_dist_tree ( D1->T, (n_actions>=2)?atof(action_list[1]):0.00);
+  }
+
+  else if ( strm(action, "aln2tree"))
+  {
+    D1->T=tree_compute (D1->A, n_actions-1, action_list+1);
+  }
+  else if  ( strm(action, "aln2km_tree"))
+  {
+    if (!ACTION(1))myexit(fprintf_error (stderr,"-aln2km_tree <mode:diaa|triaa|aln> <nboot>"));
+    D1->T= aln2km_tree(D1->A, (ACTION(1)), ATOI_ACTION(2));
+  }
+  else if ( strm(action, "similarities2tree"))
+  {
+    D1->T=similarities_file2tree (ACTION(1));
+  }
+
+  else if (  strm(action, "original_seqnos"))
+  {
+    (D1->A)->output_res_num=2;
+  }
+
+  else if ( strm (action, "aln2pred"))
+  {
+    aln2pred (D1->A, D2->A, ACTION (1));
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm(action, "color"))
+  {
+    cputenv ("TREE_MODE_4_TCOFFEE=%s",ACTION(1));
+  }
+  else if ( strm(action, "tree"))
+  {
+    if      (!ACTION(1))cputenv ("REPLICATES_4_TCOFFEE=1");
+    else if (is_number(ACTION(1)))cputenv ("REPLICATES_4_TCOFFEE=%s",ACTION(1));
+    else
+    {
+      int j;
+      for (j=1; j<n_actions; j+=2)
+      {
+        if      (strm (action_list[j], "mode")) cputenv ("TREE_MODE_4_TCOFFEE=%s",action_list[j+1]);
+        else if (strm (action_list[j], "gap" )) cputenv ("TREE_GAP_4_TCOFFEE=%s" ,action_list[j+1]);
+        else if (strm (action_list[j], "replicates"))cputenv ("REPLICATES_4_TCOFFEE=%s" ,action_list[j+1]);
+        else if (strm (action_list[j], "group"))cputenv ("SGROUP_4_TCOFFEE=%s" ,action_list[j+1]);
+
+        else printf_exit ( EXIT_FAILURE,stderr, "\nERROR: %s is not a known +tree parameter (replicates <int>|mode <string>|gap <float>|goup <seqfile>)[FATAL]",action_list[j]);
+      }
+    }
+  }
+
+  else if ( strm(action, "evaluateGroup"))
+  {
+
+    if(ACTION(1))D1->A=evaluate_tree_group ((D1->A), main_read_seq(ACTION(1)));
+    else printf_exit ( EXIT_FAILURE,stderr, "\nERROR: -evaluateGroup requires a sequence list in FASTA formal [FATAL]") ;
+  }
+  else if ( strm(action, "evaluateTree"))
+  {
+    if (ACTION(1))
+    {
+      Sequence *G=main_read_seq (ACTION(1));
+      DST->A=treealn_evaluate4tcoffee (D1->A,G);
+    }
+    else printf_exit ( EXIT_FAILURE,stderr, "\nERROR: -evaluateTree requires a sequence list in FASTA formal [FATAL]") ;
+  }
+  if ( strm(action, "evaluate3D"))
+  {
+    int enb;
+    float max=0;
+    char *strikem=NULL;
+    Constraint_list *CL;
+    Alignment *A;
+    int na=1;
+    DST->A=copy_aln (D1->A, NULL);
+    DST->S=aln2seq(DST->A);
+    char *ev3d;
+    if (ACTION(na) && strm (ACTION(na), "group"))
+    {
+      cputenv ("SGROUP_4_TCOFFEE=%s" ,ACTION(na+1));
+      cputenv ("REPLICATES_4_TCOFFEE=columns");
+      na+=2;
+    }
+    if ( !ACTION(na) || strm (ACTION(na), "strike"))
+    {
+      ev3d="strike";
+      strikem=(char*)vcalloc (100, sizeof (char));
+      if (!ACTION(na)||!ACTION(na+1))sprintf (strikem, "strike");
+      else sprintf (strikem, "%s", ACTION(na+1));
+      enb=3;
+    }
+    else if (strm (ACTION(na), "distances"))
+    {
+      ev3d="distances";
+      enb=3;
+      max=15;//Angstrom
+
+      if (ACTION(na+1))max=atof(ACTION(na+1));
+      if (ACTION(na+2))enb=atoi(ACTION(na+2));
+    }
+    else if (strm (ACTION(na), "contacts"))
+    {
+      ev3d="contacts";
+      enb=3;
+      max=1.2;
+
+      if (ACTION(na+1))max=atof(ACTION(na+1));
+      if (ACTION(na+2))enb=atoi(ACTION(na+2));
+    }
+
+    if (!D2)CL=D1->CL;
+    else if (!D2->CL)CL=D1->CL;
+    else CL=D2->CL;
+    if (!CL)//do a default contact based evaluation
+    {
+
+      ungap_seq(D1->S);
+      if (strm (ev3d, "distances"))
+        D1->CL=pdb2contacts (D1->S, D2?(D2->S):NULL,D1->CL, "distances",2*max);
+      else if (strm (ev3d, "contacts"))
+        D1->CL=pdb2contacts (D1->S, D2?(D2->S):NULL,D1->CL, "all",0);
+      else
+      {
+        D1->CL=pdb2contacts (D1->S, D2?(D2->S):NULL,D1->CL, "all",0);
+        D1->CL=seq2contacts (D1->S, D2?(D2->S):NULL,D1->CL, NULL);
+      }
+      CL=D1->CL;
+    }
+
+    DST->A=struc_evaluate4tcoffee (D1->A,CL,ev3d,max,enb, strikem);
+  }
+  else if ( strm(action, "evaluate"))
+  {
+    Alignment *A;
+    DST->A=copy_aln (D1->A, NULL);
+    DST->S=aln2seq(DST->A);
+
+
+    if    (strm (action_list[1], "id2"))
+    {
+      fprintf ( stdout, "ID2: %d\n", aln2sim2(D1->A));
+      exit (EXIT_SUCCESS);
+    }
+    else if    (strm (action_list[1], "id") || is_matrix(ACTION(1)))
+    {
+      Constraint_list *CL;
+      CL=(Constraint_list*)vcalloc (1, sizeof (Constraint_list));
+      if (is_matrix(ACTION(2)))CL->M=read_matrice (ACTION(2));
+      else if (is_matrix (ACTION(1)))CL->M=read_matrice (ACTION(1));
+      else CL->M=read_matrice ("idmat");
+
+
+      DST->A=matrix_evaluate_output (D1->A, CL);
+
+
+
+      (D1->A)->score=(D1->A)->score_aln=(DST->A)->score=(DST->A)->score_aln;
+
+      //fprintf ( stdout, "ID: %d\n", aln2sim ((D1->A), "idmat"));
+      //exit (EXIT_SUCCESS);
+      free_int (CL->M, -1);
+      vfree (CL);
+    }
+    else if (n_actions>1 && strm (  action_list[1], "categories"))
+    {
+      CL=declare_constraint_list ( DST->S,NULL, NULL, 0,NULL, read_matrice("pam250mt"));
+      DST->A=  main_coffee_evaluate_output(DST->A, CL, "categories");
+    }
+    else if (n_actions>1 && strm (  action_list[1], "sar"))
+    {
+      CL=declare_constraint_list ( DST->S,NULL, NULL, 0,NULL, read_matrice("pam250mt"));
+      DST->A=  main_coffee_evaluate_output(DST->A, CL, "sar");
+      (D1->A)->score=(D1->A)->score_aln=(DST->A)->score=(DST->A)->score_aln;
+      (DST->A)->score_seq[(D1->A)->nseq]*=10;
+    }
+    else if (n_actions>1 && strstr (  action_list[1], "boxshade"))
+    {
+      char color_mode[1000];
+      sprintf (color_mode,"boxshade_%d", atoi(ACTION2(2,"30")));
+      CL=declare_constraint_list ( DST->S,NULL, NULL, 0,NULL, read_matrice("pam250mt"));
+      DST->A=  main_coffee_evaluate_output(DST->A, CL, color_mode);
+    }
+
+    else
+    {
+      printf_exit ( EXIT_FAILURE,stderr, "\nERROR: +evaluate mode [%s] is unknown[FATAL]", action_list[1]);
+    }
+
+    DST->S=aln2seq ( DST->A);
+
+    A=D1->A;
+
+    //sprintf ( A->name[A->nseq], "cons");
+    //sprintf ( A->seq_al[A->nseq], "%s", aln2cons_seq_mat (A, "idmat"));
+
+  }
+  else if ( strm (action, "sp_evaluate"))
+  {
+    fprintf ( stdout, "SP Score: %.2f", sum_pair ((DST && DST->A)?DST->A:D1->A,ACTION(1),atoi(ACTION2(2,"0")),atoi(ACTION2(3,"0"))));
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm (action, "lat_evaluate"))
+  {
+    float score;
+    score=lat_sum_pair ( D1->A, action_list[1]);
+    fprintf ( stdout, "\nLAT_SCORE: %.2f", score);
+    myexit (EXIT_SUCCESS);
+
+  }
+  else if ( strm (action, "add_scale"))
+  {
+    D1->A=aln2scale (D1->A, ACTION(1));
+  }
+  else if ( strm (action, "RNAfold_cmp"))
+  {
+    D1->A=compare_RNA_fold (D1->A, D2->A);
+  }
+  else if ( strm (action, "aln2alifold"))
+  {
+    D1->A=aln2alifold (D1->A);
+    D1->S=aln2seq ( D1->A);
+  }
+
+
+  else if ( strm (action, "add_alifold"))
+  {
+    D1->A=add_alifold2aln (D1->A, (D2)?D2->A:NULL);
+
+  }
+  else if ( strm (action, "alifold2analyze"))
+  {
+    D1->A=alifold2analyze (D1->A, (D2)?D2->A:NULL, ACTION(1));
+    D1->S=aln2seq(D1->A);
+  }
+  else if ( strm (action, "aln2conservation"))
+  {
+    D1->A=aln2conservation ( D1->A, ATOI_ACTION (1), ACTION (2));
+    myexit (EXIT_FAILURE);
+  }
+  else if ( strm (action, "aln2cons"))
+  {
+    char *cons_seq;
+    char *cons_name;
+    cons_name=(char*)vcalloc (100, sizeof (char));
+    sprintf(cons_name, "%s", (n_actions<=2)?"Cons":action_list[2]);
+    cons_seq=aln2cons_seq_mat (D1->A, const_cast<char*>( (n_actions==1)?"blosum62mt":action_list[1]) );
+    free_aln (D1->A);free_sequence(D1->S, -1);
+    D1->S=fill_sequence_struc (1, &cons_seq, &cons_name, NULL);
+    /*keep the gaps*/
+    (D1->S)->len[0]=strlen (cons_seq); sprintf ( (D1->S)->seq[0], "%s", cons_seq);
+    D1->A=seq2aln (D1->S, NULL, KEEP_GAP);
+    vfree (cons_name);vfree (cons_seq);
+  }
+  else if ( strm (action, "seq2filter"))
+  {
+    D1->S=seq2filter ( D1->S, atoi(action_list[1]), atoi(action_list[2]));
+
+  }
+  else if ( strm (action, "aln2resindex"))
+  {
+    //-in: aln, file: ref_seq ref_res target_seq
+    //-in2 target sequences
+    aln2resindex (D1->A, (D2)?D2->A:NULL, stdout);
+    myexit (EXIT_SUCCESS);
+  }
+  else if (strm(action, "keep_name"))
+  {
+    RAD->keep_name=1-RAD->keep_name;
+  }
+  else if (strm(action, "use_consensus") ||strm(action, "use_cons") )
+  {
+    RAD->use_consensus=1-RAD->use_consensus;
+  }
+  else if ( strm(action, "ungap"))
+  {
+    seq2aln (D1->S, D1->A, 1);
+  }
+  else if ( strm2(action, "rmlower", "rm_lower"))
+  {
+
+    RmLowerInAln(D1->A, ACTION(1));
+    D1->S=aln2seq ( D1->A);
+    (D1->A)->S=D1->S;
+  }
+  else if ( strm2(action, "rmgap", "rm_gap"))
+  {
+
+    ungap_aln_n (D1->A, (n_actions==1)?100:atoi(action_list[1]));
+    //free_sequence ( D1->S, (D1->S)->nseq);
+    D1->S=aln2seq ( D1->A);
+    (D1->A)->S=D1->S;
+  }
+  else if ( strm(action, "rmgap_col"))
+  {
+    D1->A=remove_gap_column ( D1->A,action_list[1]);
+  }
+  else if ( strm(action,"random"))
+  {
+
+    D1->A= make_random_aln(NULL,(n_actions==1)?1:atoi(action_list[1]),(n_actions==2)?100:atoi(action_list[2]),"acdefghiklmnpqrstvwy");
+
+    D1->S=aln2seq ( D1->A);
+  }
+
+  else if ( strm(action, "landscape"))
+  {
+
+    set_landscape_msa ((n_actions==1)?0:atoi(action_list[1]));
+  }
+  else if ( strm(action, "clean_maln"))
+  {
+    if ( !DST)
+    {
+      fprintf ( stderr,"\n[You Need an evaluation File: Change the output format][FATAL:%s]\n", PROGRAM);
+      myexit(EXIT_FAILURE);
+    }
+    (DST->A)=aln2number (DST->A);
+    D1->A=clean_maln(D1->A, DST->A,(n_actions==1)?1:atoi(action_list[1]),(n_actions==1)?1:atoi(action_list[2]));
+  }
+  else if ( strm (action, "extract"))
+  {
+
+    COOR=get_pir_sequence  (RAD->coor_file, NULL);
+    D1->S=extract_sub_seq ( COOR, D1->S);
+    free_aln (D1->A);
+    D1->A=declare_Alignment(D1->S);
+    seq2aln (D1->S, D1->A, RAD->rm_gap);
+    free_sequence (COOR, COOR->nseq);
+  }
+  else if ( strm (action, "reorder_column"))
+  {
+
+
+
+    Alignment *RO1, *RO2;
+    Sequence *OUT_S;
+    int s;
+
+    RO1=rotate_aln (D1->A,NULL);
+    if (ACTION(1) && strm (ACTION(1), "tree"))
+    {
+      D1->T=tree_compute (RO1,n_actions-2, action_list+2);
+      OUT_S=tree2seq(D1->T, NULL);
+      RO1=reorder_aln(RO1, OUT_S->name, OUT_S->nseq);
+    }
+    else if ( ACTION(1) && strm (ACTION(1), "random"))
+    {
+      RO1=reorder_aln ( RO1, NULL, RO1->nseq);
+    }
+
+    RO2=rotate_aln (RO1, NULL);
+    for (s=0; s< RO2->nseq; s++)
+      sprintf ( RO2->name[s], "%s", (D1->A)->name[s]);
+    free_aln (RO1);
+    free_aln (D1->A);
+    D1->A=RO2;
+    D1->S=aln2seq(D1->A);
+  }
+
+  else if ( strm (action, "reorder"))
+  {
+
+    if ( n_actions==2 && strm (action_list[1], "random"))
+    {
+      D1->A=reorder_aln ( D1->A, NULL, (D1->A)->nseq);
+    }
+    else if (n_actions==2 && strm (action_list[1], "invert"))
+    {
+      char **nname;
+      int z, y;
+
+      nname=declare_char ((D1->A)->nseq, 100);
+      for ( z=0,y=(D1->A)->nseq-1; z<(D1->A)->nseq; z++, y--)
+      {
+        sprintf (nname[z], "%s",(D1->A)->name[y]);
+      }
+
+      D1->A=reorder_aln ( D1->A, nname, (D1->A)->nseq);
+      free_char (nname, -1);
+    }
+    else if (n_actions==2 && strm (action_list[1], "scramble"))
+    {
+      D1->A=aln2scramble_seq(D1->A);
+    }
+
+    else if ( n_actions==2 && strm (action_list[1], "tree"))
+    {
+
+      OUT_S=tree2seq (D2->T, NULL);
+      D1->A=reorder_aln(D1->A, OUT_S->name, OUT_S->nseq);
+      free_sequence (D1->S,(D1->S)->nseq);
+      D1->S=aln2seq (D1->A);
+    }
+    else
+    {
+      (D2->A)->S=aln2seq (D2->A);
+      (D1->A)->S=aln2seq (D1->A);
+      OUT_S=trim_aln_seq_name(D2->A, D1->A);
+      D1->A=reorder_aln(D1->A, OUT_S->name, OUT_S->nseq);
+      free_sequence (D1->S,(D1->S)->nseq);
+      D1->S=aln2seq (D1->A);
+    }
+  }
+  else if ( strm (action, "aln2replicate"))
+  {
+    aln2N_replicate (D1->A, ACTION(1), ACTION(2));
+  }
+  else if ( strm (action, "paralogous_cat"))
+  {
+    D1->A=orthologous_concatenate_aln (D1->A,D2->S, ACTION (1));
+  }
+
+  else if ( strm (action, "cat_aln"))
+  {
+    /*D1->A=aln_cat ( D1->A, D2 ->A);*/
+
+    if (D2 && D2->A && !ACTION(1))
+      D1->A=concatenate_aln (D1->A, D2->A, ACTION(1));
+    else if (ACTION(1) && is_aln(ACTION(1)))
+    {
+      Alignment *B;
+      int n=1;
+
+      while (ACTION(n))
+      {
+
+        B=main_read_aln (ACTION(n), NULL);
+        D1->A=concatenate_aln (D1->A, B, NULL);
+        n++;
+      }
+      D1->S=aln2seq(D1->A);
+    }
+
+    else
+    {
+      Alignment *A, *B;
+
+      A=main_read_aln ((D1->A)->name[0], NULL);
+
+      for ( a=1; a<(D1->A)->nseq; a++)
+      {
+        B=main_read_aln ((D1->A)->name[a], NULL);
+        A=concatenate_aln (A, B, ACTION(1));
+
+      }
+      D1->A=A;
+      D1->S=aln2seq(D1->A);
+    }
+  }
+
+  else if ( strm ( action, "msalist2cat_pwaln"))
+  {
+    int a, b, c;
+    int sim, min, max;
+
+    if (n_actions!=3)
+    {
+      min=0;
+      max=100;
+    }
+    else
+    {
+      min=atoi(action_list[1]);
+      max=atoi(action_list[2]);
+    }
+
+    fprintf ( stdout, ">A\n");
+    for (a=0;a<(D1->S)->nseq; a++)
+    {
+      Alignment *A;
+      HERE ("process %s",  (D1->S)->name[a]);
+      A=main_read_aln((D1->S)->name[a],NULL);
+      for (b=0; b<A->nseq-1; b++)
+      {
+        for ( c=b+1; c<A->nseq; c++)
+        {
+          sim=get_seq_sim (A->seq_al[b], A->seq_al[c], "-", "");
+          if (sim>=min && sim<=max)fprintf (stdout, "xxx%s", A->seq_al[b]);
+        }
+      }
+      free_aln (A);
+    }
+    fprintf ( stdout, "\n>B\n");
+    for (a=0;a<(D1->S)->nseq; a++)
+    {
+      Alignment *A;
+      HERE ("process %s",  (D1->S)->name[a]);
+      A=main_read_aln((D1->S)->name[a],NULL);
+      for (b=0; b<A->nseq-1; b++)
+      {
+        for ( c=b+1; c<A->nseq; c++)
+        {
+          sim=get_seq_sim (A->seq_al[b], A->seq_al[c], "-", "");
+          if (sim>=min && sim<=max)fprintf (stdout, "xxx%s", A->seq_al[c]);
+        }
+      }
+      free_aln (A);
+    }
+
+    fprintf ( stdout, "\n");
+    myexit (EXIT_SUCCESS);
+  }
+
+  else if ( strm (action, "collapse_tree"))
+  {
+    D1->T=tree2collapsed_tree (D1->T, n_actions-1, action_list+1);
+  }
+  else if ( strm (action, "collapse_aln"))
+  {
+    D1->A=aln2collapsed_aln (D1->A, n_actions-1, action_list+1);
+  }
+  else if ( strm (action, "extract_aln"))
+  {
+    D1->A=aln2sub_aln_file (D1->A, n_actions-1, action_list+1);
+    myexit (EXIT_SUCCESS);
+  }
+
+
+
+  else if ( strm (action, "remove_aa"))
+  {
+    int pos,len, n;
+    pos=atoi(action_list[1]);
+    len=atoi(action_list[2]);
+    n=atoi (action_list[3]);
+    if ( atoi (action_list[4])==1)len=-len;
+    if (pos && n>1)
+    {
+      fprintf ( stderr, "\nWARNING: rm_aa, position (pos) and iteration number (n) simulatneously defined. Iteration number reset to 1 [%s]\n", PROGRAM);
+      n=1;
+    }
+    for ( a=0; a< n; a++)
+      D1->A=probabilistic_rm_aa (D1->A, pos, len);
+  }
+  else if ( strm (action, "remove_nuc"))
+  {
+    int pos;
+    pos=atoi(action_list[1]);
+
+    if ( pos>3 || pos<1)
+      printf_exit (EXIT_FAILURE, stderr, "Remove_nuc: indicate a number between 1 and 3\n");
+
+    pos--;
+    for ( c=0,a=0; a<(D1->A)->len_aln; a++, c++)
+    {
+      if (c==3)c=0;
+      for (b=0; b<(D1->A)->nseq; b++)
+      {
+        if (c==pos)
+        {
+          (D1->A)->seq_al[b][a]='-';
+        }
+      }
+    }
+
+    D1->S=aln2seq (D1->A);
+  }
+  if (strm ( action, "conserved_positions"))
+  {
+    Alignment *A;
+    int  a, b, c;
+    int *cache=NULL;
+
+
+    A=D1->A;
+    for ( a=0; a< A->nseq && !cache; a++)
+    {
+      if ( strm (action_list[1], A->name[a]))
+      {
+        cache=(int*)vcalloc ( A->len_aln+1, sizeof (int));
+        for ( c=0,b=0; b<A->len_aln; b++)
+        {
+          if ( is_gap (A->seq_al[a][b]))cache[b]=-1;
+          else cache[b]=++c;
+        }
+      }
+    }
+
+    for ( a=0; a< A->len_aln; a++)
+    {
+      r1=A->seq_al[0][a];
+      if ( is_gap(r1))continue;
+      for ( c=0,b=0; b<A->nseq; b++)
+      {
+        r2=A->seq_al[b][a];
+        c+=(r1==r2)?1:0;
+      }
+      if ( (c*100)/A->nseq>=atoi(action_list[2]))
+        fprintf ( stdout, "COL: %d Res: %c %s %d\n", a+1, r1, action_list[1], cache[a]+atoi(action_list[3]));
+    }
+    myexit (EXIT_FAILURE);
+  }
+  else if (strm ( action, "extract_block") )
+  {
+
+    BUF=copy_aln (D1->A, NULL);
+    if ( check_file_exists(action_list[1]))
+      BUF=extract_aln3(BUF,action_list[1]);
+    else
+      BUF=extract_aln2(BUF,atoi(action_list[2]),atoi(action_list[3]),action_list[1]);
+    D1->A=copy_aln (BUF,D1->A);
+
+  }
+  else if ( strm ( action, "extract_pos_list"))
+  {
+    D1->A=alnpos_list2block (D1->A, n_actions-1, action_list+1);
+  }
+  else if ( strm ( action, "seq2msa"))
+  {
+    D1->A=simple_progressive_aln ( D1->S, NULL, NULL, action_list[1]);
+  }
+  else if ( strm ( action, "realign_block") )
+  {
+    D1->A=realign_block ( D1->A, atoi (action_list[1]), atoi (action_list[2]), (n_actions==4)?action_list[3]:NULL);
+  }
+  else if ( strm (action, "extract_seq"))
+  {
+    int is_file;
+    if ( check_file_exists (action_list[1])&& format_is_fasta (action_list[1]))
+    {
+      is_file=1;
+      BUFS=main_read_seq (action_list[1]);
+      action_list=BUFS->name;
+      n_actions=BUFS->nseq;
+    }
+    else
+    {
+      is_file=0;
+      action_list++;
+      n_actions--;
+    }
+
+    for ( a=0; a< n_actions;)
+    {
+      s=action_list[a];
+
+      if ( n_actions==1 || is_file==1)
+      {
+        start=1;
+        end=0;
+        a+=1;
+      }
+      else
+      {
+
+        start=(strm2 (s,"#","*"))?1:(atoi(action_list[a+1]));
+        end=  (strm2 (action_list[a+2],"#","*"))?0:(atoi(action_list[a+2]));
+        a+=3;
+      }
+
+      if ( strm2 (s, "#", "*"))
+      {
+        OUT_S=extract_one_seq((D1->A)->name[0],start, end, D1->A, RAD->keep_name);
+        for (b=1; b< (D1->A)->nseq; b++)
+        {
+          NS=extract_one_seq((D1->A)->name[b],start, end, D1->A, RAD->keep_name);
+          if (count_n_res_in_array(NS->seq[0], -1))
+            OUT_S=add_sequence ( NS,OUT_S, 0);
+        }
+      }
+      else
+      {
+        if ( a==1)OUT_S=extract_one_seq(s,start, end, D1->A, RAD->keep_name);
+        else
+        {
+          NS=extract_one_seq(s,start, end, D1->A, RAD->keep_name);
+          OUT_S=add_sequence ( NS,OUT_S, 0);
+        }
+      }
+    }
+    D1->S=OUT_S;
+    free_aln (D1->A);
+    D1->A=declare_Alignment(D1->S);
+    seq2aln (D1->S, D1->A, RAD->rm_gap);
+  }
+  else if ( strm (action, "ls_extract_seq"))
+  {
+    // if given a file, read it
+    if ( check_file_exists (action_list[1]) && format_is_fasta (action_list[1]))
+    {
+
+      BUFS=main_read_seq (action_list[1]);
+      action_list=BUFS->name;
+      n_actions=BUFS->nseq;
+    }
+    else
+    {
+      action_list++;
+      n_actions--;
+    }
+
+    //sort names for binary search
+    char **seq_found;
+    qsort(action_list, n_actions, sizeof(char*), ls_compare);
+    char *names;
+    size_t i,pos = 0;
+    size_t n_seqs = D1->S->nseq;
+    int max_len=0;
+    int min_len=INT_MAX;
+    for (i=0; i<n_seqs; ++i)
+    {
+      seq_found = (char**)bsearch(&D1->S->name[i], action_list, n_actions, sizeof(char*), ls_compare);
+      if (seq_found != NULL)
+      {	//copy values of a sequence to unused position
+        D1->S->name[pos]=D1->S->name[i];
+        D1->S->seq[pos]=D1->S->seq[i];
+        D1->S->len[pos]=D1->S->len[i];
+        if (max_len < D1->S->len[pos])
+          max_len=D1->S->len[pos];
+        if (min_len > D1->S->len[pos])
+          min_len=D1->S->len[pos];
+        D1->S->seq_comment[pos]=D1->S->seq_comment[i];
+        D1->S->file[pos]=D1->S->file[i];
+        D1->S->T[pos]=D1->S->T[i];
+        if (D1->S->genome_co != NULL)
+          D1->S->genome_co[pos]=D1->S->genome_co[i];
+        ++pos;
+      }
+      else
+      {	//free memory of deleted sequences
+        vfree(D1->S->name[i]);
+        vfree(D1->S->seq[i]);
+        vfree(D1->S->seq_comment[i]);
+        vfree(D1->S->T[i]);
+        vfree(D1->S->file[i]);
+      }
+    }
+
+    //update values
+
+
+    D1->S->max_nseq=pos;
+    D1->S->nseq=pos;
+    D1->S->max_len=max_len;
+    D1->S->min_len=min_len;
+
+    //free memory
+    D1->S->name=(char**)vrealloc(D1->S->name, pos*sizeof(char*));
+    D1->S->seq=(char**)vrealloc(D1->S->seq, pos*sizeof(char*));
+    D1->S->seq_comment=(char**)vrealloc(D1->S->seq_comment, pos*sizeof(char*));
+    D1->S->file=(char**)vrealloc(D1->S->file, pos*sizeof(char*));
+    D1->S->T=(Template**)vrealloc(D1->S->T, pos*sizeof(Template*));
+    D1->S->len=(int*)vrealloc(D1->S->len, pos*sizeof(int));
+    if (D1->S->genome_co != NULL)
+      vrealloc(D1->S->genome_co, pos*sizeof(Genomic_info));
+
+    D1->A=declare_Alignment(D1->S);
+    seq2aln (D1->S, D1->A, RAD->rm_gap);
+  }
+  else if ( strm (action, "extract_lib_list"))
+  {
+    D1->CL=constraint_list2sub_constraint_list (D1->CL,main_read_seq (action_list[1]));
+  }
+  else if ( strm (action, "extract_seq_list"))
+  {
+
+    if (D1->CL)
+      D1->CL=constraint_list2sub_constraint_list (D1->CL,main_read_seq (action_list[1]));
+    else
+    {
+      int nadded=0;
+      if ( check_file_exists (action_list[1]) && format_is_fasta (action_list[1]))
+      {
+
+        BUFS=main_read_seq (action_list[1]);
+        action_list=BUFS->name;
+        n_actions=BUFS->nseq;
+      }
+      else
+      {
+        action_list++;
+        n_actions--;
+      }
+
+      for ( a=0; a< n_actions;a++)
+      {
+        if ( (name_is_in_list (action_list[a], (D1->S)->name, (D1->S)->nseq, 100))!=-1)
+        {
+          nadded++;
+          HERE ("%s", action_list[a]);
+          NS=extract_one_seq(action_list[a],1,0, D1->A, KEEP_NAME);
+          OUT_S=add_sequence ( NS,OUT_S, 0);
+        }
+        else
+        {
+          fprintf (stderr, "WARNING: %s could not be extracted\n", action_list[a]);
+        }
+      }
+      if (nadded==0)exit (0);
+      D1->S=OUT_S;
+      free_aln (D1->A);
+      D1->A=declare_Alignment(D1->S);
+      seq2aln (D1->S, D1->A, RAD->rm_gap);
+    }
+  }
+  else if ( strm (action, "remove_seq") || strm (action, "rm_seq"))
+  {
+    char *buf;
+    char **list;
+    int n;
+    int l;
+
+    list=declare_char ((D1->S)->nseq, 200);
+
+    buf=(char*)vcalloc ((D1->S)->max_len+1, sizeof (char));
+    for ( n=0,a=0; a< (D1->A)->nseq; a++)
+    {
+
+      sprintf (buf, "%s", (D1->S)->seq[a]);
+      ungap (buf);
+      l=strlen(buf);
+
+      for (c=1, b=1; b< n_actions; b++)
+      {
+        if ( strm (action_list[b], (D1->S)->name[a])){(D1->S)->seq[a]=NULL;break;}
+        else if ( strm (action_list[b], "empty") && l==0)
+        {
+          fprintf ( stderr, "WARNING: Sequence %s does not contain any residue: automatically removed from the set [WARNING:%s]\n",(D1->S)->name[a], PROGRAM);
+          (D1->S)->seq[a]=NULL;break;
+        }
+        else if ( strm (action_list[b], "unique"))
+        {
+          if ( name_is_in_list ((D1->S)->name[a], list,n, 100)!=-1)
+          {
+            (D1->S)->seq[a]=NULL;break;
+          }
+          else
+          {
+            sprintf ( list[n++], "%s", (D1->S)->name[a]);
+          }
+        }
+      }
+    }
+    D1->S=duplicate_sequence (D1->S);
+    free_aln (D1->A);
+    free_char ( list, -1);
+    D1->A=declare_Alignment(D1->S);
+    seq2aln (D1->S, D1->A, RAD->rm_gap);
+  }
+
+  else if (  strm (action, "aln2overaln")|| strm (action,"overaln_param"))
+  {
+    //mode (lower|number|uanlign) Penalty (0-100) Thresold (0-9)
+    int  p1,p2,p3,f, t;
+    char *s;
+    int eb=0;
+    char clean_mode[100];
+    OveralnP *F;
+
+    F=(OveralnP*)vcalloc (1, sizeof (OveralnP));
+    if ( D2 && D2->A)
+    {
+      D1->A=mark_exon_boundaries (D1->A, D2->A);
+      eb=1;
+    }
+    else if ( (s=get_string_variable ("exon_boundaries")))
+    {
+      Sequence *S;
+      Alignment *EB;
+      EB=seq2aln(S=main_read_seq(s),NULL, 0);
+      D1->A=mark_exon_boundaries (D1->A, EB);
+      free_sequence (S, S->nseq); free_aln (EB);
+      eb=1;
+    }
+
+
+    if (ACTION(1)==NULL)sprintf (F->mode, "lower");
+    else if (strstr (ACTION(1), "h"))
+    {
+      fprintf ( stdout, "aln2unalign lower|number|unalign|uanlign2 F P1 P2 P3 T\n");
+      myexit (EXIT_SUCCESS);
+    }
+    else sprintf (F->mode, "%s", ACTION(1));
+
+    F->t=ATOI_ACTION(2);
+    F->f=ATOI_ACTION(3);
+    F->p1=ATOI_ACTION(4);
+    F->p2=ATOI_ACTION(5);
+    F->p3=ATOI_ACTION(6);
+    F->p3=ATOI_ACTION(7);
+
+    if (int_variable_isset ("overaln_target"))f=get_int_variable ("overaln_target");
+    if (int_variable_isset ("overaln_threshold"))t=get_int_variable ("overaln_threshold");
+    if (eb)sprintf (F->model, "fsa2");
+    else   sprintf (F->model, "fsa1");
+
+    D1->A=aln2clean_pw_aln (D1->A, F);
+
+  }
+  else if (  strm (action, "unalign_groups"))
+  {
+    //unalign everything in lower case
+    unalign_aln_2 (D1->A, NULL, 0);
+  }
+  else if (  strm (action,"aln2unalign"))
+  {
+    Alignment *SA;
+    Sequence *SS;
+    SA=copy_aln (D1->A, NULL);
+    SS=aln2seq(SA);
+
+    thread_seq_struc2aln (SA, SS);
+    D1->A=unalign_aln (D1->A,SA, ATOI_ACTION(1));
+    D1->S=aln2seq ( D1->A);
+  }
+  else if (  strm (action, "clean_cdna"))
+  {
+    Alignment *A;
+    A=D1->A;
+    for (a=0; a< A->nseq; a++)
+    {
+      char *d, *buf, f;
+
+      d=A->seq_al[a];
+      f=get_longest_frame (d, 3);
+      buf=(char*)vcalloc ( strlen (d)+1, sizeof (char));
+      sprintf (buf, "%s", d+f);
+      sprintf (d, "%s", buf);
+      vfree (buf);
+    }
+  }
+  else if ( strm (action, "clean_cdna2"))
+  {
+    D1->A=clean_cdna_aln ( D1->A);
+    free_sequence ( D1->S, (D1->S)->nseq);
+    D1->S=aln2seq ( D1->A);
+  }
+  else if ( strm  (action, "aln2short_aln"))
+  {
+    D1->A=aln2short_aln (D1->A, action_list[1], action_list[2], atoi(action_list[3]));
+    free_sequence ( D1->S, (D1->S)->nseq);
+    D1->S=aln2seq ( D1->A);
+  }
+  else if ( strm ( action, "complement"))
+  {
+    D1->A=complement_aln (D1->A);
+    free_sequence ( D1->S, (D1->S)->nseq);
+    D1->S=aln2seq ( D1->A);
+  }
+  else if ( strm ( action, "extend"))
+  {
+    extend_seqaln( NULL,D1->A);
+    free_sequence ( D1->S, (D1->S)->nseq);
+    D1->S=aln2seq ( D1->A);
+  }
+  else if ( strm ( action, "unextend"))
+  {
+    unextend_seqaln( NULL,D1->A);
+    free_sequence ( D1->S, (D1->S)->nseq);
+    D1->S=aln2seq ( D1->A);
+  }
+  else if ( strm ( action, "translate"))
+  {
+    D1->A=translate_dna_aln( D1->A,(n_actions==1)?0:atoi(action_list[1]));
+    free_sequence ( D1->S, (D1->S)->nseq);
+    D1->S=aln2seq ( D1->A);
+  }
+  else if (strm2 ( action, "back_translate","backtranslate"))
+  {
+    D1->A=back_translate_dna_aln( D1->A);
+    free_sequence ( D1->S, (D1->S)->nseq);
+    D1->S=aln2seq ( D1->A);
+  }
+  else if (strm ( action, "rotate"))
+  {
+    D1->A=rotate_aln( D1->A, action_list[1]);
+    free_sequence ( D1->S, (D1->S)->nseq);
+    D1->S=aln2seq ( D1->A);
+  }
+  else if (strm ( action, "invert"))
+  {
+    D1->A=invert_aln( D1->A);
+    free_sequence ( D1->S, (D1->S)->nseq);
+    D1->S=aln2seq ( D1->A);
+  }
+  else if (strm ( action, "test_dna2gene"))
+  {
+    testdna2gene ((D1->S)->seq[0]);
+  }
+  else if (strm ( action, "code_dna_aln"))
+  {
+    D1->A=code_dna_aln( D1->A);
+    free_sequence ( D1->S, (D1->S)->nseq);
+    D1->S=aln2seq ( D1->A);
+  }
+
+  else if ( strm ( action, "mutate"))
+  {
+    D1->A=mutate_aln( D1->A, const_cast<char*>( (n_actions==1)?"0":action_list[1]) );
+    free_sequence ( D1->S, (D1->S)->nseq);
+    D1->S=aln2seq (D1->A);
+  }
+  else if ( strm ( action, "thread_profile_on_msa"))
+  {
+    (D1->A)->S=NULL;
+    D1->A=thread_profile_files2aln (D1->A, action_list[1], NULL);
+    D1->S=aln2seq(D1->A);
+  }
+  else if ( strm ( action, "thread_dna_on_prot_aln"))
+  {
+    if (D1->S)fast_get_sequence_type(D1->S);
+    if (D2->S)fast_get_sequence_type(D2->S);
+
+    if (D1->S && strm ((D1->S)->type, "DNA"))
+      D1->A=thread_dnaseq_on_prot_aln (D1->S, D2->A);
+    else if (D2->S && strm ((D2->S)->type, "DNA"))
+      D1->A=thread_dnaseq_on_prot_aln (D2->S, D1->A);
+    else
+      printf_exit (EXIT_FAILURE, stderr, "Error: +thread_dna_on_prot_aln requires -in=<prot_aln> -in2=<dna sequence>");
+
+    free_sequence (D1->S,(D1->S)->nseq);
+    D1->S=aln2seq (D1->A);
+  }
+
+  //else if ( strm ( action, "thread_dna_on_prot_aln"))
+  //{
+  //   D1->A=thread_dnaseq_on_prot_aln (D1->S, D2->A);
+  //   free_sequence (D1->S,(D1->S)->nseq);
+  //   D1->S=aln2seq (D1->A);
+  // }
+  else if ( strm ( action, "thread_struc_on_aln"))
+  {
+    thread_seq_struc2aln ( D2->A, D1->S);
+    D1->A=copy_aln(D2->A, NULL);
+    D1->S=aln2seq (D1->A);
+  }
+
+  else if ( strm (action, "sim_filter"))
+  {
+    D1->A=sim_filter (D1->A, action_list[1], ACTION (2));
+    free_sequence (D1->S,(D1->S)->nseq);
+    D1->S=aln2seq (D1->A);
+  }
+  else if ( strm (action, "seq2blast"))
+  {
+    D1->A=seq2blast (D1->S);
+    free_sequence (D1->S,(D1->S)->nseq);
+    D1->S=aln2seq (D1->A);
+  }
+  else if ( strm (action, "kmeans"))
+  {
+    //k, mode: diaa,triaa, name
+    if (!ATOI_ACTION(1))myexit(fprintf_error (stderr,"-kmeans <nclusters> <mode:diaa|triaa> <outputname>"));
+    km_seq (D1->A,ATOI_ACTION (1),ACTION(2),ACTION(3));
+  }
+  else if ( strm (action, "gap_trim"))
+  {
+    D1->A=gap_trim (D1->A,ATOI_ACTION(1));
+
+    free_sequence (D1->S,(D1->S)->nseq);
+    D1->S=aln2seq (D1->A);
+  }
+  else if ( strm (action, "trimRNA"))
+  {
+    D1->A=trim_RNA(D1->A, D2->S, ATOI_ACTION(1));
+  }
+  else if ( strm (action, "trim"))
+  {
+    D1->A=simple_trimseq (D1->A,(D2)?D2->A:NULL, action_list[1], ACTION (2), NULL);
+
+    free_sequence (D1->S,(D1->S)->nseq);
+    D1->S=aln2seq (D1->A);
+  }
+
+  if (strm ( action, "trimTC"))
+  {
+    value=(n_actions==1)?10:atoi(action_list[1]);
+
+    D1->A=tc_trimseq(D1->A,D1->S,action_list[1]);
+    free_sequence (D1->S,(D1->S)->nseq);
+    D1->S=aln2seq (D1->A);
+  }
+  else if (strm ( action, "trimTC2"))
+  {
+    char *group_file;
+    Alignment *B=NULL;
+    char trim_mode[100];
+    if ( n_actions==1 || !(strm (action_list[1], "NSEQ") ||strm (action_list[1], "MINID")) )
+    {
+      fprintf ( stderr, "\nTrimTC2 <NSEQ | MINID>  <number sequences| minimum identity> (<matrix>)\n");
+      myexit (EXIT_FAILURE);
+    }
+    sprintf (trim_mode, "%s", action_list[1]);action_list+=2; n_actions-=2;
+
+    if ( strm ( trim_mode, "NSEQ"))
+    {
+      group_file=tree2Ngroup( (D1)?D1->A:NULL, (D2)?D2->T:NULL, atoi (action_list[0]), vtmpnam(NULL), const_cast<char*>( (n_actions==1)?"idmat":action_list[1]) );
+    }
+    else
+    {
+      group_file=tree2Ngroup( (D1)?D1->A:NULL, (D2)?D2->T:NULL, -1*atoi (action_list[0]), vtmpnam(NULL), const_cast<char*>( (n_actions==1)?"idmat":action_list[1]) );
+    }
+
+    B=copy_aln (D1->A, B);
+    B=aln2sub_aln_file (B,1,&group_file);
+    B=aln2sub_seq (B, 1, &group_file);
+    D1->A=extract_sub_aln2 (D1->A, B->nseq, B->name);
+  }
+  else if ( strm (action, "chain"))
+  {
+    D1->A=seq2seq_chain (D1->A,D2->A, ACTION(2));
+  }
+
+
+  else if (strm ( action, "master_trim"))
+  {
+    value=(n_actions==1)?10:atoi(action_list[1]);
+
+    D1->A=master_trimseq(D1->A,D1->S,action_list[1]);
+    free_sequence (D1->S,(D1->S)->nseq);
+    D1->S=aln2seq (D1->A);
+  }
+  else if ( strm (action, "force_aln"))
+  {
+    char ***rlist=NULL;
+    int count=0;
+
+    if ( n_actions==2)
+    {
+      if (!is_lib_02(action_list[1]))
+      {
+        fprintf ( stderr, "\nERROR: force_aln requires files in TC_LIB_FORMAT_02 [FATAL:%s]", PROGRAM);
+        myexit (EXIT_FAILURE);
+      }
+      else
+        rlist=file2list (action_list[1], " ");
+    }
+    else
+    {
+      rlist=(char***)declare_arrayN(3, sizeof (char),3,7, 10);
+
+      strcat (rlist[1][1],action_list[1]);strcat (rlist[1][3],action_list[2]);
+      strcat (rlist[1][4],action_list[3]);strcat (rlist[1][6],action_list[4]);
+      sprintf ( rlist[2][0], "-1");
+    }
+    count=1;
+    while (rlist[count] && atoi(rlist[count][0])!=-1)
+    {
+      char st1[100], st2[100], st3[100], st4[100];
+
+      sprintf ( st1, "%s", rlist[count][1]);sprintf ( st2, "%s", rlist[count][3]);
+      sprintf ( st3, "%s", rlist[count][4]);sprintf ( st4, "%s", rlist[count][6]);
+      fprintf ( stderr, "\nFORCE: %s %s %s %s", st1, st2, st3, st4);
+
+      if (is_number (st1))s1=atoi (st1)-1;
+      else s1=name_is_in_list (st1,(D1->A)->name, (D1->A)->nseq, 100);
+      if ( s1<0 || s1>= (D1->A)->nseq)crash ("wrong sequence index");
+      r1=atoi (st2)-1;
+
+      if (is_number (st3))s2=atoi (st3)-1;
+      else s2=name_is_in_list (st3,(D1->A)->name, (D1->A)->nseq, 100);
+      if ( s2<0 || s2>= (D1->A)->nseq)crash ("wrong sequence index");
+      r2=atoi (st4)-1;
+
+      (D1->A)=add_constraint2aln ((D1->A), s1, r1, s2, r2);
+      count++;
+    }
+    fprintf ( stderr, "\n");
+    free_arrayN((void*)rlist,3);
+  }
+
+  else if (strm ( action, "grep"))
+  {
+    D1->A=grep_seq (D1->A, ACTION(1),ACTION(2), ACTION(3));
+    if (D1->A==NULL) myexit (EXIT_SUCCESS);
+    else D1->S=aln2seq (D1->A);
+  }
+
+  else if (strm (action, "find"))
+  {
+    int r, l;
+    char *search_string;
+
+    search_string=(char*)vcalloc ( 30, sizeof (char));
+    if ( strm (action_list[1], "lower"))sprintf ( search_string, "abcdefghijklmnopqrstuvwxyz");
+    else if ( strm ( action_list[1], "upper"))sprintf ( search_string, "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    else
+    {
+      vfree (search_string);search_string=(char*)vcalloc ( strlen (action_list[1])+1, sizeof (char));
+      sprintf (search_string, "%s", action_list[1]);
+    }
+
+    for (a=0; a<(D1->A)->nseq; a++)
+      for ( l=0,b=0; b< (D1->A)->len_aln; b++)
+      {
+        r=(D1->A)->seq_al[a][b];
+        l+=!is_gap(r);
+        if ( r!='\0' && strrchr (search_string, r))
+        {
+          /*fprintf ( stdout, "%-15s res %c alnpos %4d seqpos %4d\n", (D1->A)->name[a], r, b+1, l);*/
+          fprintf ( stdout, "%s %d %d\n", (D1->A)->name[a], l, l+1);
+        }
+      }
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm (action, "merge_annotation"))
+  {
+    D1->A=merge_annotation (D1->A, DST?DST->A:NULL, ACTION(1));
+    D1->S=aln2seq (D1->A);
+  }
+  else if ( strm  (action, "color_residue"))
+  {
+    int i;
+    Alignment *A;
+    A=D1->A;
+
+    DST->A=copy_aln (D1->A, NULL);
+    DST->S=aln2seq (DST->A);
+    for (a=0; a< (DST->S)->nseq; a++)ungap ((DST->S)->seq[a]);
+
+    if (n_actions>2)
+    {
+      for (a=1; a<n_actions; a+=3)
+      {
+        i=name_is_in_list(action_list[a], (D1->A)->name, (D1->A)->nseq, 100);
+        if (i!=-1)
+        {
+          (DST->S)->seq[i][atoi(action_list[a+1])-1]='0'+atoi(action_list[a+2])-1;
+        }
+        else fprintf (stderr, "\nWARNING: Could not find Sequence %s", action_list[a]);
+      }
+    }
+    else
+    {
+      char name[1000];
+      int pos, val;
+      FILE *fp;
+
+      fp=vfopen (action_list[1], "r");
+      while (fscanf (fp, "%s %d %d\n", name, &pos, &val)==3)
+      {
+
+        i=name_is_in_list(name, (D1->A)->name, (D1->A)->nseq, 100);
+        if (i!=-1)(DST->S)->seq[i][pos-1]='0'+val;
+        else fprintf (stderr, "\nWARNING: Could not find Sequence %s", action_list[a]);
+      }
+      vfclose (fp);
+    }
+    DST->A=seq2aln (DST->S, NULL, 1);
+  }
+  else if ( strm  (action, "edit_residue"))
+  {
+    FILE *fp;
+    int i, pos;
+    int **p;
+    char mod[100], name[100];
+    Alignment *A;
+
+    A=D1->A;
+
+    p=aln2inv_pos (A);
+    if (n_actions>2)
+    {
+      for (a=1; a<n_actions; a+=3)
+      {
+
+        i=name_is_in_list(action_list[a], (D1->A)->name, (D1->A)->nseq, 100);
+        if (i!=-1)
+        {
+          pos=atoi(action_list[a+1]);
+
+          pos=p[i][pos]-1;
+          sprintf (mod, "%s", action_list[a+2]);
+          if ( strm (mod, "upper"))(D1->A)->seq_al[i][pos]=toupper((D1->A)->seq_al[i][pos]);
+          else if ( strm (mod, "lower"))(D1->A)->seq_al[i][pos]=tolower((D1->A)->seq_al[i][pos]);
+          else (D1->A)->seq_al[i][pos]=mod[0];
+        }
+        else fprintf (stderr, "\nWARNING: Could not find Sequence %s", action_list[a]);
+
+      }
+    }
+    else
+    {
+      fp=vfopen (action_list[1], "r");
+      while (fscanf (fp, "%s %d %s\n", name, &pos, mod)==3)
+      {
+
+        i=name_is_in_list(name, (D1->A)->name, (D1->A)->nseq, 100);
+        if (i!=-1)
+        {
+          pos=p[i][pos]-1;
+          if ( strm (mod, "upper"))(D1->A)->seq_al[i][pos]=toupper(A->seq_al[i][pos]);
+          else if ( strm (mod, "lower"))A->seq_al[i][pos]=tolower(A->seq_al[i][pos]);
+          else A->seq_al[i][pos]=mod[0];
+        }
+        else fprintf(stderr, "\nWARNING: Could not find Sequence %s", action_list[1]);
+      }
+      vfclose (fp);
+    }
+    D1->S=aln2seq (D1->A);
+  }
+  else if ( strm (action, "clean_flag"))
+  {
+    clean_flag=1-clean_flag;
+  }
+  else if ( strm  (action, "aln2case"))
+  {
+    D1->A=aln2case_aln (D1->A, ACTION(1), ACTION(2));
+    D1->S=aln2seq(D1->A);
+  }
+
+  else if ( strm5 (action, "convert","upper","lower", "keep", "switchcase"))
+  {
+    b=1;
+
+    if ( n_actions>1 && is_number (action_list[b]))
+    {
+      lower_value=upper_value=atoi(action_list[b++]);
+    }
+    else if ( n_actions>1 && strm (action_list[b], "gap"))
+    {
+      DST=(Sequence_data_struc*)vcalloc (1,sizeof(Sequence_data_struc));
+      DST->A=aln2gap_cache (D1->A,0);
+      lower_value=0;
+      upper_value=0;
+      b++;
+    }
+    else if (n_actions>1 && action_list[b] && action_list[b][0]=='[')
+
+    {
+      lower_value=atoi(strtok (action_list[b]+1, "-[]"));
+      upper_value=atoi(strtok (NULL, "-[]"));
+
+      b++;
+    }
+    else
+    {
+      lower_value=upper_value=-1;
+    }
+
+    if ( n_actions >b ||strm (action, "keep") )
+    {
+      if ( !RAD->symbol_list)RAD->symbol_list=declare_char (STRING, STRING);
+      RAD->n_symbol=0;
+      if ( strm (action, "keep") )sprintf ( RAD->symbol_list[RAD->n_symbol++], "#-");
+      else
+      {
+        for (a=b; a< n_actions; a++)
+        {
+          sprintf ( RAD->symbol_list[RAD->n_symbol], "%s", action_list[a]);
+          RAD->n_symbol++;
+        }
+      }
+    }
+
+    for ( value=0; value<=9; value++)
+    {
+      if ( lower_value==-1)value=-1;
+
+      if ( (value>=lower_value && value<=upper_value)|| value==-1)
+      {
+        if (strm(action,"convert")) D1->A=filter_aln_convert (D1->A, DST?DST->A:NULL,RAD->use_consensus,value,RAD->n_symbol, RAD->symbol_list);
+        else if (strm(action,"upper"))D1->A=filter_aln_lower_upper (D1->A, DST?DST->A:NULL,RAD->use_consensus,value);
+        else if (strm(action,"lower"))D1->A=filter_aln_upper_lower (D1->A, DST?DST->A:NULL,RAD->use_consensus,value);
+        else if (strm(action,"switchcase"))D1->A=filter_aln_switchcase (D1->A, DST?DST->A:NULL,RAD->use_consensus,value);
+      }
+      else
+      {
+        if (strm(action,"keep")) D1->A=filter_aln_convert (D1->A, DST?DST->A:NULL,RAD->use_consensus,value,RAD->n_symbol, RAD->symbol_list);
+      }
+      if (value==-1)break;
+
+    }
+
+    /*free_sequence (D1->S,(D1->S)->nseq);*/
+    if (!D1->S)D1->S=aln2seq (D1->A);
+  }
+  else if ( strm ( action, "count_pairs"))
+  {
+    int a, b,c,v, **matrix;
+    Alignment *A;
+    matrix=declare_int (300,300);
+    A=D1->A;
+    for ( a=0; a< A->nseq-1; a++)
+      for (b=0; b< A->nseq; b++)
+        for (c=0; c<A->len_aln; c++)
+          matrix[(int)A->seq_al[a][c]][(int)A->seq_al[b][c]]++;
+    for ( a=0; a<255; a++)
+      for ( b=a; b<256; b++)
+      {
+        v=matrix[a][b]+matrix[b][a];
+        if (v)fprintf ( stdout, "\n%c %c %d", a, b, v);
+      }
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm (action, "count_misc"))
+  {
+    count_misc (D1->A, (!D2)?NULL:D2->A);
+  }
+  else if ( strm (action, "count"))
+  {
+    b=1;
+    if ( n_actions>1 && is_number (action_list[b]))
+    {
+      lower_value=upper_value=atoi(action_list[b++]);
+    }
+    else if (n_actions>1 && action_list[b] && action_list[b] && action_list[b][0]=='[')
+
+    {
+      lower_value=atoi(strtok (action_list[b]+1, "-[]"));
+      upper_value=atoi(strtok (NULL, "-[]"));
+
+      b++;
+    }
+    else
+    {
+      lower_value=upper_value=-1;
+    }
+    if ( n_actions >b)
+    {
+      if ( !RAD->symbol_list)RAD->symbol_list=declare_char (STRING, STRING);
+      RAD->n_symbol=0;
+      for (a=b; a< n_actions; a++)
+      {
+        sprintf ( RAD->symbol_list[RAD->n_symbol], "%s", action_list[a]);
+        RAD->n_symbol++;
+      }
+    }
+    for ( value=lower_value; value<=upper_value; value++)
+    {
+      count_table=count_in_aln (D1->A, DST?DST->A:NULL,value,RAD->n_symbol, RAD->symbol_list, count_table);
+    }
+    for ( a=0; a<RAD->n_symbol; a++)
+    {
+      fprintf ( stdout, "%s %d\n", RAD->symbol_list[a], count_table[a]);
+    }
+    free_sequence (D1->S,(D1->S)->nseq);
+    D1->S=aln2seq (D1->A);
+    vfree(count_table);
+    myexit(EXIT_SUCCESS);
+  }
+  else if ( strm (action, "species_weight"))
+  {
+    seq_weight2species_weight (D1->A, D2->S);
+    exit (0);
+  }
+  else if ( strm (action, "aln2voronoi"))
+  {
+    aln2voronoi_weights (D1->A);
+
+  }
+  else if ( strm (action, "msa_weight"))
+  {
+    int random_value;
+    char command [LONG_STRING];
+    char aln_name[FILENAMELEN];
+    char tree_name[FILENAMELEN];
+    char dist_matrix_name[FILENAMELEN];
+    char weight_name[FILENAMELEN];
+    char method_4_msa_weights[1000];
+
+    if ( n_actions==1)
+    {
+      fprintf ( stderr, "\nError: msa_weight requires a weight_method");
+    }
+
+    sprintf ( method_4_msa_weights, "%s", (get_env_variable ("METHOD_4_MSA_WEIGHTS",NO_REPORT))?get_env_variable ("METHOD_4_MSA_WEIGHTS",NO_REPORT):METHOD_4_MSA_WEIGHTS);
+
+    /*1 Computation of the tree and the distance matrix*/
+    random_value=addrand ((unsigned long) 100000)+1;
+    sprintf (aln_name, "%d.aln", random_value);
+    sprintf (tree_name, "%d.ph", random_value);
+    sprintf (dist_matrix_name, "%d.dst", random_value);
+    sprintf (weight_name, "%d.weight", random_value);
+    output_fasta_aln (aln_name, D1->A);
+
+    sprintf ( command, "clustalw -infile=%s -tree -outputtree=dist %s", aln_name, TO_NULL_DEVICE);
+    my_system ( command);
+    sprintf ( command, "%s -method %s -aln %s -tree %s -dmatrix %s -weightfile %s %s",method_4_msa_weights, action_list[1],aln_name, tree_name, dist_matrix_name,weight_name, TO_NULL_DEVICE);
+    my_system ( command);
+
+    (D1->A)->S=aln2seq (D1->A);
+    ((D1->A)->S)->W=read_seq_weight ( (D1->A)->name, (D1->A)->nseq,weight_name);
+    vremove (weight_name);
+    vremove (aln_name);
+    vremove (tree_name);
+    vremove (dist_matrix_name);
+  }
+  else if ( strm (action, "pavie_seq2random_seq"))
+  {
+    D1->S=pavie_seq2random_seq (D1->S, action_list[1]);
+    D1->A=seq2aln (D1->S,NULL,1);
+  }
+  else if ( strm ( action, "pavie_seq2noisy_seq"))
+  {
+    /*<amount of noise: 0-100> (<alp>)*/
+
+    D1->S=pavie_seq2noisy_seq (D1->S, atoi(action_list[1]),ACTION(2));
+    D1->A=seq2aln (D1->S,NULL,1);
+  }
+  else if ( strm (action, "pavie_seq2pavie_mat"))
+  {
+
+    pavie_seq2trained_pavie_mat ( D1->S, (n_actions==2)?action_list[1]:NULL);
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm (action, "pavie_seq2pavie_aln"))
+  {
+
+    pavie_seq2pavie_aln ( D1->S, action_list[1], ACTION(2));
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm (action, "pavie_seq2pavie_dm"))
+  {
+    if (strstr (ACTION2(2,""), "_MSA_"))
+      D1->S=aln2seq_main(D1->A, KEEP_GAP);
+
+
+    pavie_seq2pavie_aln ( D1->S, action_list[1],  const_cast<char*>( (n_actions==3)?action_list[2]:"_MATDIST_") );
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm (action, "pavie_seq2pavie_msa"))
+  {
+    D1->A=pavie_seq2pavie_msa ( D1->S, action_list[1], (n_actions==3)?action_list[2]:NULL);
+  }
+  else if ( strm (action, "pavie_seq2pavie_tree"))
+  {
+    D1->T=pavie_seq2pavie_tree ( D1->S, action_list[1], (n_actions==3)?action_list[2]:NULL);
+  }
+  else if ( strm (action, "pavie_seq2pavie_sort"))
+  {
+    D1->A=pavie_seq2pavie_sort ( D1->S, action_list[1], (n_actions==3)?action_list[2]:NULL);
+  }
+
+  else if ( strm (action, "aln2mat_diaa"))
+  {
+    aln2mat_diaa (D1->S);
+  }
+  else if ( strm (action, "aln2proba_mat"))
+  {
+    aln2proba_mat(D1->S);
+  }
+
+  else if ( strm (action, "aln2mat"))
+  {
+    aln2mat(D1->S);
+  }
+
+  else if ( strm (action, "seq2latmat"))
+  {
+    seq2latmat ( D1->S, "stdout");
+    myexit (EXIT_SUCCESS);
+  }
+  else if ( strm (action , "rm_target_pdb"))
+  {
+    int i, j;
+    char *buf;
+
+    for (i=0; i< (D1->A)->nseq; i++)
+    {
+      j=1;buf=(D1->A)->name[i];
+      while (buf[j]!='_' && buf[j-1]!='_' && buf[j]!='\0')j++;
+      buf[j]='\0';
+    }
+  }
+  else if ( strm ( action, "mat2cmp"))
+  {
+    double *r;
+    r=mat2cmp (D1->M, D2->M);
+    fprintf ( stdout, "\nMATRIX COMPARISON: R=%.3f R2=%.3f On %d pairs of values\n", (float)r[0], (float)r[1], (int)r[2]);
+    myexit (EXIT_SUCCESS);
+  }
+  //Special modes
+  if ( strm ( action, "overaln_list"))
+  {
+    float *re, tre=0,sn, tsn=0, sp, tsp=0;
+    int p1,p2,p3, t, f;
+    FILE *fp;
+    char fname [100];
+    Alignment **LA;
+    Alignment **LB;
+
+    HERE ("F P1 P2 P3 T");
+
+    t=ATOI_ACTION(1);
+    f=ATOI_ACTION(2);
+    p1=ATOI_ACTION(3);
+    p2=ATOI_ACTION(4);
+    p3=ATOI_ACTION(5);
+
+
+
+    LA=(Alignment**)vcalloc ((D1->A)->nseq, sizeof (Alignment*));
+    LB=(Alignment**)vcalloc ((D2->A)->nseq, sizeof (Alignment*));
+    for (a=0; a<(D1->A)->nseq; a++)
+    {
+      LA[a]=main_read_aln ((D1->A)->name[a], NULL);
+      LB[a]=main_read_aln ((D2->A)->name[a], NULL);
+    }
+
+    for ( a=0; a<(D1->A)->nseq; a++)
+    {
+      Alignment *A, *B;
+      A=LA[a];
+      B=LB[a];
+      re=analyze_overaln (A, B, "_case_l_",t,f,p1,p2,p3);
+      fprintf (stdout, "\n%d: sn: %.2f sp: %.2f re: %.2f F: %d P: %d P2: %d T: %d",a, re[0],re[1],re[2],f, p1,p2,t);
+      tsn+=re[0];
+      tsp+=re[1];
+      tre+=re[2];
+      vfree(re);
+    }
+    fprintf (stdout, "\nTOT: sn: %.2f sp: %.2f re: %.2f F: %d P: %d P2: %d T: %d", tsn/(D1->A)->nseq,tsp/(D1->A)->nseq, tre/(D1->A)->nseq,f,p1,p2,t);
+
+    myexit (0);
+  }
+  else if ( strm ( action, "overaln_list_scan"))
+  {
+    float *re, tre=0, tsn=0, tsp;
+    int p1,p2, p3, t, f;
+    FILE *fp;
+    char fname [100];
+    Alignment **LA;
+    Alignment **LB;
+
+    if ( ACTION(1))sprintf ( fname, "%s", ACTION(1));
+    else sprintf ( fname, "scan_results.txt");
+
+    fprintf ( stdout, "SCAN Results will be ouput in %s\n", fname);
+
+
+    LA=(Alignment**)vcalloc ((D1->A)->nseq, sizeof (Alignment*));
+    LB=(Alignment**)vcalloc ((D2->A)->nseq, sizeof (Alignment*));
+    for (a=0; a<(D1->A)->nseq; a++)
+    {
+      LA[a]=main_read_aln ((D1->A)->name[a], NULL);
+      LB[a]=main_read_aln ((D2->A)->name[a], NULL);
+    }
+    for (f=32; f<=40; f++)
+    {
+      for (p1=90; p1<=100; p1+=5)
+      {
+        for ( t=1; t<=3; t++)
+        {
+          for (p2=0; p2<=40; p2+=5)
+          {
+            for (p3=0;p3<=0;p3+=5)
+            {
+              tre=tsn=tsp=0;
+              for ( a=0; a<(D1->A)->nseq; a++)
+              {
+                Alignment *A, *B;
+                A=LA[a];
+                B=LB[a];
+                re=analyze_overaln (A, B, "_case_l_",t,f,p1,p2,p3);
+
+                tsn+=re[0];
+                tsp+=re[1];
+                tre+=re[2];
+                vfree (re);
+              }
+              fp=vfopen (fname, "a");
+              fprintf (fp, "\nTOT: sn: %.2f sp: %.2f re: %.2f P: %d P2: %d P3: %d T: %d F: %d", tsn/(D1->A)->nseq,tsp/(D1->A)->nseq, tre/(D1->A)->nseq, p1,p2, p3,t,f);
+              fprintf (stderr, "\nTOT: sn: %.2f sp: %.2f re: %.2f P: %d P2: %d P3: %d T: %d F: %d", tsn/(D1->A)->nseq,tsp/(D1->A)->nseq, tre/(D1->A)->nseq, p1,p2, p3,t,f);
+              vfclose (fp);
+            }
+          }
+        }
+      }
+    }
+    myexit (0);
+  }
+  else if ( strm ( action, "overaln"))//Evaluate the capacity to predict over-aligned regions
+  {
+    OveralnP *F;
+    F=(OveralnP*)vcalloc (1, sizeof (OveralnP));
+    //al1: ref
+    //al2: alignment
+    //ATOI(1): P (0-100)
+    //ATOI(2): T (0-9)
+
+    float *r;
+    DST=(Sequence_data_struc*)vcalloc (1,sizeof(Sequence_data_struc));
+    DST->A=aln2gap_cache (D1->A,0);
+    lower_value=0;
+    upper_value=0;
+    D1->A=filter_aln_upper_lower (D1->A, DST->A, 0, 0);
+
+    sprintf (F->mode, "%s", ((s=get_string_variable ("overaln_mode")))?s:"lower");
+    if (!strm (F->mode, "lower") && !strstr (F->mode, "unalign"))printf_exit (EXIT_FAILURE,stderr,"\nERROR: unknown overal_mode in overal output [%s] [FATAL:%s]", F->mode, PROGRAM);
+
+    if (int_variable_isset ("overaln_threshold"))F->t=get_int_variable ("overaln_threshold");
+    if (int_variable_isset ("overaln_target"))F->f=get_int_variable ("overaln_target");
+    if (int_variable_isset ("overaln_P1"))F->f=get_int_variable ("overaln_P1");
+    if (int_variable_isset ("overaln_P1"))F->f=get_int_variable ("overaln_P2");
+    if (int_variable_isset ("overaln_P1"))F->f=get_int_variable ("overaln_P3");
+    if (int_variable_isset ("overaln_P1"))F->f=get_int_variable ("overaln_P4");//F P1 P2 P3 T;
+
+    D2->A=aln2clean_pw_aln (D2->A, F);
+    r=aln2pred (D1->A, D2->A,"case_l_");
+    fprintf ( stdout, "sn %.2f sp %.2f re %.2f\n", r[0], r[1], r[2]);
+    myexit (0);
+  }
+  else if ( strm (action, "seq2ngs"))
+  {
+
+    int cov=10;
+    int rl=50;
+
+    int len,ni,nj,nk,nl;
+    nl=0;
+    for (ni=0; ni<(D1->S)->nseq; ni++)
+    {
+      len=strlen ((D1->S)->seq[ni]);
+      for (nj=0; nj<len-50; nj+=rl/cov)
+      {
+        fprintf (stdout, ">%d\n", ++nl);
+        for (nk=nj; nk<nj+rl && nk<len; nk++)
+        {
+          fprintf (stdout, "%c", (D1->S)->seq[ni][nk]);
+        }
+        fprintf (stdout, "\n");
+      }
+    }
+    exit (0);
+  }
+
+  //JM_START
+  else if ( strm ( action, "aln2hitMat"))
+  {
+    aln2hitMat(D1->A, ACTION(1));
+    myexit (EXIT_SUCCESS);
+  }
+  //JM_END
+
+  else
+  {
+    fprintf ( stderr, "\nWARNING: ACTION %s UNKNOWN and IGNORED\n", action);
+  }
+
+}
 
 
 void aln2mat_diaa (Sequence *S)
@@ -13361,33 +13363,38 @@ void aln2mat (Sequence *S)
   c=(int*)declare_arrayN  (1,sizeof (int),26);
 
   for ( a=0; a< S->nseq; a++)
+  {
+    fprintf ( stderr, "%s\n", S->name[a]);
+    A=main_read_aln (S->name[a],NULL);
+    for (s1=0; s1<A->nseq; s1++)
     {
-      fprintf ( stderr, "%s\n", S->name[a]);
-      A=main_read_aln (S->name[a],NULL);
-      for (s1=0; s1<A->nseq; s1++)lower_string (A->seq_al[s1]);
-
-      for ( s1=0; s1<A->nseq-1; s1++)
-	for (s2=s1+1; s2<A->nseq; s2++)
-	  {
-	    for (p=0; p<A->len_aln-1; p++)
-	      {
-
-		u =alp[aa1=A->seq_al[s1][p]];
-		u+=alp[aa3=A->seq_al[s2][p]];
-
-		if ( u==2)
-		  {
-		    aa1-='a';aa3-='a';
-
-		    c[aa1]++;
-		    c[aa3]++;
-		    m[aa1][aa3]++;
-		    count+=2;
-		  }
-	      }
-	  }
-      free_aln (A);
+      lower_string (A->seq_al[s1]);
     }
+
+    for ( s1=0; s1<A->nseq-1; s1++)
+    {
+      for (s2=s1+1; s2<A->nseq; s2++)
+      {
+        for (p=0; p<A->len_aln-1; p++)
+        {
+
+          u =alp[aa1=A->seq_al[s1][p]];
+              u+=alp[aa3=A->seq_al[s2][p]];
+
+          if ( u==2)
+          {
+            aa1-='a';aa3-='a';
+
+            c[aa1]++;
+            c[aa3]++;
+            m[aa1][aa3]++;
+            count+=2;
+          }
+        }
+      }
+    }
+    free_aln (A);
+  }
   fprintf ( stdout, "# MONOAA_MATRIX_FORMAT_01\n");
   naa=26;
   for (aa1=0; aa1<naa; aa1++)
@@ -13704,15 +13711,16 @@ int output_header_mat (int **mat, char *fname)
   fprintf ( fp, "int new_mat[]={\n");
   l=strlen (aa);
   for (a=0; a<naa; a++)
+  {
+    for (b=0; b<=a; b++)
     {
-      for (b=0; b<=a; b++)
-	{
-	  fprintf (fp, "%3d, ", mat[aa[a]-'a'][aa[b]-'a']);
-	}
-      fprintf (fp, "\n");
+      fprintf (fp, "%3d, ", mat[aa[a]-'a'][aa[b]-'a']);
     }
+    fprintf (fp, "\n");
+  }
   fprintf ( fp, "}");
   vfclose (fp);
+  return 0;
 }
 int output_mat (int **mat, char *fname, char *alp, int offset)
 {

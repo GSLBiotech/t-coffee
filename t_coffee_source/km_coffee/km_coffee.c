@@ -36,9 +36,7 @@
 #include <math.h>
 #include <stdarg.h>
 #include <fcntl.h>
-#include <sys/file.h>
 #include <sys/types.h>
-#include <unistd.h>
 
 #include "io_lib_header.h"
 #include "util_lib_header.h"

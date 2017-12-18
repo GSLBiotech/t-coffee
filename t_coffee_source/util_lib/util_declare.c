@@ -26,7 +26,6 @@
 /******************************COPYRIGHT NOTICE*******************************/
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
 #include <string.h>
 #include <limits.h>
 #include <float.h>
@@ -658,33 +657,33 @@ Sequence * declare_sequence ( int min, int max, int nseq)
     }
 
 
-Sequence * realloc_sequence   (Sequence *OUT, int new_nseq, int max_len)
+Sequence * realloc_sequence   (Sequence *pOUT, int new_nseq, int max_len)
 {
 
 
-	if ( new_nseq<OUT->max_nseq)
-		return OUT;
+  if ( new_nseq<pOUT->max_nseq)
+    return pOUT;
 
-	OUT->min_len =MIN(OUT->min_len,max_len);
-	OUT->max_len =MAX(OUT->max_len,max_len);
+  pOUT->min_len =MIN(pOUT->min_len,max_len);
+  pOUT->max_len =MAX(pOUT->max_len,max_len);
 
-	OUT->seq_comment =new_realloc_char ( OUT->seq_comment, new_nseq,COMMENT_SIZE);
-	OUT->aln_comment =new_realloc_char ( OUT->aln_comment, new_nseq,COMMENT_SIZE);
-	OUT->name    =new_realloc_char ( OUT->name,    new_nseq,MAXNAMES+1);
-	OUT->seq     =new_realloc_char ( OUT->seq,     new_nseq,OUT->max_len+1);
+  pOUT->seq_comment =new_realloc_char ( pOUT->seq_comment, new_nseq,COMMENT_SIZE);
+  pOUT->aln_comment =new_realloc_char ( pOUT->aln_comment, new_nseq,COMMENT_SIZE);
+  pOUT->name    =new_realloc_char ( pOUT->name,    new_nseq,MAXNAMES+1);
+  pOUT->seq     =new_realloc_char ( pOUT->seq,     new_nseq,pOUT->max_len+1);
 
 
-	if (OUT->genome_co != NULL)
-		OUT->genome_co =(Genomic_info*)vrealloc(OUT->genome_co, new_nseq * sizeof(Genomic_info));
+  if (pOUT->genome_co != NULL)
+    pOUT->genome_co =(Genomic_info*)vrealloc(pOUT->genome_co, new_nseq * sizeof(Genomic_info));
 
-	OUT->file=new_realloc_char ( OUT->file,    new_nseq,STRING+1);
-	OUT->len=(int*)vrealloc( OUT->len,     (new_nseq+1)*sizeof (int));
+  pOUT->file=new_realloc_char ( pOUT->file,    new_nseq,STRING+1);
+  pOUT->len=(int*)vrealloc( pOUT->len,     (new_nseq+1)*sizeof (int));
 
-	OUT->T=(Template**)realloc_arrayN (2, (void **)OUT->T,sizeof (Template), new_nseq, 1);
-	OUT->dc=(int **)realloc_arrayN (2, (void **)OUT->dc,sizeof (int), new_nseq, 2);
+  pOUT->T=(Template**)realloc_arrayN (2, (void **)pOUT->T,sizeof (Template), new_nseq, 1);
+  pOUT->dc=(int **)realloc_arrayN (2, (void **)pOUT->dc,sizeof (int), new_nseq, 2);
 
-	OUT->max_nseq=new_nseq;
-	return OUT;
+  pOUT->max_nseq=new_nseq;
+  return pOUT;
 }
 
 Sequence * duplicate_sequence (Sequence *S )
@@ -1509,72 +1508,72 @@ void *sub_vcalloc ( size_t nobj, size_t size, int MODE)
 	}
 
 void *vrealloc ( void *p, size_t size)
-	{
-	void *x;
-	Memcontrol *M;
-	size_t i_size;
-	int a;
+{
+  void *x;
+  Memcontrol *M;
+  size_t i_size;
+  int a;
 
 
-	if ( p==NULL)
-	  {
-	    x=vmalloc (size);
-	    memset (x, 0, size);
+  if ( p==NULL)
+  {
+    x=vmalloc (size);
+    memset (x, 0, size);
 
-	    return x;
-	  }
-	else
-	  {
-	    M=(Memcontrol*)p;
-	    M-=2;
-	    i_size=M[0].size;
-	    p=M;
+    return x;
+  }
+  else
+  {
+    M=(Memcontrol*)p;
+    M-=2;
+    i_size=M[0].size;
+    p=M;
 
 
-	    if ( size<=0){return NULL;vfree (p);return NULL;}
-	    else
-	      {
-		verify_memory (size - i_size);
-		x=realloc ( p, size+2*sizeof(Memcontrol));
+    if ( size<=0){return NULL;vfree (p);return NULL;}
+    else
+    {
+      verify_memory (size - i_size);
+      x=realloc ( p, size+2*sizeof(Memcontrol));
 
-		if ( x==NULL){crash ( "\nFAILED TO ALLOCATE REQUIRED MEMORY (realloc)\n");return NULL;}
-		M=(Memcontrol*)x;
-		M[0].size=size;
-		M+=2;
-		x=M;
-		for ( a=i_size; a< size; a++)((char*)x)[a]=0;
-		return x;
-	      }
-	  }
-	return NULL;
-	}
+      if ( x==NULL){crash ( "\nFAILED TO ALLOCATE REQUIRED MEMORY (realloc)\n");return NULL;}
+      M=(Memcontrol*)x;
+      M[0].size=size;
+      M+=2;
+      x=M;
+      for ( a=i_size; a< size; a++)((char*)x)[a]=0;
+      return x;
+    }
+  }
+  return NULL;
+}
 void vfree ( void *p)
-     {
-       Memcontrol *M;
-       size_t size;
+{
+  Memcontrol *M;
+  size_t size;
 
-       if ( !p)return;
-       else
-	 {
-	   M=(Memcontrol*)p;
-	   M-=2;
-	   size=M[0].size;
+  if ( !p)return;
+  else
+  {
+    M=(Memcontrol*)p;
+    M-=2;
+    size=M[0].size;
 
-	   p=M;
-	   free(p);
+    p=M;
+    free(p);
 
-	   verify_memory (-(size+2*sizeof(Memcontrol)));
-	 }
-     }
+    verify_memory (-(size+2*sizeof(Memcontrol)));
+  }
+}
 void vfree_all (void *p)
 {
   Memcontrol *n;
   while (memlast)
-    {
-      n=memlast->p;
-      vfree (memlast+2);
-      memlast=n;
-    }
+  {
+    n=memlast->p;
+    vfree (memlast+2);
+    memlast=n;
+  }
 }
 /*********************************************************************/
 /*                                                                   */

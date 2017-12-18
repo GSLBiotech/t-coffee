@@ -2045,7 +2045,7 @@ int       output_seq_reliability_ascii     ( Alignment *B,Alignment *S, char *na
   return 1;
 }
   
-int aln2compressed_ps (Alignment *A,char *file)
+void aln2compressed_ps (Alignment *A,char *file)
 {
   FILE_format *fps;
   int a, b, cs, cl, ns;

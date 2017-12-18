@@ -30,8 +30,8 @@
 #include <ctype.h>
 #include <string.h>
 
-#include "coffee_defines.h"
 #include "io_lib_header.h"
+#include "coffee_defines.h"
 #include "util_lib_header.h"
 #include "define_header.h"
 #include "dp_lib_header.h"

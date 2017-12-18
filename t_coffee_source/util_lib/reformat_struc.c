@@ -742,7 +742,7 @@ float   **trace2contacts (Ca_trace *T, float probe)
 		  while (CB)
 		    {
 		      float max=A->r+CB->r+probe;
-		      float cd;
+          float cd=0;
 		      if (cd<0)cd=0.01;
 		      d=get_atomic_distance (A,CB);
 		      cd=d-(CB->r+A->r);

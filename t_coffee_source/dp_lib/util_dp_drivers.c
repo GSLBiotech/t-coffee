@@ -1257,7 +1257,7 @@ Constraint_list * profile_pair (TC_method *M , char *in_seq, Constraint_list *CL
 	A1=seq2R_template_profile(CL->S,s1);
 	A2=seq2R_template_profile(CL->S,s2);
 
-	char *search_name1, *search_name2;
+  char search_name1[256], search_name2[256];
 	prf1_file=vtmpnam (NULL);
 	fp=vfopen (prf1_file, "w");
 	char *cons1, *cons2;
@@ -1274,7 +1274,7 @@ Constraint_list * profile_pair (TC_method *M , char *in_seq, Constraint_list *CL
 	{
 		fprintf ( fp, ">%s\n%s-\n", (CL->S)->name[s1], (CL->S)->seq[s1]);
 		cons1=(CL->S)->seq[s1];
-		search_name1=(CL->S)->name[s1];
+    strcpy(search_name1,(CL->S)->name[s1]);
 	}
 	vfclose (fp);
 
@@ -1293,7 +1293,7 @@ Constraint_list * profile_pair (TC_method *M , char *in_seq, Constraint_list *CL
 	{
 		fprintf ( fp, ">%s\n%s-\n", (CL->S)->name[s2], (CL->S)->seq[s2]);
 		cons2=(CL->S)->seq[s2];
-		search_name2=(CL->S)->name[s2];
+    strcpy(search_name2,(CL->S)->name[s2]);
 	}
 	vfclose (fp);
 	result=vtmpnam (NULL);
@@ -1792,8 +1792,8 @@ Constraint_list * sap_pair   (char *seq_in, char *weight, Constraint_list *CL)
 		getcwd (cdir, sizeof(char)*1000);
 		chdir (get_cache_dir());
 
-		sprintf (local1, "%d_1.%d.sap_tmp", getpid(), rand()%10000);
-		sprintf (local2, "%d_2.%d.sap_tmp", getpid(), rand()%10000);
+    sprintf (local1, "%d_1.%d.sap_tmp", getpid(), rand()%10000);
+    sprintf (local2, "%d_2.%d.sap_tmp", getpid(), rand()%10000);
 
 		
 		if (strm ((CL->S)->type, "RNA"))
@@ -3506,7 +3506,7 @@ int sa_align_groups (Alignment *A, Constraint_list *CL, int *used, int minid, in
   HERE ("***** 1******");
 
   sa_get_next_group (A, CL,used,&s0, &s1,f);
-  if (g0==-1) return -1;
+  if (s0==-1) return -1;
   g0=used[s0];
   g1=used[s1];
 
@@ -3931,6 +3931,13 @@ NT_node* local_tree_aln ( NT_node l, NT_node r, Alignment*A,int nseq, Constraint
   return NULL;
 }
 
+void rec_local_tree_aln_task(NT_node N, Alignment* A, Constraint_list* CL, int print, char* tmp)
+{
+  initiate_vtmpnam( NULL );
+  rec_local_tree_aln( N, A, CL, print );
+  dump_msa( tmp, A, N->nseq, N->lseq);
+}
+
 NT_node rec_local_tree_aln ( NT_node P, Alignment*A, Constraint_list *CL,int print)
 {
   NT_node R,L;
@@ -3942,59 +3949,40 @@ NT_node rec_local_tree_aln ( NT_node P, Alignment*A, Constraint_list *CL,int pri
   R=P->right;L=P->left;
 
   if (P->fork )
-    {
-      int s, pid1, pid2;
-      char *tmp1, *tmp2;
-      tmp1=vtmpnam (NULL);
-      tmp2=vtmpnam (NULL);
+  {
+    int s, pid1, pid2;
+    char *tmp1, *tmp2;
+    tmp1=vtmpnam (NULL);
+    tmp2=vtmpnam (NULL);
 
-      pid1=vvfork(NULL);
-      if (pid1==0)
-	{
-	  if (print==1)
-	    if (L->nseq>R->nseq)print=1;
+    int print1=print, print2=print;
+    if (print==1)
+      if (L->nseq>R->nseq) print1=1;
+    if (print==1)
+      if (L->nseq>R->nseq) print2=0;
 
-	  initiate_vtmpnam (NULL);
-	  rec_local_tree_aln (L, A, CL, print);
-	  dump_msa (tmp1,A, L->nseq, L->lseq);
-	  myexit (EXIT_SUCCESS);
-	}
-      else
-	{
-	  pid2=vvfork(NULL);
-	  if (pid2==0)
-	    {
-	      if (print==1)
-		if (L->nseq>R->nseq)print=0;
+    pid1 = start_thread( [&]{ rec_local_tree_aln_task( L, A, CL, print1, tmp1 ); } );
+    pid2 = start_thread( [&]{ rec_local_tree_aln_task( R, A, CL, print2, tmp2 ); } );
+    join( pid1 );
+    join( pid2 );
 
-
-	      initiate_vtmpnam (NULL);
-	      rec_local_tree_aln (R, A, CL, print);
-	      dump_msa (tmp2, A, R->nseq, R->lseq);
-	      myexit (EXIT_SUCCESS);
-	    }
-	}
-      vwaitpid (pid1, &s, 0);
-      vwaitpid (pid2, &s, 0);
-
-
-      undump_msa (A,tmp1);
-      undump_msa (A,tmp2);
-    }
+    undump_msa (A,tmp1);
+    undump_msa (A,tmp2);
+  }
   else
-    {
-      rec_local_tree_aln (L, A, CL, print);
-      rec_local_tree_aln (R, A, CL, print);
-    }
+  {
+    rec_local_tree_aln (L, A, CL, print);
+    rec_local_tree_aln (R, A, CL, print);
+  }
 
   if (pp)
-    {
-      HERE ("\n*******************Before Alignmnent *******************");
-      for (a=0;a<L->nseq; a++)
-	fprintf (stderr, "-L%20s %s\n", A->name[L->lseq[a]], A->seq_al[L->lseq[a]]);
-      for (a=0;a<R->nseq; a++)
-	fprintf (stderr, "-R%20s %s\n", A->name[R->lseq[a]], A->seq_al[R->lseq[a]]);
-    }
+  {
+    HERE ("\n*******************Before Alignmnent *******************");
+    for (a=0;a<L->nseq; a++)
+      fprintf (stderr, "-L%20s %s\n", A->name[L->lseq[a]], A->seq_al[L->lseq[a]]);
+    for (a=0;a<R->nseq; a++)
+      fprintf (stderr, "-R%20s %s\n", A->name[R->lseq[a]], A->seq_al[R->lseq[a]]);
+  }
 
 
 
@@ -4002,21 +3990,21 @@ NT_node rec_local_tree_aln ( NT_node P, Alignment*A, Constraint_list *CL,int pri
   A->len_aln=strlen (A->seq_al[P->lseq[0]]);
 
   if (print)
-    {
-      if ((CL->S)->nseq<MAX_NSEQ_4_DISPLAY)
-	fprintf(CL->local_stderr, "\n\tGroup %4d: [Group %4d (%4d seq)] with [Group %4d (%4d seq)]-->[Len=%5d][PID:%d]%s",P->index,R->index,R->nseq,L->index,L->nseq, A->len_aln,getpid(),(P->fork==1)?"[Forked]":"" );
-      else
-	fprintf(CL->local_stderr, "\r\tGroup %4d: [Group %4d (%4d seq)] with [Group %4d (%4d seq)]-->[Len=%5d][PID:%d]%s",P->index,R->index,R->nseq,L->index,L->nseq, A->len_aln,getpid(),(P->fork==1)?"[Forked]":"" );
-    }
-   if ( pp)
-    {
-      HERE ("\n*******************AFTER Alignmnent *******************");
-      for (a=0;a<L->nseq; a++)
-	fprintf (stderr, "+L%20s %s\n", A->name[L->lseq[a]], A->seq_al[L->lseq[a]]);
-      for (a=0;a<R->nseq; a++)
-	fprintf (stderr, "+R%20s %s\n", A->name[R->lseq[a]], A->seq_al[R->lseq[a]]);
-      HERE ("********************************************************");
-    }
+  {
+    if ((CL->S)->nseq<MAX_NSEQ_4_DISPLAY)
+      fprintf(CL->local_stderr, "\n\tGroup %4d: [Group %4d (%4d seq)] with [Group %4d (%4d seq)]-->[Len=%5d][PID:%d]%s",P->index,R->index,R->nseq,L->index,L->nseq, A->len_aln,getpid(),(P->fork==1)?"[Forked]":"" );
+    else
+      fprintf(CL->local_stderr, "\r\tGroup %4d: [Group %4d (%4d seq)] with [Group %4d (%4d seq)]-->[Len=%5d][PID:%d]%s",P->index,R->index,R->nseq,L->index,L->nseq, A->len_aln,getpid(),(P->fork==1)?"[Forked]":"" );
+  }
+  if ( pp)
+  {
+    HERE ("\n*******************AFTER Alignmnent *******************");
+    for (a=0;a<L->nseq; a++)
+      fprintf (stderr, "+L%20s %s\n", A->name[L->lseq[a]], A->seq_al[L->lseq[a]]);
+    for (a=0;a<R->nseq; a++)
+      fprintf (stderr, "+R%20s %s\n", A->name[R->lseq[a]], A->seq_al[R->lseq[a]]);
+    HERE ("********************************************************");
+  }
 
   return P;
 }

@@ -27,12 +27,10 @@
 #include <time.h>
 #include <signal.h>
 #include <errno.h>
-#include <sys/times.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <sys/stat.h>
-#include <unistd.h>
-
+#include <functional>
+#include <vector>
 
 typedef struct
     {
@@ -497,8 +495,6 @@ void print_exit_failure_message ();
 
 int  get_time  ();
 int get_ctime  ();
-int  reset_time();
-int increase_ref_time(int increase);
 /*********************************************************************/
 /*                                                                   */
 /*                         SYSTEM CALLS                              */
@@ -506,23 +502,28 @@ int increase_ref_time(int increase);
 /*                                                                   */
 /*********************************************************************/	
 int   has_error_lock();
-int   is_rootpid();
+int   is_root_thread();
 int is_shellpid(int pid);
 int   shift_lock (int from, int to, int from_type,int to_type, int action);
 char *lock2name (int pid, int type);
 int release_all_locks (int pid);
 char *lock (int pid, int type, int action, char *value, ...);
 int check_process (const char *com,int pid,int r, int failure_handling);
+int get_thread_index();
+
 int assert_pid (pid_t p);
 pid_t **declare_pidtable ();
 pid_t set_pid (pid_t p);
-pid_t vvfork(char *mode);
 pid_t vwait (pid_t *p);
-int   vwait_npid (int submited, int max, int min);
+pid_t  vwaitpid (pid_t p, int *status, int options);
+int start_thread(std::function<void(void)> fn);
+void join();
+void join(int index);
+void join(const std::vector<int> & indexes);
+
 int kill_child_pid(int pid);
 
 int safe_system (const char * commande);
-pid_t  vwaitpid (pid_t p, int *status, int options);
 
 int evaluate_sys_call_io ( char *out_file, char *com, char *fonc);
 //char *cvsprintf (char *r,char *format, va_list arg_ptr,... );

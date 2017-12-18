@@ -149,9 +149,9 @@ Dp_Model * initialize_sseq_model(int left_tg_mode, int right_tg_mode, Constraint
 
     a=0;
     M->EMISSION=a++;M->TERM_EMISSION=a++;M->START_EMISSION=a++;
-    M->model_emission_function=(int (***)(Alignment*, int **, int, int*, int, int **, int, int*, int, struct Constraint_list *))vcalloc(M->nstate, sizeof (int (**)(Alignment*, int **, int, int*, int, int **, int, int*, int, struct Constraint_list *)));
+    M->model_emission_function=(model_emission_function_type**)vcalloc(M->nstate, sizeof(model_emission_function_type*));
     for ( a=0; a< M->nstate; a++)
-       M->model_emission_function[a]=(int (**)(Alignment*, int **, int, int*, int, int **, int, int*, int, struct Constraint_list *))vcalloc(3, sizeof (int (*)(Alignment*, int **, int, int*, int, int **, int, int*, int, struct Constraint_list *)));
+       M->model_emission_function[a]=(model_emission_function_type*)vcalloc(3, sizeof(model_emission_function_type));
     
 
         

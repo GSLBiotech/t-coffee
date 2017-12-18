@@ -333,15 +333,15 @@ CL_node * swap_gap_in_graph ( CL_node*S, CL_node *E)
 CL_node * declare_cl_nodes ( int len, int seq)
 {
   static CL_node **N;
-  CL_node *IN;
+  CL_node *pIN;
   static int Nlen;
   int a;
 
   if (len==-1)
     {
-      IN=(CL_node*)calloc ( 1, sizeof (CL_node)); 
-      IN->res=-1;
-      return IN;
+      pIN=(CL_node*)calloc ( 1, sizeof (CL_node)); 
+      pIN->res=-1;
+      return pIN;
     }
       
       

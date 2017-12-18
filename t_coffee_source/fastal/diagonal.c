@@ -56,7 +56,7 @@ diagonal_compare (const void * a, const void * b)
 }
 
 int
-max(int a, int b)
+tc_max(int a, int b)
 {
 	if (a < b)
 		return b;
@@ -107,8 +107,8 @@ extend_diagonals(Diagonal *diagonals, int *num_diagonal, int l1, int l2)
 			{
 				if ((diagonals[first].y - diagonals[first].x) != ((diagonals[next].y - diagonals[next].x)))
 				{
-					diagonals[first].end_exp = max(diagonals[first].end_exp, diff);
-					diagonals[next].front_exp = max(diagonals[next].front_exp, diff);
+          diagonals[first].end_exp = tc_max(diagonals[first].end_exp, diff);
+          diagonals[next].front_exp = tc_max(diagonals[next].front_exp, diff);
 	// 				if (diagonals[next].x - diagonals[next].front_exp < 0)
 	
 					while (diagonals[++first].x == -1);
@@ -126,8 +126,8 @@ extend_diagonals(Diagonal *diagonals, int *num_diagonal, int l1, int l2)
 			{
 	// 			diff = diagonals[next].x + diagonals[next].length - diagonals[first].x;
 	
-				diagonals[first].front_exp =  max(diagonals[first].front_exp, diff);
-				diagonals[next].end_exp = max(diagonals[next].end_exp, diff);
+        diagonals[first].front_exp =  tc_max(diagonals[first].front_exp, diff);
+        diagonals[next].end_exp = tc_max(diagonals[next].end_exp, diff);
 	// 			++num_segments;
 	// 			if (diagonals[first].x - diagonals[first].front_exp < 0)
 	

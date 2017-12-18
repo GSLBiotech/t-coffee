@@ -712,7 +712,7 @@ int gotoh_pair_wise_lgp ( Alignment *A, int *ns, int **l_s, Constraint_list *CL)
 /*                                                                             */
 /*	for MODE, see the function  get_dp_cost                                */
 /*******************************************************************************/
-int glocal2_pair_wise (Alignment *IN,int*ns, int **ls,Constraint_list *CL)
+int glocal2_pair_wise (Alignment *pIN,int*ns, int **ls,Constraint_list *CL)
 {
   int a, b, s=0;
   Alignment *A, *R,*L;
@@ -721,9 +721,9 @@ int glocal2_pair_wise (Alignment *IN,int*ns, int **ls,Constraint_list *CL)
   buf=(char*)vcalloc (1000, sizeof (char));
   seq=(char*)vcalloc (1000, sizeof (char));
 
-  A=copy_aln (IN,NULL);
-  L=copy_aln (IN,NULL);
-  R=copy_aln (IN,NULL);
+  A=copy_aln (pIN,NULL);
+  L=copy_aln (pIN,NULL);
+  R=copy_aln (pIN,NULL);
 
   gotoh_pair_wise_sw (A, ns, ls, CL);
 
@@ -733,7 +733,7 @@ int glocal2_pair_wise (Alignment *IN,int*ns, int **ls,Constraint_list *CL)
       for (b=0; b<ns[a]; b++)
 	{
 	  s=ls[a][b];
-	  sprintf ( seq,"%s", IN->seq_al[s]);
+    sprintf ( seq,"%s", pIN->seq_al[s]);
 
 	  seq[A->order[s][2]]='\0';
 	  sprintf (L->seq_al[s], "%s", seq);
@@ -747,21 +747,21 @@ int glocal2_pair_wise (Alignment *IN,int*ns, int **ls,Constraint_list *CL)
   gotoh_pair_wise(R, ns, ls, CL);
   print_sub_aln (R, ns, ls);
 
-  IN=realloc_aln (IN, A->len_aln+L->len_aln+R->len_aln+1);
+  pIN=realloc_aln (pIN, A->len_aln+L->len_aln+R->len_aln+1);
   for (a=0; a<2; a++)
     {
       for (b=0; b<ns[a]; b++)
 	{
 	  s=ls[a][b];
-	  sprintf (IN->seq_al[s], "%s%s%s",L->seq_al[s], A->seq_al[s], R->seq_al[s]);
+    sprintf (pIN->seq_al[s], "%s%s%s",L->seq_al[s], A->seq_al[s], R->seq_al[s]);
 	}
     }
-  IN->len_aln=strlen (IN->seq_al[s]);
+  pIN->len_aln=strlen (pIN->seq_al[s]);
 
-  print_sub_aln (IN, ns, ls);
+  print_sub_aln (pIN, ns, ls);
   vfree (seq); vfree (buf);
   free_aln (A); free_aln (L);free_aln (R);
-  return IN->score_aln;
+  return pIN->score_aln;
 }
 
 
@@ -1314,7 +1314,7 @@ int get_transition_cost (Alignment *A, int **posi, int ni, int *li, int i, int *
   /*counts the number of identical transitions between position i-1, i and j-1..j*/
   float t=0;
   int a,s;
-  Sequence *S;
+  Sequence *S=NULL; //Why was an undefined pointer used below?
 
   if (i==0 || j==0)return 0;
 
@@ -1687,25 +1687,103 @@ int cl2pair_list_ext ( Alignment *A, int *ins, int **ils, Constraint_list *CL, i
   return ret;
 }
 
+void fork_cl2pair_list_ext_task(int j, char** pid_tmpfile, int** sl, int** pos, int *ns, int** ls, Constraint_list *CL, int* sl1, int* sl2, int** inv_pos, int l1, int l2, int** nr)
+{
+  int p1, p2;
+  int si, s, r, t_s, t_r,t_w, t_s2, t_r2, t_w2;
+  int normalisation_mode=0;
+  float nscore, score, tot, filter;
+  int nused=0;
+  int a, b;
+  float *norm= (float*)vcalloc ( l1+1, sizeof (float));
+  float** used = declare_float (l2+1,2);
+  int* used_list=(int*)vcalloc (l2+1, sizeof (int));
+
+  initiate_vtmpnam(NULL);
+  FILE* fp=vfopen (pid_tmpfile[j], "w");
+  for (p1=sl[j][0]; p1<sl[j][1]; p1++)
+  {
+    for (tot=0,nused=0,si=0;p1>0 && si<ns[0]; si++)
+    {
+      s=ls [0][si];r=pos[s][p1-1];
+      for (a=1; r>0 && a<CL->residue_index[s][r][0];a+=ICHUNK)
+      {
+        t_s=CL->residue_index[s][r][a+SEQ2];
+        t_r=CL->residue_index[s][r][a+R2];
+        t_w=CL->residue_index[s][r][a+WE];
+        if (sl1[t_s])continue;//do not extend within a profile
+
+        norm[p1]++;
+        for (b=0; b<CL->residue_index[t_s][t_r][0];)
+        {
+          if (b==0){t_s2=t_s;t_r2=t_r;t_w2=t_w;b++;}
+          else
+          {
+            t_s2=CL->residue_index[t_s][t_r][b+SEQ2];
+            t_r2=CL->residue_index[t_s][t_r][b+R2];
+            t_w2=CL->residue_index[t_s][t_r][b+WE];
+            b+=ICHUNK;
+          }
+          if (sl2[t_s2])
+          {
+            p2=inv_pos[t_s2][t_r2];
+            score=MIN(((float)t_w/(float)NORM_F),((float)t_w2/(float)NORM_F));
+
+            if (!used[p2][1] && score>0)
+            {
+              used_list[nused++]=p2;
+            }
+
+            tot+=score;
+            used[p2][0]+=score;
+            used[p2][1]++;
+          }
+        }
+      }
+    }
+    filter=0.01;
+    for (a=0; a<nused; a++)
+    {
+
+      p2=used_list[a];
+      nscore=used[p2][0]/tot; //Normalized score used for filtering
+      score =used[p2][0];
+      used[p2][0]=used[p2][1]=0;
+
+      if (nscore>filter && p1!=0 && p2!=0 && p1!=l1 && p2!=l2)
+      {
+        if (normalisation_mode==0)
+        {
+          score=((norm[p1]>0)?score/norm[p1]:0);
+        }
+        else if (normalisation_mode==1)
+        {
+          score/=(float)((CL->S)->nseq*nr[0][p1]*nr[1][p2]);
+        }
+
+        score*=NORM_F;
+        fprintf (fp, "%d %d %d %f ", p1, p2, ((l1-(p1))+(p2)), score);
+      }
+    }
+  }
+
+  free_float (used, -1);
+  vfree (used_list);
+  vfclose (fp);
+  vfree(norm);
+}
 
 int fork_cl2pair_list_ext ( Alignment *A, int *ns, int **ls, Constraint_list *CL, int ***list_in, int *n_in,int njobs)
 {
-  int p1, p2,diag, si, s, r, t_s, t_r,t_w, t_s2, t_r2, t_w2;
+  int p1, p2,diag;
   int a, b,g, l1, l2;
   int **pos;
   int ll[3];
 
-  int nused;
-  int *used_list;
   int *sl2,*sl1, **inv_pos;
 
-  int normalisation_mode=0;
 
-  float nscore, score, tot, filter, avg=0;
-  float **used;
-  float *norm;
-  //Maria added this
-  int norm2=0;  //  
+  float score;
   static int **nr;
   static int max_nr;
   //variables for fork
@@ -1730,133 +1808,51 @@ int fork_cl2pair_list_ext ( Alignment *A, int *ns, int **ls, Constraint_list *CL
 
   for (a=0;a<ns[0]; a++)sl1[ls[0][a]]=1;
   for (a=0;a<ns[1]; a++)sl2[ls[1][a]]=1;
-  norm= (float*)vcalloc ( l1+1, sizeof (float));
 
   //data structure used for norm 2
 
 
   if (!nr || ll[2]>max_nr)
-    {
-      if (nr)free_int (nr, -1);
-      max_nr=ll[2];
-      nr=declare_int (2, max_nr+1);
-    }
+  {
+    if (nr)free_int (nr, -1);
+    max_nr=ll[2];
+    nr=declare_int (2, max_nr+1);
+  }
 
   for (g=0; g<2; g++)
+  {
+    for (a=0; a<ll[g]; a++)
     {
-      for (a=0; a<ll[g]; a++)
-	{
-	  nr[g][a+1]=0;
-	  for (b=0; b<ns[g]; b++)
-	    if (A->seq_al[ls[g][b]][a]!='-')nr[g][a+1]++;
-	}
+      nr[g][a+1]=0;
+      for (b=0; b<ns[g]; b++)
+        if (A->seq_al[ls[g][b]][a]!='-')nr[g][a+1]++;
     }
+  }
 
   sl=n2splits (njobs,l1+1);
   pid_tmpfile=(char**)vcalloc (njobs, sizeof (char*));
-
-  used=declare_float (l2+1,2);
-  used_list=(int*)vcalloc (l2+1, sizeof (int));
-  nused=0;
-
+  std::vector<int> thread_indexes;
   for (sjobs=0, j=0; j<njobs; j++)
-    {
-      pid_tmpfile[j]=vtmpnam(NULL);
-      if (vvfork (NULL)==0)
-	{
-	  initiate_vtmpnam(NULL);
-	  fp=vfopen (pid_tmpfile[j], "w");
-	  for (p1=sl[j][0]; p1<sl[j][1]; p1++)
-	    {
-	      for (tot=0,nused=0,si=0;p1>0 && si<ns[0]; si++)
-		{
-		  s=ls [0][si];r=pos[s][p1-1];
-		  for (a=1; r>0 && a<CL->residue_index[s][r][0];a+=ICHUNK)
-		    {
-		      t_s=CL->residue_index[s][r][a+SEQ2];
-		      t_r=CL->residue_index[s][r][a+R2];
-		      t_w=CL->residue_index[s][r][a+WE];
-		      if (sl1[t_s])continue;//do not extend within a profile
-
-		      norm[p1]++; 
-		      norm2=0;
-		      for (b=0; b<CL->residue_index[t_s][t_r][0];)
-			{
-			  if (b==0){t_s2=t_s;t_r2=t_r;t_w2=t_w;b++;}
-			  else
-			    {
-			      t_s2=CL->residue_index[t_s][t_r][b+SEQ2];
-			      t_r2=CL->residue_index[t_s][t_r][b+R2];
-			      t_w2=CL->residue_index[t_s][t_r][b+WE];
-			      b+=ICHUNK;
-			      norm2++;
-			    }
-			  if (sl2[t_s2])
-			    {
-			      p2=inv_pos[t_s2][t_r2];
-			      score=MIN(((float)t_w/(float)NORM_F),((float)t_w2/(float)NORM_F));
-
-			      if (!used[p2][1] && score>0)
-				{
-				  used_list[nused++]=p2;
-				}
-
-			      tot+=score;
-			      used[p2][0]+=score;
-			      used[p2][1]++;
-			    }
-			}
-		    }
-		}
-	      filter=0.01;
-	      for (a=0; a<nused; a++)
-		{
-
-		  p2=used_list[a];
-		  nscore=used[p2][0]/tot; //Normalized score used for filtering
-		  score =used[p2][0];
-		  used[p2][0]=used[p2][1]=0;
-
-		  if (nscore>filter && p1!=0 && p2!=0 && p1!=l1 && p2!=l2)
-		    {
-		      if (normalisation_mode==0)
-			{ 
-			  score=((norm[p1]>0)?score/norm[p1]:0);
-			}
-		      else if (normalisation_mode==1)
-			{
-			  score/=(float)((CL->S)->nseq*nr[0][p1]*nr[1][p2]);
-			}
-
-		      score*=NORM_F;
-		      fprintf (fp, "%d %d %d %f ", p1, p2, ((l1-(p1))+(p2)), score);
-		    }
-		}
-	    }
-	  vfclose (fp);
-	  myexit (EXIT_SUCCESS);
-	}
-      else
-	{
-	  sjobs++;
-	}
-    }
-  while (sjobs>=0){vwait(NULL); sjobs--;}//wait for all jobs to complete
+  {
+    pid_tmpfile[j]=vtmpnam(NULL);
+    int thread_index = start_thread( [&]{ fork_cl2pair_list_ext_task( j, pid_tmpfile, sl, pos, ns, ls, CL, sl1, sl2, inv_pos, l1, l2, nr ); } );
+    thread_indexes.push_back( thread_index );
+    sjobs++;
+  }
+  join( thread_indexes );
   for (j=0; j<njobs; j++)
-    {
-      fp=vfopen (pid_tmpfile[j], "r");
-      while ((fscanf(fp, "%d %d %d %f ", &p1,&p2, &diag, &score))==4)
-	addE (p1,p2,((l1-(p1))+(p2)),score,list_in, n_in);
-      vfclose (fp);
-      remove (pid_tmpfile[j]);
-    }
+  {
+    fp=vfopen (pid_tmpfile[j], "r");
+    while ((fscanf(fp, "%d %d %d %f ", &p1,&p2, &diag, &score))==4)
+      addE (p1,p2,((l1-(p1))+(p2)),score,list_in, n_in);
+    vfclose (fp);
+    remove (pid_tmpfile[j]);
+  }
 
-  free_float (used, -1);
-  vfree (used_list);
   free_int (inv_pos, -1);
   free_int (pos, -1);
   vfree (sl2);vfree (sl1);
-  vfree(norm);
+
   return n_in[0];
 }
 

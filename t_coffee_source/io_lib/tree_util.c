@@ -4230,7 +4230,7 @@ float tree2tot_dist ( NT_node T, int mode)
 
 //This function displays all the sequences within the tree sorted by node label
 int cmp_tree_array ( const void *vp, const void *vq);
-int node_sort ( char *name, NT_node T)
+void node_sort ( char *name, NT_node T)
 {
   NT_node N;
   int nseq;
@@ -4381,7 +4381,7 @@ int treelist2dmat ( Sequence *S)
   return 0;
 }
 
-int treelist2leafgroup ( Sequence *S, Sequence *TS, char *taxon)
+void treelist2leafgroup ( Sequence *S, Sequence *TS, char *taxon)
 {
   NT_node *T;
   int n=0,nseq, a, c,s;
@@ -4476,7 +4476,7 @@ int treelist2leafgroup ( Sequence *S, Sequence *TS, char *taxon)
 
   myexit (0);
 }
-int count_tree_groups( Sequence *LIST, char *group_file)
+void count_tree_groups( Sequence *LIST, char *group_file)
 {
   NT_node *T;
   Sequence *S;
@@ -4956,9 +4956,10 @@ int treelist2splits( Sequence *S, Sequence *TS)
 
 
   myexit (0);
+  return 0;
 }
 
-int treelist2splits_old ( Sequence *S, Sequence *TS)
+void treelist2splits_old ( Sequence *S, Sequence *TS)
 {
   NT_node *T;
   int n=0,nseq, a,c;
@@ -5086,7 +5087,7 @@ NT_node *treelist2prune_treelist (Sequence *S, Sequence *TS, FILE *out)
   return T;
 }
 int** treelist2lti2 ( Sequence *S, Sequence *TS, int ngb, FILE *out);
-int treelist2frame (Sequence *S, Sequence *TS)
+void treelist2frame (Sequence *S, Sequence *TS)
 {
   int n, a, b, c,d, **r, **order;
   Sequence *temp;

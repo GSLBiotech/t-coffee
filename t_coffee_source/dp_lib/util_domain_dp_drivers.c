@@ -446,7 +446,7 @@ Alignment * approximate_domain ( int min_start, int max_start, int step_start,in
      C->output_res_num=1;
      return C;
    }
-int measure_domain_length ( Constraint_list *CL,Alignment *IN, int start, int min_len, int max_len, int step)
+int measure_domain_length ( Constraint_list *CL,Alignment *pIN, int start, int min_len, int max_len, int step)
    {
    Alignment *C=NULL;
    int score, best_score,best_len,a, b, l;
@@ -462,10 +462,10 @@ int measure_domain_length ( Constraint_list *CL,Alignment *IN, int start, int mi
    min_len=MAX(0, min_len);
    min_len=MIN(l-start, min_len);
 
-   if ( !IN)C=extract_domain_with_coordinates (C,start,min_len, CL);
+   if ( !pIN)C=extract_domain_with_coordinates (C,start,min_len, CL);
    else
      {
-     C=copy_aln (IN, C);
+     C=copy_aln (pIN, C);
      C->len_aln=min_len;
      for ( a=0; a< C->nseq; a++)C->seq_al[a][min_len]='\0';
      C=add_seq2aln (CL,C, CL->S);
@@ -477,10 +477,10 @@ int measure_domain_length ( Constraint_list *CL,Alignment *IN, int start, int mi
   min_len=MAX(0, min_len);
   for ( best_len=best_val=n_val=0,b=min_len; b<max_len && (start+b)<l; b+=step, n_val++)
        {
-       if ( !IN)C=extract_domain_with_coordinates (C,start, b, CL);
+       if ( !pIN)C=extract_domain_with_coordinates (C,start, b, CL);
        else
 	   {
-	   C=copy_aln (IN, C);
+     C=copy_aln (pIN, C);
 	   C->len_aln=min_len;
 	   for ( a=0; a< C->nseq; a++)C->seq_al[a][b]='\0';
 	   C=add_seq2aln (CL,C, CL->S);

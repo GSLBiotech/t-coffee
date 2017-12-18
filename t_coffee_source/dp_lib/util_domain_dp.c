@@ -264,7 +264,7 @@ scale=(lenal[1]*SCORE_K*(CL->moca)->moca_scale);
 		 pos_al[0][ala]=i;
 		 pos_al[1][ala]=j;
 		 al[0][ala]=MATCH;
-		 al[1][ala]=UNALIGNED;
+     al[1][ala]=TC_UNALIGNED;
 		 i--;
 		 j=k;
 		 ala++;
@@ -334,7 +334,7 @@ scale=(lenal[1]*SCORE_K*(CL->moca)->moca_scale);
 	    i=pos_al[0][a];
 	    j=pos_al[1][a];
 	    
-	    if (al[1][a]==UNALIGNED && l>0)
+      if (al[1][a]==TC_UNALIGNED && l>0)
 	             {
 		     result_aln=realloc_int ( result_aln, read_size_int ( result_aln,sizeof (int*)),len, 1, 0); 	   
 		     nseq++;

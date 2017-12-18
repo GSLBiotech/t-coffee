@@ -25,6 +25,7 @@
 /*...............................................                                           */
 /******************************COPYRIGHT NOTICE*******************************/
 // #include "km_util.h"
+#include "platform_lib/platform_lib.h"
 #include "km_coffee_header.h"
 FILE *
 my_fopen(char *name_f, char *mode)
@@ -83,17 +84,37 @@ my_realloc(void *p, size_t size)
 char *
 my_make_temp_dir(char *templatee, char *function)
 {
+#ifdef _MSC_VER
+  int failed = 1;
+  char *temp_dir_name = (char*) malloc( sizeof(char) * MAX_PATH );
 
-	char *temp_dir_name = (char*)malloc(20 * sizeof(char*));
+  int retry = 20;
+  while( --retry > 0 )
+  {
+    sprintf( temp_dir_name, "%s", templatee );
+    if( NULL == mktemp( temp_dir_name ) )
+      continue;
+
+    if( CreateDirectory( temp_dir_name, NULL ) )
+    {
+      failed = 0;
+      break;
+    }
+  }
+
+  if( failed )
+#else
+  char *temp_dir_name = (char*)malloc(256);
 	sprintf(temp_dir_name, "%s", templatee);
 // 	char hostname[50];
-// 	gethostname(hostname, 50);
+// 	tc_gethostname(hostname, 50);
 // 	printf("%s %s\n",hostname, temp_dir_name);
 	if ((temp_dir_name = mkdtemp(temp_dir_name))==NULL)
-	{
+#endif
+  {
 		int errsv = errno;
 		fprintf(stderr, "ERROR! A temporary directory could not be created: %s\n",strerror(errsv));
-		fprintf(stderr, "This error was caused by '%s' in '%s'\n", function);
+    fprintf(stderr, "This error was caused by '%s'\n", function);
 
 		exit(-1);
 	}

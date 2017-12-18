@@ -48,7 +48,7 @@ float compute_lambda (int **matrix,char *alphabet);
  *    - heuristic     score= extended    /sum of extended score of all pairs in the library
  *                                    (i.e. Not ALL the possible pairs)
  */
-Alignment * main_coffee_evaluate_output2 ( Alignment *IN,Constraint_list *CL, const char *mode );
+Alignment * main_coffee_evaluate_output2 ( Alignment *pIN,Constraint_list *CL, const char *mode );
 
 int sub_aln2ecl_raw_score (Alignment *A, Constraint_list *CL, int ns, int *ls)
 {
@@ -193,97 +193,97 @@ Alignment * overlay_alignment_evaluation     ( Alignment *I, Alignment *O)
   if ( I->len_aln!=O->len_aln)printf_exit (EXIT_FAILURE, stderr, "ERROR: Incompatible alignments in overlay_alignment_evaluation");
   
   buf=(int*)vcalloc ( MAX(I->len_aln, O->len_aln), sizeof (int));
- 
+
   for (a=0; a<O->nseq; a++)
+  {
+    if (!strm (I->name[a], O->name[a]))printf_exit (EXIT_FAILURE, stderr, "ERROR: Incompatible alignments in overlay_alignment_evaluation");
+    for (b=0; b<O->len_aln; b++)
     {
-      if (!strm (I->name[a], O->name[a]))printf_exit (EXIT_FAILURE, stderr, "ERROR: Incompatible alignments in overlay_alignment_evaluation");
-      for (b=0; b<O->len_aln; b++)
-	{
-	  r=I->seq_al[a][b];
-	  if ( islower(r))O->seq_al[a][b]=0;
-	  else if (r<=9 || (r>='0' && r<='9'))O->seq_al[a][b]=I->seq_al[a][b];
-	}
+      r=I->seq_al[a][b];
+      if ( islower(r))O->seq_al[a][b]=0;
+      else if (r<=9 || (r>='0' && r<='9'))O->seq_al[a][b]=I->seq_al[a][b];
     }
+  }
   return O;
 }
 
-Alignment * main_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL, const char *mode )
+Alignment * main_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL, const char *mode )
 {
   
   Alignment *TopS=NULL, *LastS=NULL, *CurrentS=NULL;
   
 
-  if ( IN->A){IN=IN->A;}
-  while (IN)
-    {
+  if ( pIN->A){pIN=pIN->A;}
+  while (pIN)
+  {
 
-      CurrentS= main_coffee_evaluate_output2(IN, CL, mode);
-      if (!TopS)LastS=TopS=CurrentS;
-      else
-	{
-	  LastS->A=CurrentS;
-	  LastS=CurrentS;
-	}
-      IN=IN->A;
+    CurrentS= main_coffee_evaluate_output2(pIN, CL, mode);
+    if (!TopS)LastS=TopS=CurrentS;
+    else
+    {
+      LastS->A=CurrentS;
+      LastS=CurrentS;
     }
+    pIN=pIN->A;
+  }
   return TopS;
 }
 
-Alignment * main_coffee_evaluate_output2 ( Alignment *IN,Constraint_list *CL, const char *mode )
+Alignment * main_coffee_evaluate_output2 ( Alignment *pIN,Constraint_list *CL, const char *mode )
 {
   
   /*Make sure evaluation functions update their cache if needed*/
  
-  IN=update_aln_random_tag (IN);
+  pIN=update_aln_random_tag (pIN);
   
   if ( CL->evaluate_residue_pair==evaluate_matrix_score || CL->ne==0 ||strm ( mode , "categories") || strm ( mode , "matrix")|| strm(mode, "sar")|| strstr (mode, "boxshade") )
      {
       
-       if ( strm ( mode , "categories")) return categories_evaluate_output (IN, CL);
-       else if ( strm ( mode , "matrix"))return matrix_evaluate_output (IN, CL);
-       else if ( strm ( mode, "sar"))return sar_evaluate_output (IN, CL);
-       else if ( strstr ( mode, "boxshade"))return boxshade_evaluate_output (IN, CL, atoi (strstr(mode, "_")+1));
+       if ( strm ( mode , "categories")) return categories_evaluate_output (pIN, CL);
+       else if ( strm ( mode , "matrix"))return matrix_evaluate_output (pIN, CL);
+       else if ( strm ( mode, "sar"))return sar_evaluate_output (pIN, CL);
+       else if ( strstr ( mode, "boxshade"))return boxshade_evaluate_output (pIN, CL, atoi (strstr(mode, "_")+1));
        
-       else if ( CL->evaluate_residue_pair==evaluate_matrix_score) return matrix_evaluate_output (IN, CL);
-       else if ( CL->ne==0) return matrix_evaluate_output (IN, CL);
+       else if ( CL->evaluate_residue_pair==evaluate_matrix_score) return matrix_evaluate_output (pIN, CL);
+       else if ( CL->ne==0) return matrix_evaluate_output (pIN, CL);
      }
    else if ( strm (mode, "no"))return NULL;
    else if ( strstr( mode, "triplet") || strstr (mode, "tcs"))
      {
-       return triplet_coffee_evaluate_output ( IN,CL);
+       return triplet_coffee_evaluate_output ( pIN,CL);
      }
    else if ( strstr ( mode, "fast"))
      {
       
-       return fast_coffee_evaluate_output ( IN,CL);
+       return fast_coffee_evaluate_output ( pIN,CL);
      }
    else if ( strstr ( mode, "slow"))
      {
-       return slow_coffee_evaluate_output ( IN,CL);
+       return slow_coffee_evaluate_output ( pIN,CL);
      }
    else if ( strstr (mode, "rna"))
      {
-       Alignment *OUT;
+       Alignment *pOUT;
        int a, b,res;
 
-       OUT=struc_evaluate4tcoffee (IN, CL, "strike",0,3,NULL);
-       for (a=0; a<OUT->nseq; a++)
-	 for (b=0; b<OUT->len_aln; b++)
+       pOUT=struc_evaluate4tcoffee (pIN, CL, "strike",0,3,NULL);
+       for (a=0; a<pOUT->nseq; a++)
+   for (b=0; b<pOUT->len_aln; b++)
 	   {
-	     res=OUT->seq_al[a][b];
-	     if (res>9 && !(res>='0' && res<='9') )OUT->seq_al[a][b]=NO_COLOR_RESIDUE;
+       res=pOUT->seq_al[a][b];
+       if (res>9 && !(res>='0' && res<='9') )pOUT->seq_al[a][b]=NO_COLOR_RESIDUE;
 	   }
-       sprintf (OUT->name[OUT->nseq], "Cons");
-       return OUT;
+       sprintf (pOUT->name[pOUT->nseq], "Cons");
+       return pOUT;
      }
    else if ( strstr ( mode, "non_extended"))
      {
-       return non_extended_t_coffee_evaluate_output ( IN,CL);
+       return non_extended_t_coffee_evaluate_output ( pIN,CL);
      }
    
    else if ( strm (mode, "sequences"))
      {
-       return coffee_seq_evaluate_output ( IN,CL);
+       return coffee_seq_evaluate_output ( pIN,CL);
      }
    else 
      {
@@ -291,22 +291,22 @@ Alignment * main_coffee_evaluate_output2 ( Alignment *IN,Constraint_list *CL, co
        crash ("");
        return NULL;
      }
-  return IN;
+  return pIN;
 }
 
 
 
-Alignment * coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
+Alignment * coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
     fprintf ( stderr, "\n[WARNING:%s]THE FUNCTION coffee_evaluate_output IS NOT ANYMORE SUPPORTED\n", PROGRAM);
     fprintf ( stderr, "\n[WARNING]fast_coffee_evaluate_output WILL BE USED INSTEAD\n");
     
-    return fast_coffee_evaluate_output (IN,CL);
+    return fast_coffee_evaluate_output (pIN,CL);
     }
-Alignment * matrix_evaluate_output ( Alignment *IN,Constraint_list *CL)
+Alignment * matrix_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
     int a,b, c,r, s, r1, r2;	
-    Alignment *OUT=NULL;
+    Alignment *pOUT=NULL;
   
     double **tot_res;
     double **max_res;
@@ -328,31 +328,31 @@ Alignment * matrix_evaluate_output ( Alignment *IN,Constraint_list *CL)
     
     if ( !CL->M)CL->M=read_matrice ("blosum62mt");
     
-    OUT=copy_aln (IN, OUT);
+    pOUT=copy_aln (pIN, pOUT);
     
     
-    tot_res=declare_double ( IN->nseq, IN->len_aln);
-    max_res=declare_double ( IN->nseq, IN->len_aln);
+    tot_res=declare_double ( pIN->nseq, pIN->len_aln);
+    max_res=declare_double ( pIN->nseq, pIN->len_aln);
     
-    tot_seq=declare_double ( IN->nseq, 1);
-    max_seq=declare_double ( IN->nseq, 1);
-    tot_col=declare_double ( IN->len_aln,1);
-    max_col=declare_double ( IN->len_aln,1);
+    tot_seq=declare_double ( pIN->nseq, 1);
+    max_seq=declare_double ( pIN->nseq, 1);
+    tot_col=declare_double ( pIN->len_aln,1);
+    max_col=declare_double ( pIN->len_aln,1);
     
     max_aln=tot_aln=0;
     
-    for (a=0; a< IN->len_aln; a++)
+    for (a=0; a< pIN->len_aln; a++)
         {
 	  double r, s;
-	  for ( b=0; b< IN->nseq; b++)
+    for ( b=0; b< pIN->nseq; b++)
 	    {
-	      r1=tolower(IN->seq_al[b][a]);
+        r1=tolower(pIN->seq_al[b][a]);
 	      if ( is_gap(r1))continue;
 	      r= CL->M[r1-'A'][r1-'A'];
 	      r=1;
-	      for ( c=0; c<IN->nseq; c++)
+        for ( c=0; c<pIN->nseq; c++)
 		{
-		  r2=tolower(IN->seq_al[c][a]);
+      r2=tolower(pIN->seq_al[c][a]);
 		  if (b==c || is_gap (r2))continue;
 		  
 		  s=(double)CL->M[r2-'A'][r1-'A'];
@@ -374,36 +374,36 @@ Alignment * matrix_evaluate_output ( Alignment *IN,Constraint_list *CL)
 	}
     
     
-    for ( a=0; a< IN->nseq; a++)
+    for ( a=0; a< pIN->nseq; a++)
       {
 	if ( !max_seq[a][0])continue;
        
-	OUT->score_seq[a]=(tot_seq[a][0]*100)/max_seq[a][0];
-	for (b=0; b< IN->len_aln; b++)
+  pOUT->score_seq[a]=(tot_seq[a][0]*100)/max_seq[a][0];
+  for (b=0; b< pIN->len_aln; b++)
 	  {
-	    r1=IN->seq_al[a][b];
-	    if (is_gap (OUT->seq_al[a][b]));
-	    else if (!max_res[a][b])(OUT)->seq_al[a][b]=NO_COLOR_RESIDUE;
+      r1=pIN->seq_al[a][b];
+      if (is_gap (pOUT->seq_al[a][b]));
+      else if (!max_res[a][b])(pOUT)->seq_al[a][b]=NO_COLOR_RESIDUE;
 	    else
 	      {
 		r1=(tot_res[a][b]*10)/max_res[a][b];
 		r1=(r1==10)?9:r1;
-		(OUT)->seq_al[a][b]=((r1==10)?9:r1)+'0';
+    (pOUT)->seq_al[a][b]=((r1==10)?9:r1)+'0';
 	      }
 	  }
       }
-    sprintf (OUT->name[OUT->nseq], "cons");
-    for ( a=0; a< IN->len_aln; a++)
+    sprintf (pOUT->name[pOUT->nseq], "cons");
+    for ( a=0; a< pIN->len_aln; a++)
       {
 	
 	r1=((int)(max_col[a][0]==0)?0:(tot_col[a][0]*(double)10)/max_col[a][0]);
-	(OUT)->seq_al[IN->nseq][a]=((r1>=10)?9:r1)+'0';
+  (pOUT)->seq_al[pIN->nseq][a]=((r1>=10)?9:r1)+'0';
       }
 
     if (max_aln)
       {
-	OUT->score_seq[OUT->nseq]=OUT->score_aln=(100*tot_aln)/max_aln;
-	OUT->score=OUT->score_aln=(1000*tot_aln)/max_aln;
+  pOUT->score_seq[pOUT->nseq]=pOUT->score_aln=(100*tot_aln)/max_aln;
+  pOUT->score=pOUT->score_aln=(1000*tot_aln)/max_aln;
       }
     
 	
@@ -414,13 +414,13 @@ Alignment * matrix_evaluate_output ( Alignment *IN,Constraint_list *CL)
     free_double (tot_seq,-1);
     free_double (max_seq,-1);
     
-    return OUT;
+    return pOUT;
     }
 
-Alignment * sar_evaluate_output ( Alignment *IN,Constraint_list *CL)
+Alignment * sar_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
       int a,b, c,r, s, r1, r2;
-      Alignment *OUT=NULL;
+      Alignment *pOUT=NULL;
       
       double **tot_res;
       double **max_res;
@@ -442,27 +442,27 @@ Alignment * sar_evaluate_output ( Alignment *IN,Constraint_list *CL)
     
     if ( !CL->M)CL->M=read_matrice ("blosum62mt");
     
-    OUT=copy_aln (IN, OUT);
+    pOUT=copy_aln (pIN, pOUT);
     
     
-    tot_res=declare_double ( IN->nseq, IN->len_aln);
-    max_res=declare_double ( IN->nseq, IN->len_aln);
+    tot_res=declare_double ( pIN->nseq, pIN->len_aln);
+    max_res=declare_double ( pIN->nseq, pIN->len_aln);
     
-    tot_seq=declare_double ( IN->nseq, 1);
-    max_seq=declare_double ( IN->nseq, 1);
-    tot_col=declare_double ( IN->len_aln,1);
-    max_col=declare_double ( IN->len_aln,1);
+    tot_seq=declare_double ( pIN->nseq, 1);
+    max_seq=declare_double ( pIN->nseq, 1);
+    tot_col=declare_double ( pIN->len_aln,1);
+    max_col=declare_double ( pIN->len_aln,1);
     
     max_aln=tot_aln=0;
     
-    for (a=0; a< IN->len_aln; a++)
+    for (a=0; a< pIN->len_aln; a++)
         {
-	  for (b=0; b< IN->nseq; b++)
+    for (b=0; b< pIN->nseq; b++)
 		{
-		  r1=tolower(IN->seq_al[b][a]);
-		  for (c=0; c<IN->nseq; c++)
+      r1=tolower(pIN->seq_al[b][a]);
+      for (c=0; c<pIN->nseq; c++)
 		    {
-		      r2=tolower(IN->seq_al[c][a]);
+          r2=tolower(pIN->seq_al[c][a]);
 		      if (b==c)continue;
 		      
 		      if ( is_gap(r1) && is_gap(r2))s=0;
@@ -486,29 +486,29 @@ Alignment * sar_evaluate_output ( Alignment *IN,Constraint_list *CL)
 		}
 	}
      
-    for ( a=0; a< IN->nseq; a++)
+    for ( a=0; a< pIN->nseq; a++)
       {
 	if ( !max_seq[a][0])continue;
-	OUT->score_seq[a]=(max_seq[a][0]*100)/max_seq[a][0];
-	for (b=0; b< IN->len_aln; b++)
+  pOUT->score_seq[a]=(max_seq[a][0]*100)/max_seq[a][0];
+  for (b=0; b< pIN->len_aln; b++)
 	  {
-	    r1=IN->seq_al[a][b];
+      r1=pIN->seq_al[a][b];
 	    if ( is_gap(r1) || !max_res[a][b])continue;
 	    r1=(tot_res[a][b]*10)/max_res[a][b];
 	    r1=(r1>=10)?9:r1;
 	    r1=r1<0?0:r1;
-	    (OUT)->seq_al[a][b]=r1+'0';
+      (pOUT)->seq_al[a][b]=r1+'0';
 	  }
       }
     
-    for ( a=0; a< IN->len_aln; a++)
+    for ( a=0; a< pIN->len_aln; a++)
       {
 	r1=(max_col[a][0]==0)?0:((tot_col[a][0]*10)/max_col[a][0]);
 	r1=(r1>=10)?9:r1;
-	(OUT)->seq_al[OUT->nseq][a]=r1+'0';
+  (pOUT)->seq_al[pOUT->nseq][a]=r1+'0';
       }
-    sprintf ( OUT->name[IN->nseq], "cons");
-    if (max_aln)OUT->score_aln=(100*tot_aln)/max_aln;
+    sprintf ( pOUT->name[pIN->nseq], "cons");
+    if (max_aln)pOUT->score_aln=(100*tot_aln)/max_aln;
 
    
     free_double (tot_res,-1);
@@ -517,11 +517,11 @@ Alignment * sar_evaluate_output ( Alignment *IN,Constraint_list *CL)
     free_double (tot_seq,-1);
     free_double (max_seq,-1);
     
-    return OUT;
+    return pOUT;
     }
-Alignment * boxshade_evaluate_output ( Alignment *IN,Constraint_list *CL, int T)
+Alignment * boxshade_evaluate_output ( Alignment *pIN,Constraint_list *CL, int T)
     {
-      Alignment *OUT=NULL;
+      Alignment *pOUT=NULL;
       int **aa;
       int r,br, bs, a, b;
       float f;
@@ -532,19 +532,19 @@ Alignment * boxshade_evaluate_output ( Alignment *IN,Constraint_list *CL, int T)
     */
 
         
-    OUT=copy_aln (IN, OUT);
+    pOUT=copy_aln (pIN, pOUT);
     aa=declare_int (26, 2);
         
-    for ( a=0; a< OUT->len_aln; a++)
+    for ( a=0; a< pOUT->len_aln; a++)
       {
 	for ( b=0; b< 26; b++){aa[b][1]=0;aa[b][0]='a'+b;}
-	for ( b=0; b< OUT->nseq; b++)
+  for ( b=0; b< pOUT->nseq; b++)
 	  {
-	    r=tolower(OUT->seq_al[b][a]);
+      r=tolower(pOUT->seq_al[b][a]);
 	    if ( !is_gap(r))aa[r-'a'][1]++;
 	  }
 	sort_int ( aa, 2, 1, 0,25);
-	f=(aa[25][1]*100)/OUT->nseq;
+  f=(aa[25][1]*100)/pOUT->nseq;
 	
 	if (f<T);
 	else
@@ -553,23 +553,23 @@ Alignment * boxshade_evaluate_output ( Alignment *IN,Constraint_list *CL, int T)
 	    br=aa[25][0];
 	
 	    if (bs==10)bs--;bs+='0';
-	    for ( b=0; b< OUT->nseq; b++)
+      for ( b=0; b< pOUT->nseq; b++)
 	      {
-		r=tolower(OUT->seq_al[b][a]);
-		if (r==br && bs>'1')OUT->seq_al[b][a]=bs;
+    r=tolower(pOUT->seq_al[b][a]);
+    if (r==br && bs>'1')pOUT->seq_al[b][a]=bs;
 	      }	
-	    OUT->seq_al[b][a]=bs;
+      pOUT->seq_al[b][a]=bs;
 	  }
       }
-    sprintf ( OUT->name[IN->nseq], "cons");
+    sprintf ( pOUT->name[pIN->nseq], "cons");
     
-    return OUT;
+    return pOUT;
     }
 
-Alignment * categories_evaluate_output ( Alignment *IN,Constraint_list *CL)
+Alignment * categories_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
     
-    Alignment *OUT=NULL;
+    Alignment *pOUT=NULL;
     int a, b, r;
     int *aa;
     float score, nseq2, tot_aln;
@@ -577,15 +577,15 @@ Alignment * categories_evaluate_output ( Alignment *IN,Constraint_list *CL)
     /*
       Residue x: sum of observed extended X.. /sum of possible X..
     */
-    OUT=copy_aln (IN, OUT);
+    pOUT=copy_aln (pIN, pOUT);
     aa=(int*)vcalloc ( 26, sizeof (int));
-    nseq2=IN->nseq*IN->nseq;
+    nseq2=pIN->nseq*pIN->nseq;
     
-    for (tot_aln=0, a=0; a< IN->len_aln; a++)
+    for (tot_aln=0, a=0; a< pIN->len_aln; a++)
       {
-	for (n=0,b=0; b< IN->nseq; b++)
+  for (n=0,b=0; b< pIN->nseq; b++)
 	  {
-	    r=IN->seq_al[b][a];
+      r=pIN->seq_al[b][a];
 	    
 	    if ( is_gap(r))n++;
 	    else 
@@ -601,18 +601,18 @@ Alignment * categories_evaluate_output ( Alignment *IN,Constraint_list *CL)
 	tot_aln+=score;
 	r=score*10;
 	r=(r>=10)?9:r;
-	(OUT)->seq_al[OUT->nseq][a]='0'+r;
+  (pOUT)->seq_al[pOUT->nseq][a]='0'+r;
       }
-    OUT->score_aln=(tot_aln/OUT->len_aln)*100;
-    sprintf ( OUT->name[IN->nseq], "cons");
+    pOUT->score_aln=(tot_aln/pOUT->len_aln)*100;
+    sprintf ( pOUT->name[pIN->nseq], "cons");
     vfree(aa);
-    return OUT;
+    return pOUT;
     }
 
-Alignment * categories_evaluate_output_old ( Alignment *IN,Constraint_list *CL)
+Alignment * categories_evaluate_output_old ( Alignment *pIN,Constraint_list *CL)
     {
     
-    Alignment *OUT=NULL;
+    Alignment *pOUT=NULL;
     int nc,a, b, r;
     int *aa, ng;
     float score, nseq2, tot_aln, min=0;
@@ -620,15 +620,15 @@ Alignment * categories_evaluate_output_old ( Alignment *IN,Constraint_list *CL)
     /*
       Residue x: sum of observed extended X.. /sum of possible X..
     */
-    OUT=copy_aln (IN, OUT);
+    pOUT=copy_aln (pIN, pOUT);
     aa=(int*)vcalloc ( 26, sizeof (int));
-    nseq2=IN->nseq*IN->nseq;
+    nseq2=pIN->nseq*pIN->nseq;
     
-    for (tot_aln=0, a=0; a< IN->len_aln; a++)
+    for (tot_aln=0, a=0; a< pIN->len_aln; a++)
       {
-	for (ng=0,b=0; b< IN->nseq; b++)
+  for (ng=0,b=0; b< pIN->nseq; b++)
 	  {
-	    r=IN->seq_al[b][a];
+      r=pIN->seq_al[b][a];
 	    
 	    if ( is_gap(r))ng++;
 	    else 
@@ -644,38 +644,216 @@ Alignment * categories_evaluate_output_old ( Alignment *IN,Constraint_list *CL)
 	if (nc>9)score=0;
 	else score=9-nc;
 	
-	score=(2*min)/IN->nseq;
+  score=(2*min)/pIN->nseq;
 	
 	tot_aln+=score;
 	r=score*10;
 	r=(r>=10)?9:r;
-	(OUT)->seq_al[OUT->nseq][a]='0'+r;
+  (pOUT)->seq_al[pOUT->nseq][a]='0'+r;
       }
 
-    OUT->score_aln=(tot_aln/OUT->len_aln)*100;
-    sprintf ( OUT->name[IN->nseq], "cons");
+    pOUT->score_aln=(tot_aln/pOUT->len_aln)*100;
+    sprintf ( pOUT->name[pIN->nseq], "cons");
     vfree(aa);
-    return OUT;
+    return pOUT;
     }
 
 
 
 
 
-Alignment * fork_triplet_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL,int nproc);
-Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL);
-Alignment * triplet_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)  
+Alignment * fork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL,int nproc);
+Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL);
+Alignment * triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
 {
   
-  if (!IN || !CL || !CL->residue_index) return IN;
+  if (!pIN || !CL || !CL->residue_index) return pIN;
   
-  if (get_nproc()==1)return  nfork_triplet_coffee_evaluate_output (IN,CL);
-  else if (strstr ( CL->multi_thread, "evaluate"))return  fork_triplet_coffee_evaluate_output (IN,CL,get_nproc());
-  else return fork_triplet_coffee_evaluate_output (IN,CL,1);
+  if (get_nproc()==1)return  nfork_triplet_coffee_evaluate_output (pIN,CL);
+  else if (strstr ( CL->multi_thread, "evaluate"))return  fork_triplet_coffee_evaluate_output (pIN,CL,get_nproc());
+  else return fork_triplet_coffee_evaluate_output (pIN,CL,1);
 }
-Alignment * fork_triplet_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL,int nproc)
+
+void fork_triplet_coffee_evaluate_output_task(int j,
+                                              char** pid_tmpfile,
+                                              Constraint_list *CL,
+                                              Alignment *pIN,
+                                              int **sl,
+                                              int **pos,
+                                              int **lu,
+                                              double *max_seq,
+                                              double *score_seq)
+{
+  double score_col=0, score_aln=0, score_res=0, score=0;
+  double max_col=0, max_aln=0, max_res=0;
+  int a,b, x, y,res;
+  int s1,r1,s2,r2,w2,s3,r3,w3;
+  FILE *fp;
+
+  initiate_vtmpnam(NULL);
+  fp=vfopen (pid_tmpfile[j], "w");
+  for (a=sl[j][0]; a<sl[j][1]; a++)
+  {
+    if (j==0)output_completion (CL->local_stderr,a,sl[0][1],1, "Final Evaluation");
+    score_col=max_col=0;
+    for (b=0; b<pIN->nseq; b++)
     {
-      Alignment *OUT=NULL;
+      s1=pIN->order[b][0];
+      r1=pos[b][a];
+      if (r1>=0)lu[s1][r1]=1;
+    }
+    for (b=0; b<pIN->nseq; b++)
+    {
+      score_res=max_res=NORM_F;
+      res=NO_COLOR_RESIDUE;
+      s1=pIN->order[b][0];
+      r1=pos[b][a];
+      if (r1<=0)
+      {
+        fprintf (fp, "%d ", res);
+        continue;
+      }
+
+      for (x=1;x<CL->residue_index[s1][r1][0];x+=ICHUNK)
+      {
+        s2=CL->residue_index[s1][r1][x+SEQ2];
+        r2=CL->residue_index[s1][r1][x+R2];
+        w2=CL->residue_index[s1][r1][x+WE];
+        for (y=1; y<CL->residue_index[s2][r2][0];y+=ICHUNK)
+        {
+          s3=CL->residue_index[s2][r2][y+SEQ2];
+          r3=CL->residue_index[s2][r2][y+R2];
+          w3=CL->residue_index[s2][r2][y+WE];
+
+          score=MIN(w2,w3);
+
+          max_res+=score;
+          max_col+=score;
+          max_seq[b]+=score;
+          max_aln+=score;
+
+          if (lu[s3][r3])
+          {
+            score_res+=score;
+            score_col+=score;
+            score_seq[b]+=score;
+            score_aln+=score;
+          }
+        }
+      }
+      res=(max_res==0)?NO_COLOR_RESIDUE:((score_res*10)/max_res);
+      //res=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
+      res=MIN(res,9);
+      fprintf ( fp, "%d ", res);
+    }
+    for (b=0; b<pIN->nseq; b++)
+    {
+      s1=pIN->order[b][0];
+      r1=pos[b][a];
+      if (r1>0)lu[s1][r1]=0;
+    }
+
+    res=(max_col==0)?NO_COLOR_RESIDUE:((score_col*10)/max_col);
+    //res=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
+    res=MIN(res,9);
+
+    fprintf (fp, "%d ", res);
+
+    for (b=0; b<pIN->nseq; b++)
+      fprintf (fp, "%f %f ", score_seq[b], max_seq[b]);
+  }
+  fprintf (fp, "%f %f ", score_aln, max_aln);
+  vfclose (fp);
+}
+
+Alignment * fork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL,int nproc)
+{
+  Alignment *pOUT=NULL;
+  int **pos;
+
+  double score_aln=0;
+  double max_aln=0;
+  double *max_seq, *score_seq;
+
+  int a,b,res;
+  int **lu;
+
+  //multi-threading
+  FILE *fp;
+  char **pid_tmpfile;
+  int sjobs, njobs;
+  int **sl;
+  int j;
+
+  pOUT=copy_aln (pIN, pOUT);
+  pos=aln2pos_simple(pIN, pIN->nseq);
+  sprintf ( pOUT->name[pIN->nseq], "cons");
+
+  max_seq=(double*)vcalloc ( pIN->nseq+1, sizeof (double));
+  score_seq=(double*)vcalloc ( pIN->nseq+1, sizeof (double));
+  lu=declare_int (pIN->nseq, pIN->len_aln+1);
+
+  //multi Threading stuff
+  njobs=nproc;
+  sl=n2splits (njobs,pIN->len_aln);
+  pid_tmpfile=(char**)vcalloc (njobs, sizeof (char*));
+  std::vector<int> thread_indexes;
+
+  for (sjobs=0,j=0; sjobs<njobs; j++)
+  {
+    pid_tmpfile[j]=vtmpnam(NULL);
+    int index = start_thread( [&]{ fork_triplet_coffee_evaluate_output_task(
+                     j, pid_tmpfile, CL, pIN, sl, pos, lu, max_seq, score_seq ); } );
+    thread_indexes.push_back( index );
+    sjobs++;
+  }
+  join( thread_indexes );//wait for all jobs to complete
+
+  for (j=0; j<njobs; j++)
+  {
+    float sseq, mseq;
+    fp=vfopen (pid_tmpfile[j], "r");
+    for (a=sl[j][0];a<sl[j][1]; a++)
+    {
+      for (b=0; b<=pIN->nseq; b++)//don't forget the consensus
+      {
+
+        fscanf (fp, "%d ", &res);
+        pOUT->seq_al[b][a]=res;
+      }
+      for (b=0; b<pIN->nseq; b++)
+      {
+        fscanf (fp, "%f %f", &sseq, &mseq);
+        score_seq[b]+=sseq;
+        max_seq[b]+=mseq;
+      }
+    }
+    fscanf (fp, "%f %f", &sseq, &mseq);
+    score_aln+=sseq;
+    max_aln+=mseq;
+    vfclose (fp);
+    remove (pid_tmpfile[j]);
+  }
+  fprintf ( stderr, "\n");
+
+  pIN->score_aln=pOUT->score_aln=(max_aln==0)?0:((score_aln*1000)/max_aln);
+  for ( a=0; a<= pOUT->nseq; a++)
+  {
+    pOUT->score_seq[a]=(max_seq[a]==0)?0:((score_seq[a]*100)/max_seq[a]);
+  }
+
+  free_int (lu,-1);
+  free_int (pos , -1);
+  vfree (pid_tmpfile);
+  free_int (sl, -1);
+  vfree ( score_seq);
+  vfree ( max_seq);
+  return pOUT;
+}
+
+Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
+    {
+      Alignment *pOUT=NULL;
       int **pos;
       
       double score_col=0, score_aln=0, score_res=0, score=0;
@@ -686,200 +864,35 @@ Alignment * fork_triplet_coffee_evaluate_output ( Alignment *IN,Constraint_list 
       int s1,r1,s2,r2,w2,s3,r3,w3;
       int **lu;
       
-      //multi-threading
-      FILE *fp;
-      char **pid_tmpfile;
-      int sjobs, njobs;
-      int **sl;
-      int j;
-      
-      OUT=copy_aln (IN, OUT);
-      pos=aln2pos_simple(IN, IN->nseq);
-      sprintf ( OUT->name[IN->nseq], "cons");
-      
-      max_seq=(double*)vcalloc ( IN->nseq+1, sizeof (double));
-      score_seq=(double*)vcalloc ( IN->nseq+1, sizeof (double));
-      lu=declare_int (IN->nseq, IN->len_aln+1);
-      
-      //multi Threading stuff
-      njobs=nproc;
-      sl=n2splits (njobs,IN->len_aln);
-      pid_tmpfile=(char**)vcalloc (njobs, sizeof (char*));
-      
-      for (sjobs=0,j=0; sjobs<njobs; j++)
-	{
-	  pid_tmpfile[j]=vtmpnam(NULL);
-	  if (vvfork (NULL)==0)
-	    {
-	      initiate_vtmpnam(NULL);
-	      fp=vfopen (pid_tmpfile[j], "w");
-	      score_aln=max_aln=0;
-	      for (a=sl[j][0]; a<sl[j][1]; a++)
-		{
-		  if (j==0)output_completion (CL->local_stderr,a,sl[0][1],1, "Final Evaluation");
-		  score_col=max_col=0;
-		  for (b=0; b<IN->nseq; b++)
-		    {
-		      s1=IN->order[b][0];
-		      r1=pos[b][a];
-		      if (r1>=0)lu[s1][r1]=1;
-		    }
-		  for (b=0; b<IN->nseq; b++)
-		    {
-		      score_res=max_res=NORM_F;
-		      res=NO_COLOR_RESIDUE;
-		      s1=IN->order[b][0];
-		      r1=pos[b][a];
-		      if (r1<=0)
-			{
-			  fprintf (fp, "%d ", res);
-			  continue;
-			}
-		      
-		      for (x=1;x<CL->residue_index[s1][r1][0];x+=ICHUNK)
-			{
-			  s2=CL->residue_index[s1][r1][x+SEQ2];
-			  r2=CL->residue_index[s1][r1][x+R2];
-			  w2=CL->residue_index[s1][r1][x+WE];
-			  for (y=1; y<CL->residue_index[s2][r2][0];y+=ICHUNK)
-			    {
-			      s3=CL->residue_index[s2][r2][y+SEQ2];
-			      r3=CL->residue_index[s2][r2][y+R2];
-			      w3=CL->residue_index[s2][r2][y+WE];
-			      
-			      score=MIN(w2,w3);
-			      
-			      max_res+=score;
-			      max_col+=score;
-			      max_seq[b]+=score;
-			      max_aln+=score;
-			      
-			      if (lu[s3][r3])
-				{
-				  score_res+=score;
-				  score_col+=score;
-				  score_seq[b]+=score;
-				  score_aln+=score;
-				}
-			    }
-			}
-		      res=(max_res==0)?NO_COLOR_RESIDUE:((score_res*10)/max_res);
-		      //res=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
-		      res=MIN(res,9);
-		      fprintf ( fp, "%d ", res);
-		    }
-		  for (b=0; b<IN->nseq; b++)
-		    {
-		      s1=IN->order[b][0];
-		      r1=pos[b][a];
-		      if (r1>0)lu[s1][r1]=0;
-		    }
-		  
-		  res=(max_col==0)?NO_COLOR_RESIDUE:((score_col*10)/max_col);	
-		  //res=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
-		  res=MIN(res,9);
-		  
-		  fprintf (fp, "%d ", res);
-		  
-		  for (b=0; b<IN->nseq; b++)
-		    fprintf (fp, "%f %f ", score_seq[b], max_seq[b]);
-		}
-	      fprintf (fp, "%f %f ", score_aln, max_aln);
-	      vfclose (fp);
-	      myexit (EXIT_SUCCESS);
-	    }
-	  else
-	    {
-	      sjobs++;
-	    }
-	}
-    
-      while (sjobs>=0){vwait(NULL); sjobs--;}//wait for all jobs to complete
-      
-      for (j=0; j<njobs; j++)
-	{
-	  float sseq, mseq;
-	  fp=vfopen (pid_tmpfile[j], "r");
-	  for (a=sl[j][0];a<sl[j][1]; a++)
-	    {
-	      for (b=0; b<=IN->nseq; b++)//don't forget the consensus
-		{
-
-		  fscanf (fp, "%d ", &res);
-		  OUT->seq_al[b][a]=res;
-		}
-	      for (b=0; b<IN->nseq; b++)
-		{
-		  fscanf (fp, "%f %f", &sseq, &mseq);
-		  score_seq[b]+=sseq;
-		  max_seq[b]+=mseq;
-		}
-	    }
-	  fscanf (fp, "%f %f", &sseq, &mseq);
-	  score_aln+=sseq;
-	  max_aln+=mseq;
-	  vfclose (fp);
-	  remove (pid_tmpfile[j]);
-	}
-      fprintf ( stderr, "\n");
-      
-      IN->score_aln=OUT->score_aln=(max_aln==0)?0:((score_aln*1000)/max_aln);
-      for ( a=0; a<= OUT->nseq; a++)
-	{
-	  OUT->score_seq[a]=(max_seq[a]==0)?0:((score_seq[a]*100)/max_seq[a]);
-	}
-      
-      free_int (lu,-1);
-      free_int (pos , -1);
-      vfree (pid_tmpfile);
-      free_int (sl, -1);
-      vfree ( score_seq);
-      vfree ( max_seq);
-      return OUT;
-    }  
-
-Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
-    {
-      Alignment *OUT=NULL;
-      int **pos;
-      
-      double score_col=0, score_aln=0, score_res=0, score=0;
-      double max_col=0, max_aln=0, max_res=0;
-      double *max_seq, *score_seq;
-      
-      int a,b, x, y,res;
-      int s1,r1,s2,r2,w2,s3,r3,w3;
-      int **lu;
-      
 
       
-      OUT=copy_aln (IN, OUT);
-      pos=aln2pos_simple(IN, IN->nseq);
-      sprintf ( OUT->name[IN->nseq], "cons");
+      pOUT=copy_aln (pIN, pOUT);
+      pos=aln2pos_simple(pIN, pIN->nseq);
+      sprintf ( pOUT->name[pIN->nseq], "cons");
       
-      max_seq=(double*)vcalloc ( IN->nseq, sizeof (double));
-      score_seq=(double*)vcalloc ( IN->nseq, sizeof (double));
-      lu=declare_int (IN->nseq, IN->len_aln+1);
+      max_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
+      score_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
+      lu=declare_int (pIN->nseq, pIN->len_aln+1);
       
      
           
       score_aln=max_aln=0;
-      for (a=0; a<IN->len_aln; a++)
+      for (a=0; a<pIN->len_aln; a++)
 	{
-	  output_completion (stderr,a,IN->len_aln,1, "Final Evaluation");
+    output_completion (stderr,a,pIN->len_aln,1, "Final Evaluation");
 	  score_col=max_col=0;
-	  for (b=0; b<IN->nseq; b++)
+    for (b=0; b<pIN->nseq; b++)
 	    {
-	      s1=IN->order[b][0];
+        s1=pIN->order[b][0];
 	      r1=pos[b][a];
 	      if (r1>=0)lu[s1][r1]=1;
 	    }
 	  
-	  for (b=0; b<IN->nseq; b++)
+    for (b=0; b<pIN->nseq; b++)
 	    {
 	      score_res=max_res=NORM_F;
-	      OUT->seq_al[b][a]=NO_COLOR_RESIDUE;
-	      s1=IN->order[b][0];
+        pOUT->seq_al[b][a]=NO_COLOR_RESIDUE;
+        s1=pIN->order[b][0];
 	      r1=pos[b][a];
 	      if (r1<=0)continue;
 	      for (x=1;x<CL->residue_index[s1][r1][0];x+=ICHUNK)
@@ -912,11 +925,11 @@ Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *IN,Constraint_list
 	      res=(max_res==0)?NO_COLOR_RESIDUE:((score_res*10)/max_res);
 	      //res=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
 	      res=MIN(res,9);
-	      OUT->seq_al[b][a]=res;
+        pOUT->seq_al[b][a]=res;
 	    }
-	  for (b=0; b<IN->nseq; b++)
+    for (b=0; b<pIN->nseq; b++)
 	    {
-	      s1=IN->order[b][0];
+        s1=pIN->order[b][0];
 	      r1=pos[b][a];
 	      if (r1>0)lu[s1][r1]=0;
 	    }
@@ -924,26 +937,26 @@ Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *IN,Constraint_list
 	  res=(max_col==0)?NO_COLOR_RESIDUE:((score_col*10)/max_col);	
 	  //res=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
 	  res=MIN(res,9);
-	  OUT->seq_al[IN->nseq][a]=res;
+    pOUT->seq_al[pIN->nseq][a]=res;
 	}
       fprintf ( stderr, "\n");
       
-      IN->score_aln=OUT->score_aln=(max_aln==0)?0:((score_aln*100)/max_aln);
-      for ( a=0; a< OUT->nseq; a++)
+      pIN->score_aln=pOUT->score_aln=(max_aln==0)?0:((score_aln*100)/max_aln);
+      for ( a=0; a< pOUT->nseq; a++)
 	{
-	  OUT->score_seq[a]=(max_seq[a]==0)?0:((score_seq[a]*100)/max_seq[a]);
+    pOUT->score_seq[a]=(max_seq[a]==0)?0:((score_seq[a]*100)/max_seq[a]);
 	}
       
       free_int (lu,-1);
       free_int (pos , -1);
       vfree ( score_seq);
       vfree ( max_seq);
-      return OUT;
+      return pOUT;
     }   
 
 
 
-int  sp_triplet_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL, char *fname)
+int  sp_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL, char *fname)
     {
       int **pos;
       int s1, s2, s3, s4;
@@ -953,23 +966,23 @@ int  sp_triplet_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL, char
       FILE *fp;
      
       fp=vfopen (fname, "w");
-      pos=aln2pos_simple(IN, IN->nseq);
+      pos=aln2pos_simple(pIN, pIN->nseq);
       
       fprintf ( fp, "! SP_ASCII_FORMAT_O1\n");
       fprintf ( fp, "! <column> <seq1> <seq2> <tcs score>\n");
-      for (a=0; a<IN->len_aln; a++)
+      for (a=0; a<pIN->len_aln; a++)
 	{
-	  output_completion (stderr,a,IN->len_aln,1, "Final SP Evaluation");
-	  for (b=0; b<IN->nseq-1; b++)
+    output_completion (stderr,a,pIN->len_aln,1, "Final SP Evaluation");
+    for (b=0; b<pIN->nseq-1; b++)
 	    {
-	      s1=IN->order[b][0];
+        s1=pIN->order[b][0];
 	      r1=pos[b][a];
 	      if (r1<=0)continue;
 	      
-	      for (c=b+1; c<IN->nseq; c++)
+        for (c=b+1; c<pIN->nseq; c++)
 		{
 		  pw=tw=0;
-		  s2=IN->order[c][0];
+      s2=pIN->order[c][0];
 		  r2=pos[c][a];
 		  if (r2<=0)continue;
 		  
@@ -1029,7 +1042,7 @@ int  sp_triplet_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL, char
 
 
 
-int  sp_triplet_coffee_evaluate_output2 ( Alignment *IN,Constraint_list *CL, char *fname)
+int  sp_triplet_coffee_evaluate_output2 ( Alignment *pIN,Constraint_list *CL, char *fname)
     {
       int **pos;
       int s1, s2, s3, s4;
@@ -1040,24 +1053,24 @@ int  sp_triplet_coffee_evaluate_output2 ( Alignment *IN,Constraint_list *CL, cha
      
       fp=vfopen (fname, "w");
       save_list_header( fp, CL);
-      pos=aln2pos_simple(IN, IN->nseq);
+      pos=aln2pos_simple(pIN, pIN->nseq);
       
-	for (b=0; b<IN->nseq-1; b++)		//---> for every seq
+  for (b=0; b<pIN->nseq-1; b++)		//---> for every seq
 	 {
-	    for (c=b+1; c<IN->nseq; c++)
+      for (c=b+1; c<pIN->nseq; c++)
 	     {
 		fprintf ( fp, "#%d %d \n", b+1, c+1); 
 		
-		for (a=0; a<IN->len_aln; a++)	//---> for every aa in a seq
+    for (a=0; a<pIN->len_aln; a++)	//---> for every aa in a seq
 		 {
-		  output_completion (stderr,a,IN->len_aln,1, "Final SP Evaluation");
+      output_completion (stderr,a,pIN->len_aln,1, "Final SP Evaluation");
 		  
-		  s1=IN->order[b][0];
+      s1=pIN->order[b][0];
 		  r1=pos[b][a];
 		  if (r1<=0)continue;
 	      
 		  pw=tw=0;
-		  s2=IN->order[c][0];
+      s2=pIN->order[c][0];
 		  r2=pos[c][a];
 		  if (r2<=0)continue;
 		  
@@ -1130,7 +1143,7 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
   
   double tot_sc=0;
   double max_sc=0;
-  Alignment *OUT, *T;
+  Alignment *pOUT, *T;
   Sequence *S=NULL;
   int replicates;
   
@@ -1172,7 +1185,7 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
   else replicates=0;
   
   S=CL->S;
-  OUT=copy_aln (A, NULL);
+  pOUT=copy_aln (A, NULL);
   
   
   nM=0;strikeM=++nM;contactsM=++nM;distancesM=++nM;
@@ -1275,15 +1288,15 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
   pos=aln2pos_simple (A, A->nseq);
   lu=declare_int (A->nseq, A->len_aln);
   for (s1=0; s1<A->nseq; s1++)
+  {
+    for (c=0,c1=0; c1<A->len_aln; c1++)
     {
-      for (c=0,c1=0; c1<A->len_aln; c1++)
-	{
-	  if (!is_gap(A->seq_al[s1][c1]))lu[s1][c++]=c1;
-	}
-      if (rseq[s1]!=-1 && c!=S->len[rseq[s1]])
-	{printf_exit ( EXIT_FAILURE,stderr, "\nERROR: %s differs in MSA/contact-lib[FATAL]", A->name[s2]);}
+      if (!is_gap(A->seq_al[s1][c1]))lu[s1][c++]=c1;
     }
- 
+    if (rseq[s1]!=-1 && c!=S->len[rseq[s1]])
+    {printf_exit ( EXIT_FAILURE,stderr, "\nERROR: %s differs in MSA/contact-lib[FATAL]", A->name[s1]);}
+  }
+
   vsrand (0);
   
   highD=imaxD*100; //set in picometers
@@ -1532,7 +1545,7 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 	      }
 	    else 
 	      {
-		OUT->dm=tot_pw_sc;
+    pOUT->dm=tot_pw_sc;
 	      }
 	    }
 	}
@@ -1550,26 +1563,26 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 	    {
 	      int r1=(max_res_sc[a][c]==0)?0:(tot_res_sc[a][c]*(double)10/max_res_sc[a][c]);
 	      r1=(r1>=10)?9:r1;
-	      OUT->seq_al[a][c]=r1+'0';
+        pOUT->seq_al[a][c]=r1+'0';
 	    }
 	  else if (pos[a][c]>0)
 	    {
-	      OUT->seq_al[a][c]=NO_COLOR_RESIDUE;
+        pOUT->seq_al[a][c]=NO_COLOR_RESIDUE;
 	    }
 	}
 
-      A->score_seq[a]=OUT->score_seq[a]=(max_seq_sc[a]==0)?0:(tot_seq_sc[a]*(double)100)/max_seq_sc[a];
+      A->score_seq[a]=pOUT->score_seq[a]=(max_seq_sc[a]==0)?0:(tot_seq_sc[a]*(double)100)/max_seq_sc[a];
       
     }
-  sprintf (OUT->name[OUT->nseq], "cons");
+  sprintf (pOUT->name[pOUT->nseq], "cons");
   
   for (c=0; c<A->len_aln; c++)
     {
       int r1=(max_col_sc[c]==0)?0:(tot_col_sc[c]*(double)10)/max_col_sc[c];
-      OUT->seq_al[A->nseq][c]=((r1>=10)?9:r1)+'0';
+      pOUT->seq_al[A->nseq][c]=((r1>=10)?9:r1)+'0';
     }
 
-  A->score=A->score_aln=OUT->score=OUT->score_aln=(int)(max_sc==0)?0:(tot_sc*1000)/max_sc;
+  A->score=A->score_aln=pOUT->score=pOUT->score_aln=(int)(max_sc==0)?0:(tot_sc*1000)/max_sc;
   
   
   free_int (lu,  -1);
@@ -1581,7 +1594,7 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
   vfree (tot_seq_sc);vfree (max_seq_sc);
   vfree (tot_col_sc);vfree (max_col_sc);
   
-  return OUT;
+  return pOUT;
 }   	
 Alignment *treealn_evaluate4tcoffee (Alignment *A, Sequence *G)
 {
@@ -1590,7 +1603,7 @@ Alignment *treealn_evaluate4tcoffee (Alignment *A, Sequence *G)
   double  max, min;
   double *tot_seq_sc, *gscore;
   
-  Alignment *OUT;
+  Alignment *pOUT;
   Alignment *T;
 
   
@@ -1601,7 +1614,7 @@ Alignment *treealn_evaluate4tcoffee (Alignment *A, Sequence *G)
 
   T=A->Tree;
   
-  OUT=copy_aln (A, NULL);
+  pOUT=copy_aln (A, NULL);
   gscore =(double*)vcalloc (A->len_aln, sizeof (double));
   tot_seq_sc=(double*)vcalloc (A->nseq, sizeof (double));
   count  =(int*)   vcalloc (A->len_aln, sizeof (int)); 
@@ -1648,36 +1661,36 @@ Alignment *treealn_evaluate4tcoffee (Alignment *A, Sequence *G)
     {
       for (c=0; c<A->len_aln; c++)
 	{
-	  if (gscore[c]<0)OUT->seq_al[a][c]=NO_COLOR_RESIDUE;
+    if (gscore[c]<0)pOUT->seq_al[a][c]=NO_COLOR_RESIDUE;
 	  else 
 	    {
 	      int r1=(float)(gscore[c]*10);
 	      r1=(r1>=10)?9:r1;
-	      OUT->seq_al[a][c]=r1+'0';
+        pOUT->seq_al[a][c]=r1+'0';
 	      tot_seq_sc[a]=(gscore[c]>tot_seq_sc[a])?gscore[c]:tot_seq_sc[a];
 	    }
 	}
-      A->score_seq[a]=OUT->score_seq[a]=tot_seq_sc[a]*100;
+      A->score_seq[a]=pOUT->score_seq[a]=tot_seq_sc[a]*100;
     }
-  sprintf (OUT->name[OUT->nseq], "cons");
+  sprintf (pOUT->name[pOUT->nseq], "cons");
   
   for (c=0; c<A->len_aln; c++)
     {
-      if (gscore[c]<0)OUT->seq_al[a][c]='0';
+      if (gscore[c]<0)pOUT->seq_al[a][c]='0';
       else 
 	{
 	  int r1=(int)(gscore[c]*(float)10);
 	  r1=(r1>=10)?9:r1;
-	  OUT->seq_al[A->nseq][c]=r1+'0';
+    pOUT->seq_al[A->nseq][c]=r1+'0';
 	}
     }
   max*=1000;
  
-  A->score=A->score_aln=OUT->score=OUT->score_aln=(int)max;
+  A->score=A->score_aln=pOUT->score=pOUT->score_aln=(int)max;
   vfree (count);
   vfree (gscore);
   vfree (tot_seq_sc);
-  return OUT;
+  return pOUT;
 }
   
 Alignment *evaluate_tree_group (Alignment *T, Sequence *G)
@@ -1694,10 +1707,10 @@ Alignment *evaluate_tree_group (Alignment *T, Sequence *G)
     }
   return T;
 }
-Alignment * fast_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
+Alignment * fast_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
     int a,b, c, m,res, s, s1, s2, r1, r2;	
-    Alignment *OUT=NULL;
+    Alignment *pOUT=NULL;
     int **pos, **pos2;
 
     double score_col=0, score_aln=0, score_res=0;
@@ -1713,28 +1726,28 @@ Alignment * fast_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
     
     if ( !CL->evaluate_residue_pair){fprintf ( stderr, "\nWARNING: CL->evaluate_residue_pair Not set\nSet to: extend_residue_pair\n");CL->evaluate_residue_pair= extend_residue_pair; }
 	
-    OUT=copy_aln (IN, OUT);
-    pos=aln2pos_simple(IN, IN->nseq);
-    pos2=aln2defined_residues (IN, CL);
+    pOUT=copy_aln (pIN, pOUT);
+    pos=aln2pos_simple(pIN, pIN->nseq);
+    pos2=aln2defined_residues (pIN, CL);
     
-    max_seq=(double*)vcalloc ( IN->nseq, sizeof (double));
-    score_seq=(double*)vcalloc ( IN->nseq, sizeof (double));
+    max_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
+    score_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
     
     
     
     /*1: Identify the highest scoring pair within the alignment*/
  
-    for ( m=0, a=0; a< IN->len_aln; a++)
+    for ( m=0, a=0; a< pIN->len_aln; a++)
         {
-	    for ( b=0; b< IN->nseq; b++)
+      for ( b=0; b< pIN->nseq; b++)
 		{
-		s1=IN->order[b][0];
+    s1=pIN->order[b][0];
 		r1=pos[b][a];
 	
 
-		for ( c=0; c< IN->nseq; c++)
+    for ( c=0; c< pIN->nseq; c++)
 		    {
-		    s2=IN->order[c][0];
+        s2=pIN->order[c][0];
 		    r2=pos[c][a];
 		    if ( s1==s2 && !CL->do_self)continue;
 	
@@ -1749,17 +1762,17 @@ Alignment * fast_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
     
     local_m=m;
 
-    sprintf ( OUT->name[IN->nseq], "cons");
-    for ( max_aln=0,score_aln=0,a=0; a< IN->len_aln; a++)
+    sprintf ( pOUT->name[pIN->nseq], "cons");
+    for ( max_aln=0,score_aln=0,a=0; a< pIN->len_aln; a++)
 	{
-	OUT->seq_al[IN->nseq][a]=NO_COLOR_RESIDUE;
-	for ( local_nseq=0,b=0; b<IN->nseq; b++){local_nseq+=(pos[b][a]>0 && pos2[b][a])?1:0;}
+  pOUT->seq_al[pIN->nseq][a]=NO_COLOR_RESIDUE;
+  for ( local_nseq=0,b=0; b<pIN->nseq; b++){local_nseq+=(pos[b][a]>0 && pos2[b][a])?1:0;}
 	local_m=m*(local_nseq-1);
 
-	for ( max_col=0, score_col=0,b=0; b< IN->nseq; b++)
+  for ( max_col=0, score_col=0,b=0; b< pIN->nseq; b++)
 	    {
-	    OUT->seq_al[b][a]=NO_COLOR_RESIDUE;
-	    s1=IN->order[b][0];
+      pOUT->seq_al[b][a]=NO_COLOR_RESIDUE;
+      s1=pIN->order[b][0];
 	    r1=pos[b][a];
 	    
 	    if (r1<=0 || !pos2[b][a])
@@ -1767,9 +1780,9 @@ Alignment * fast_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
 		continue;
 	      }
 	    
-	    for ( score_res=0,c=0; c< IN->nseq; c++)
+      for ( score_res=0,c=0; c< pIN->nseq; c++)
 	        {
-		    s2=IN->order[c][0];
+        s2=pIN->order[c][0];
 		    r2=pos[c][a];		    
 		    
 		    if ((s1==s2 && !CL->do_self) || r2<=0 || !pos2[c][a]){continue;}	
@@ -1788,20 +1801,20 @@ Alignment * fast_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
 		}
 	    
 	    res=(local_m==0)?NO_COLOR_RESIDUE:((score_res*10)/local_m);
-	    (OUT)->seq_al[b][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));	
+      (pOUT)->seq_al[b][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
 	   
 	    
 	    }
 	
 	res=(max_col==0)?NO_COLOR_RESIDUE:((score_col*10)/max_col);	
-	OUT->seq_al[IN->nseq][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
+  pOUT->seq_al[pIN->nseq][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
 	
 	}
     
-    IN->score_aln=OUT->score_aln=(max_aln==0)?0:((score_aln*100)/max_aln);
-    for ( a=0; a< OUT->nseq; a++)
+    pIN->score_aln=pOUT->score_aln=(max_aln==0)?0:((score_aln*100)/max_aln);
+    for ( a=0; a< pOUT->nseq; a++)
 	{
-	OUT->score_seq[a]=(max_seq[a]==0)?0:((score_seq[a]*100)/max_seq[a]);
+  pOUT->score_seq[a]=(max_seq[a]==0)?0:((score_seq[a]*100)/max_seq[a]);
 	}
     
     free_int (pos , -1);
@@ -1809,13 +1822,13 @@ Alignment * fast_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
     
     vfree ( score_seq);
     vfree ( max_seq);
-    return OUT;
+    return pOUT;
     }      
   
-Alignment * slow_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
+Alignment * slow_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
     int a,b, c,res, s, s1, s2, r1, r2;	
-    Alignment *OUT=NULL;
+    Alignment *pOUT=NULL;
     int **pos, **pos2;
     double max_score_r, score_r, max;
     double score_col=0, score_aln=0;
@@ -1835,24 +1848,24 @@ Alignment * slow_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
     if ( !CL->evaluate_residue_pair){fprintf ( stderr, "\nWARNING: CL->evaluate_residue_pair Not set\nSet to: extend_residue_pair\n");CL->evaluate_residue_pair= extend_residue_pair; }
 	
     
-    OUT=copy_aln (IN, OUT);
-    pos=aln2pos_simple(IN, IN->nseq);
-    pos2=aln2defined_residues (IN, CL);
+    pOUT=copy_aln (pIN, pOUT);
+    pos=aln2pos_simple(pIN, pIN->nseq);
+    pos2=aln2defined_residues (pIN, CL);
     
-    max_score_seq=(double*)vcalloc ( IN->nseq, sizeof (double));
-    score_seq=(double*)vcalloc ( IN->nseq, sizeof (double));
+    max_score_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
+    score_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
     res_extended_weight=(int***)declare_arrayN(3,sizeof(int), (CL->S)->nseq, (CL->S)->max_len+1, 2);
     max=(CL->normalise)?(100*CL->normalise)*SCORE_K:100;
     
-    for (a=0; a< IN->len_aln; a++)
+    for (a=0; a< pIN->len_aln; a++)
         {
-	  for ( b=0; b< IN->nseq-1; b++)
+    for ( b=0; b< pIN->nseq-1; b++)
 	    {
-	      s1=IN->order[b][0];
+        s1=pIN->order[b][0];
 	      r1=pos[b][a];
-	      for ( c=b+1; c< IN->nseq; c++)
+        for ( c=b+1; c< pIN->nseq; c++)
 		{
-		  s2=IN->order[c][0];
+      s2=pIN->order[c][0];
 		  r2=pos[c][a];	
 		  if ( s1==s2 && !CL->do_self)continue;
 		  else if ( r1<=0 || r2<=0)   continue;		    
@@ -1869,15 +1882,15 @@ Alignment * slow_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
 	}
 
     
-    sprintf ( OUT->name[IN->nseq], "cons");
-    for ( max_score_aln=0,score_aln=0,a=0; a< IN->len_aln; a++)
+    sprintf ( pOUT->name[pIN->nseq], "cons");
+    for ( max_score_aln=0,score_aln=0,a=0; a< pIN->len_aln; a++)
       {
-	OUT->seq_al[IN->nseq][a]=NO_COLOR_RESIDUE;
-	for ( n_res_in_col=0,b=0; b<IN->nseq; b++){n_res_in_col+=(pos[b][a]>0 && pos2[b][a]>0)?1:0;}
-	for ( max_score_col=0, score_col=0,b=0; b< IN->nseq; b++)
+  pOUT->seq_al[pIN->nseq][a]=NO_COLOR_RESIDUE;
+  for ( n_res_in_col=0,b=0; b<pIN->nseq; b++){n_res_in_col+=(pos[b][a]>0 && pos2[b][a]>0)?1:0;}
+  for ( max_score_col=0, score_col=0,b=0; b< pIN->nseq; b++)
 	    {
-	    OUT->seq_al[b][a]=NO_COLOR_RESIDUE;
-	    s1=IN->order[b][0];
+      pOUT->seq_al[b][a]=NO_COLOR_RESIDUE;
+      s1=pIN->order[b][0];
 	    r1=pos[b][a];
 	    if (r1<=0 || pos2[b][a]<1)continue;
 	    else
@@ -1889,7 +1902,7 @@ Alignment * slow_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
 		else res=((score_r*10)/max_score_r);
 
 		
-		(OUT)->seq_al[b][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res, 9));
+    (pOUT)->seq_al[b][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res, 9));
 		max_score_col+=max_score_r;
 		    score_col+=score_r;
 		max_score_seq[b]+=max_score_r;
@@ -1901,13 +1914,13 @@ Alignment * slow_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
 	    else if ( n_res_in_col<2)res=NO_COLOR_RESIDUE;
 	    else res=((score_col*10)/max_score_col);
 
-	    OUT->seq_al[IN->nseq][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
+      pOUT->seq_al[pIN->nseq][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
 	    }
 	}
-    IN->score_aln=OUT->score_aln=(max_score_aln==0)?0:((score_aln*100)/max_score_aln);
-    for ( a=0; a< OUT->nseq; a++)
+    pIN->score_aln=pOUT->score_aln=(max_score_aln==0)?0:((score_aln*100)/max_score_aln);
+    for ( a=0; a< pOUT->nseq; a++)
       {
-	OUT->score_seq[a]=(max_score_seq[a]==0)?0:((score_seq[a]*100)/max_score_seq[a]);
+  pOUT->score_seq[a]=(max_score_seq[a]==0)?0:((score_seq[a]*100)/max_score_seq[a]);
       }
 
     
@@ -1918,7 +1931,7 @@ Alignment * slow_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
 
     free_int (pos, -1);
     free_int (pos2, -1);
-    return OUT;
+    return pOUT;
     }
 
 double genepred2sd    (Sequence *S);
@@ -1927,7 +1940,7 @@ double genepred2zsum2 (Sequence *S);
 int *  genepred2orf_len (Sequence *S);
 double genepred2acc (Sequence *S, Sequence *PS);
 double seq_genepred2acc (Sequence *S, Sequence *PS, char *name);
-Alignment *coffee_seq_evaluate_output ( Alignment *IN, Constraint_list *CL)
+Alignment *coffee_seq_evaluate_output ( Alignment *pIN, Constraint_list *CL)
 {
   int **w, a, best_cycle, ncycle=20, min_ne;
   char **pred_list,**weight_list; 
@@ -1973,9 +1986,9 @@ Alignment *coffee_seq_evaluate_output ( Alignment *IN, Constraint_list *CL)
 
   genepred_seq2accuracy_counts4all((CL->S), S);
   
-  IN=seq2aln (S,NULL, 1);
-  IN->score_res=input_array_int (weight_list[best_cycle]);
-  return IN;
+  pIN=seq2aln (S,NULL, 1);
+  pIN->score_res=input_array_int (weight_list[best_cycle]);
+  return pIN;
 }
 
 double seq_genepred2acc (Sequence *S, Sequence *PS, char *name)
@@ -2074,7 +2087,7 @@ int *genepred2orf_len (Sequence *S)
    return len;
 }
   
-Alignment *coffee_seq_evaluate_output_old2 ( Alignment *IN, Constraint_list *CL)
+Alignment *coffee_seq_evaluate_output_old2 ( Alignment *pIN, Constraint_list *CL)
 {
   int **w, a,b,c;
   int avg, min_avg, best_cycle, ncycle=100;;
@@ -2120,10 +2133,10 @@ Alignment *coffee_seq_evaluate_output_old2 ( Alignment *IN, Constraint_list *CL)
 
 
 
-Alignment * non_extended_t_coffee_evaluate_output ( Alignment *IN,Constraint_list *CL)
+Alignment * non_extended_t_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
     int a,b, c,res, s1, s2, r1, r2;	
-    Alignment *OUT=NULL;
+    Alignment *pOUT=NULL;
     int **pos;
     int max_score_r, score_r;
     double score_col=0, score_aln=0;
@@ -2140,25 +2153,25 @@ Alignment * non_extended_t_coffee_evaluate_output ( Alignment *IN,Constraint_lis
     entry=(int*)vcalloc (CL->entry_len+1, CL->el_size);
     if ( !CL->evaluate_residue_pair){fprintf ( stderr, "\nWARNING: CL->evaluate_residue_pair Not set\nSet to: extend_residue_pair\n");CL->evaluate_residue_pair= extend_residue_pair; }
 	
-    OUT=copy_aln (IN, OUT);
-    pos=aln2pos_simple(IN, IN->nseq);
+    pOUT=copy_aln (pIN, pOUT);
+    pos=aln2pos_simple(pIN, pIN->nseq);
 
 
-    max_score_seq=(double*)vcalloc ( IN->nseq, sizeof (double));
-    score_seq=(double*)vcalloc ( IN->nseq, sizeof (double));
+    max_score_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
+    score_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
     
     tot_non_extended_weight=list2residue_total_weight(CL);
     res_non_extended_weight=declare_int ((CL->S)->nseq, (CL->S)->max_len+1);
          
-    for (a=0; a< IN->len_aln; a++)
+    for (a=0; a< pIN->len_aln; a++)
         {
-	    for ( b=0; b< IN->nseq-1; b++)
+      for ( b=0; b< pIN->nseq-1; b++)
 		{
-		s1=IN->order[b][0];
+    s1=pIN->order[b][0];
 		r1=pos[b][a];
-		for ( c=b+1; c< IN->nseq; c++)
+    for ( c=b+1; c< pIN->nseq; c++)
 		    {
-		    s2=IN->order[c][0];
+        s2=pIN->order[c][0];
 		    r2=pos[c][a];	
 		    if ( s1==s2 && !CL->do_self)continue;
 		    else if ( r1<=0 || r2<=0)   continue;		    
@@ -2190,16 +2203,16 @@ Alignment * non_extended_t_coffee_evaluate_output ( Alignment *IN,Constraint_lis
 		}
 	}
   
-    sprintf ( OUT->name[IN->nseq], "cons");
-    for ( max_score_aln=0,score_aln=0,a=0; a< IN->len_aln; a++)
+    sprintf ( pOUT->name[pIN->nseq], "cons");
+    for ( max_score_aln=0,score_aln=0,a=0; a< pIN->len_aln; a++)
 	{
-	OUT->seq_al[IN->nseq][a]=NO_COLOR_RESIDUE;
-	for ( local_nseq=0,b=0; b<IN->nseq; b++){local_nseq+=(pos[b][a]>0)?1:0;}
+  pOUT->seq_al[pIN->nseq][a]=NO_COLOR_RESIDUE;
+  for ( local_nseq=0,b=0; b<pIN->nseq; b++){local_nseq+=(pos[b][a]>0)?1:0;}
 	
-       	for ( max_score_col=0, score_col=0,b=0; b< IN->nseq; b++)
+        for ( max_score_col=0, score_col=0,b=0; b< pIN->nseq; b++)
 	    {
-	    OUT->seq_al[b][a]=NO_COLOR_RESIDUE;
-	    s1=IN->order[b][0];
+      pOUT->seq_al[b][a]=NO_COLOR_RESIDUE;
+      s1=pIN->order[b][0];
 	    r1=pos[b][a];
 	    if (r1<=0)continue;
 	    else
@@ -2208,7 +2221,7 @@ Alignment * non_extended_t_coffee_evaluate_output ( Alignment *IN,Constraint_lis
 		score_r=res_non_extended_weight[s1][r1];
 		res=(max_score_r==0 || local_nseq<2 )?NO_COLOR_RESIDUE:((score_r*10)/max_score_r);
 	
-		(OUT)->seq_al[b][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res, 9));
+    (pOUT)->seq_al[b][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res, 9));
 		max_score_col+=max_score_r;
 		    score_col+=score_r;
 		max_score_seq[b]+=max_score_r;
@@ -2217,16 +2230,16 @@ Alignment * non_extended_t_coffee_evaluate_output ( Alignment *IN,Constraint_lis
 		    score_aln+=score_r;
 	      }
 	    res=(max_score_col==0 || local_nseq<2)?NO_COLOR_RESIDUE:((score_col*10)/max_score_col);	
-	    OUT->seq_al[IN->nseq][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
+      pOUT->seq_al[pIN->nseq][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
 	    }
 	}
-    IN->score_aln=OUT->score_aln=(max_score_aln==0)?0:((score_aln*100)/max_score_aln);
-    for ( a=0; a< OUT->nseq; a++)
+    pIN->score_aln=pOUT->score_aln=(max_score_aln==0)?0:((score_aln*100)/max_score_aln);
+    for ( a=0; a< pOUT->nseq; a++)
       {
-	OUT->score_seq[a]=(max_score_seq[a]==0)?0:((score_seq[a]*100)/max_score_seq[a]);
-	OUT->score_seq[a]=(OUT->score_seq[a]>100)?100:OUT->score_seq[a];
+  pOUT->score_seq[a]=(max_score_seq[a]==0)?0:((score_seq[a]*100)/max_score_seq[a]);
+  pOUT->score_seq[a]=(pOUT->score_seq[a]>100)?100:pOUT->score_seq[a];
       }
-    OUT->score_aln=(OUT->score_aln>100)?100:OUT->score_aln;
+    pOUT->score_aln=(pOUT->score_aln>100)?100:pOUT->score_aln;
     
     vfree ( score_seq);
     vfree ( max_score_seq);
@@ -2236,7 +2249,7 @@ Alignment * non_extended_t_coffee_evaluate_output ( Alignment *IN,Constraint_lis
     vfree(entry);
     free_int (pos, -1);
 
-    return OUT;
+    return pOUT;
     }
 
 
@@ -5847,7 +5860,7 @@ int ** combine_two_matrices ( int **mat1, int **mat2)
 
 int lat_sum_pair (Alignment *A, char *mat)
 {
-  int a,b,c, tot=0, v1, v2, score;
+  int a,b,c, tot=0, v1, v2, score=0;
   int **matrix;
   
   matrix=read_matrice (mat);

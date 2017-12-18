@@ -31,8 +31,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
-#include <sched.h>
-
+#include <vector>
 
 #include "io_lib_header.h"
 #include "util_lib_header.h"
@@ -109,349 +108,307 @@ int job2first_seq(Job_TC *job)
 	return r;
 }
 
-Constraint_list *fork_subset_produce_list   ( Constraint_list *CL, Sequence *S, char * method,char *weight,char *mem_mode, Job_TC *job, int nproc, FILE *local_stderr)
+void fork_subset_produce_list_task(int a, Constraint_list* CL, char** pid_tmpfile, Job_TC* job, Job_TC* start, Job_TC* end, FILE *local_stderr)
 {
-	//forks lines of the matrix
-	int a;
-	Job_TC *heap,*end,*start, ***jl;
-	TC_method *M;
-	char **pid_tmpfile;
-	int   *pid_list;
-	int pid, npid, njob, max_nproc;
+  int done=0, todo=0;
 
-	max_nproc=nproc;
-	max_nproc*=2;
-	/*OUT_MODE:
-	A->  alignment provided in a file
-	L->  list      provided in a file
-	aln-> alignment computed and provided in a file
-	list->list      computed and provided in a file
-	*/
+  freeze_constraint_list (CL);//record the current state, so as not to dump everything
+  initiate_vtmpnam(NULL);
+  vfclose(vfopen (pid_tmpfile[a],"w"));
 
-	if ( job->jobid==-1)
-	{
-		M=(job->param)->TCM;
-		fprintf (local_stderr, "\n\tMethod %s: No Suitable Sequences [Type: %s]\n", method,M->seq_type);
-		return CL;
-	}
+  while (job!=end){todo++;job=job->c;}
+  job=start;
 
-	job=queue2heap (job);
-	heap=job;
-	njob=queue2n (job);
+  while (job!=end)
+  {
+    if (a==0)output_completion ( local_stderr,done,todo,1, "Submit   Job");
+    job=print_lib_job (job, "io->CL=%p control->submitF=%p control->retrieveF=%p control->mode=%s",CL,submit_lib_job, retrieve_lib_job, CL->multi_thread );
 
-	M=(job->param)->TCM;
-	if (M)M->PW_CL=method2pw_cl ( M, CL);
-	pid_tmpfile=(char**)vcalloc (MAX(njob,nproc)+1, sizeof (char*));
-	pid_list   =(int *)vcalloc (MAX_N_PID, sizeof (int *));
+    job=submit_job (job);
+    retrieve_job (job);
 
-	fprintf ( local_stderr, "\n\tMulti Core Mode: %d processors [subset]\n", nproc);
-
-	jl=split_job_list(job,nproc);
-	a=npid=0;
-	while (jl[a])
-	{
-	  start=job=jl[a][0];
-		end=jl[a][1];
-		pid_tmpfile[a]=vtmpnam(NULL);
-		pid=vvfork(NULL);
-
-		if (pid==0)//child process
-		{
-			int done, todo;
-
-			freeze_constraint_list (CL);//record the current state, so as not to dump everything
-			initiate_vtmpnam(NULL);
-			vfclose(vfopen (pid_tmpfile[a],"w"));
-
-			todo=0;
-			while (job!=end){todo++;job=job->c;}
-			job=start;
-
-			done=0;
-			while (job!=end)
-			{
-				if (a==0)output_completion ( local_stderr,done,todo,1, "Submit   Job");
-				job=print_lib_job (job, "io->CL=%p control->submitF=%p control->retrieveF=%p control->mode=%s",CL,submit_lib_job, retrieve_lib_job, CL->multi_thread );
-
-				job=submit_job (job);
-				retrieve_job (job);
-
-				job=job->c;
-				done++;
-			}
-			dump_constraint_list (CL, pid_tmpfile[a], "a");
-			freeze_constraint_list (CL);
-			myexit (EXIT_SUCCESS);
-		}
-		else
-		{
-			pid_list[pid]=npid;
-			//set_pid(pid);
-			npid++;
-			a++;
-		}
-	}
-
-	//wait for all processes to finish
-	for (a=0; a<npid; a++)
-	{
-		pid=vwait(NULL);
-
-		CL=undump_constraint_list (CL, pid_tmpfile[pid_list[pid]]);
-		remove(pid_tmpfile[pid_list[pid]]);
-	}
-
-	vfree (pid_list);
-	vfree (pid_tmpfile);
-
-	job=heap;
-	while (job)	job=delete_job (job);
-	CL->local_stderr=local_stderr;
-	free_queue  (heap);
-	return CL;
+    job=job->c;
+    done++;
+  }
+  dump_constraint_list (CL, pid_tmpfile[a], "a");
+  freeze_constraint_list (CL);
 }
 
-    
+Constraint_list *fork_subset_produce_list   ( Constraint_list *CL, Sequence *S, char * method,char *weight,char *mem_mode, Job_TC *job, int nproc, FILE *local_stderr)
+{
+  //forks lines of the matrix
+  int a;
+  Job_TC *heap,*end,*start, ***jl;
+  TC_method *M;
+  char **pid_tmpfile;
+  int   *pid_list;
+  int pid, npid, njob, max_nproc;
+
+  max_nproc=nproc;
+  max_nproc*=2;
+  /*OUT_MODE:
+  A->  alignment provided in a file
+  L->  list      provided in a file
+  aln-> alignment computed and provided in a file
+  list->list      computed and provided in a file
+  */
+
+  if ( job->jobid==-1)
+  {
+    M=(job->param)->TCM;
+    fprintf (local_stderr, "\n\tMethod %s: No Suitable Sequences [Type: %s]\n", method,M->seq_type);
+    return CL;
+  }
+
+  job=queue2heap (job);
+  heap=job;
+  njob=queue2n (job);
+
+  M=(job->param)->TCM;
+  if (M)M->PW_CL=method2pw_cl ( M, CL);
+  pid_tmpfile=(char**)vcalloc (MAX(njob,nproc)+1, sizeof (char*));
+  pid_list   =(int *)vcalloc (MAX_N_PID, sizeof (int *));
+
+  fprintf ( local_stderr, "\n\tMulti Core Mode: %d processors [subset]\n", nproc);
+
+  jl=split_job_list(job,nproc);
+  a=npid=0;
+  std::vector<int> thread_indexes;
+  while (jl[a])
+  {
+    start=job=jl[a][0];
+    end=jl[a][1];
+    pid_tmpfile[a]=vtmpnam(NULL);
+    pid = start_thread( [=]{ fork_subset_produce_list_task( a, CL, pid_tmpfile, job, start, end, local_stderr ); } );
+    thread_indexes.push_back( pid );
+    pid_list[pid]=npid;
+    npid++;
+    a++;
+  }
+
+  //wait for all processes to finish
+  join( thread_indexes );
+  for (a=0; a<npid; a++)
+  {
+    CL=undump_constraint_list (CL, pid_tmpfile[pid_list[pid]]);
+    remove(pid_tmpfile[pid_list[pid]]);
+  }
+
+  vfree (pid_list);
+  vfree (pid_tmpfile);
+
+  job=heap;
+  while (job)	job=delete_job (job);
+  CL->local_stderr=local_stderr;
+  free_queue  (heap);
+  return CL;
+}
+
+void fork_line_produce_list_task(Job_TC * job, int cseq, Constraint_list *CL, char *pid_tmpfile)
+{
+  initiate_vtmpnam(NULL);
+  while (job && cseq==job2first_seq(job))
+  {
+    job=print_lib_job (job, "io->CL=%p control->submitF=%p control->retrieveF=%p control->mode=%s",CL,submit_lib_job, retrieve_lib_job, CL->multi_thread );
+    job=submit_job (job);
+    retrieve_job (job);
+    dump_constraint_list ((job->io)->CL,pid_tmpfile, "a");
+    job=job->c;
+  }
+}
+
 Constraint_list *fork_line_produce_list   ( Constraint_list *CL, Sequence *S, char * method,char *weight,char *mem_mode, Job_TC *job, int nproc,FILE *local_stderr)
 {
-	//forks lines of the matrix
-	int a;
-	Job_TC *heap;
-	TC_method *M;
+  //forks lines of the matrix
+  int a;
+  Job_TC *heap;
+  TC_method *M;
 
-	char **pid_tmpfile;
-	int   *pid_list;
-	int pid,npid, njob;
-	int max_nproc, submited;
-	int cseq, seq, nlines;
+  char **pid_tmpfile;
+  int   *pid_list;
+  int pid,npid, njob;
+  int max_nproc, submited;
+  int cseq, seq, nlines;
 
-	max_nproc=nproc;
-	max_nproc*=2;
-	/*OUT_MODE:
-	A->  alignment provided in a file
-	L->  list      provided in a file
-	aln-> alignment computed and provided in a file
-	list->list      computed and provided in a file
-	*/
-
-
-
- 
-	if ( job->jobid==-1)
-	{
-		M=(job->param)->TCM;
-		fprintf (local_stderr, "\n\tMethod %s: No Suitable Sequences [Type: %s]\n", method,M->seq_type);
-		return CL;
-	}
+  max_nproc=nproc;
+  max_nproc*=2;
+  /*OUT_MODE:
+  A->  alignment provided in a file
+  L->  list      provided in a file
+  aln-> alignment computed and provided in a file
+  list->list      computed and provided in a file
+  */
 
 
-	job=queue2heap (job);
-
-	heap=job;
-	M=(job->param)->TCM;
-	if (M)M->PW_CL=method2pw_cl ( M, CL);
 
 
-	/* Cf. parse method for possible out_mode flags*/
+  if ( job->jobid==-1)
+  {
+    M=(job->param)->TCM;
+    fprintf (local_stderr, "\n\tMethod %s: No Suitable Sequences [Type: %s]\n", method,M->seq_type);
+    return CL;
+  }
 
-	njob=queue2n(job)+1;
-	pid_tmpfile=(char**)vcalloc (njob, sizeof (char*));
 
-	pid_list   =(int *)vcalloc (MAX_N_PID, sizeof (int *));
-	fprintf ( local_stderr, "\n\tMulti Core Mode: %d processors [jobline]\n", nproc);
+  job=queue2heap (job);
+
+  heap=job;
+  M=(job->param)->TCM;
+  if (M)M->PW_CL=method2pw_cl ( M, CL);
 
 
-	//count the number of lines
-	cseq=-1;
-	nlines=0;
-	while (job)
-	{
-		nlines++;
-		seq=job2first_seq(job);
-		if ( seq!=cseq)
-		{
-			cseq=seq;
-			while (job && cseq==job2first_seq(job))job=job->c;
-		}
-	}
-	job=heap;
+  /* Cf. parse method for possible out_mode flags*/
 
-	npid=submited=0;
-	cseq=-1;
-	while (job)
-	{
-		seq=job2first_seq(job);
-		if ( seq!=cseq)
-		{
-			cseq=seq;
-			pid_tmpfile[npid]=vtmpnam(NULL);
+  njob=queue2n(job)+1;
+  pid_tmpfile=(char**)vcalloc (njob, sizeof (char*));
 
-			pid=vvfork(NULL);
+  pid_list   =(int *)vcalloc (MAX_N_PID, sizeof (int *));
+  fprintf ( local_stderr, "\n\tMulti Core Mode: %d processors [jobline]\n", nproc);
 
-			if (pid==0)//Child Process
-			{
-				initiate_vtmpnam(NULL);
-				while (job && cseq==job2first_seq(job))
-				{
-					job=print_lib_job (job, "io->CL=%p control->submitF=%p control->retrieveF=%p control->mode=%s",CL,submit_lib_job, retrieve_lib_job, CL->multi_thread );
-					job=submit_job (job);
-					retrieve_job (job);
-					dump_constraint_list ((job->io)->CL,pid_tmpfile[npid], "a");
-					job=job->c;
-				}
-				myexit (EXIT_SUCCESS);
-			}
-			else //parent process
-			{
 
-				pid_list[pid]=npid;
-				//set_pid (pid);
-				npid++;
-				submited++;
-				fprintf(stderr, "%i %i\n", submited, max_nproc);
-				if (submited>max_nproc)
-				{
-					//wait for nproc
-					for (a=0; a<nproc; a++)
-					{
-						int index;
-						local_stderr=output_completion ( local_stderr,npid,nlines,1, "Processed   Job");
-						pid=vwait(NULL);
-						index=pid_list[pid];
-						CL=undump_constraint_list (CL,pid_tmpfile[index]);
-						remove (pid_tmpfile[index]);
-						submited--;
-					}
-				}
-			}
-		}
-		else
-		{
-			job=job->c;
-		}
-	}
+  //count the number of lines
+  cseq=-1;
+  nlines=0;
+  while (job)
+  {
+    nlines++;
+    seq=job2first_seq(job);
+    if ( seq!=cseq)
+    {
+      cseq=seq;
+      while (job && cseq==job2first_seq(job))job=job->c;
+    }
+  }
+  job=heap;
 
-	for (a=0; a<submited; a++)
-	{
-		int index;
-		local_stderr=output_completion ( local_stderr,npid-(submited-a),nlines,1, "Processed   Job");
-		pid=vwait(NULL);
-		index=pid_list[pid];
-		CL=undump_constraint_list(CL,pid_tmpfile[index]);
-		remove (pid_tmpfile[index]);
-	}
+  npid=submited=0;
+  cseq=-1;
+  std::vector<int> thread_indexes;
+  while (job)
+  {
+    seq=job2first_seq(job);
+    if ( seq!=cseq)
+    {
+      cseq=seq;
+      pid_tmpfile[npid]=vtmpnam(NULL);
 
-	vfree (pid_list);
-	vfree (pid_tmpfile);
+      pid = start_thread( [=]{ fork_line_produce_list_task( job, cseq, CL, pid_tmpfile[npid] ); } );
+      thread_indexes.push_back( pid );
+      pid_list[pid]=npid;
+      //set_pid (pid);
+      npid++;
+      submited++;
+      fprintf(stderr, "%i %i\n", submited, max_nproc);
+    }
+    else
+    {
+      job=job->c;
+    }
+  }
 
-	CL->local_stderr=local_stderr;
+  join( thread_indexes );
+  for (a=0; a<submited; a++)
+  {
+    local_stderr=output_completion ( local_stderr,npid-(submited-a),nlines,1, "Processed   Job");
+    CL=undump_constraint_list(CL,pid_tmpfile[a]);
+    remove (pid_tmpfile[a]);
+  }
 
-	free_queue  (heap);
+  vfree (pid_list);
+  vfree (pid_tmpfile);
 
-	return CL;
+  CL->local_stderr=local_stderr;
+
+  free_queue  (heap);
+
+  return CL;
+}
+
+void fork_cell_produce_list_task(Job_TC *job, char *pid_tmpfile)
+{
+  initiate_vtmpnam (NULL);
+  job=submit_job (job);
+  retrieve_job (job);
+  dump_constraint_list ((job->io)->CL,pid_tmpfile, "w");
 }
 
 Constraint_list *fork_cell_produce_list   ( Constraint_list *CL, Sequence *S, char * method,char *weight,char *mem_mode, Job_TC *job,int nproc, FILE *local_stderr)
 {
-	//forks cells of the matrix
-	int a;
-	Job_TC *heap;
-	TC_method *M;
+  //forks cells of the matrix
+  int a;
+  Job_TC *heap;
+  TC_method *M;
 
-	int *pid_list;
-	char **pid_tmpfile;
-	int pid,npid, njob;
-	int max_nproc;
-	int submited;
+  int *pid_list;
+  char **pid_tmpfile;
+  int pid,npid, njob;
+  int max_nproc;
+  int submited;
 
-	max_nproc=nproc;
+  max_nproc=nproc;
 
-	/*OUT_MODE:
-	A->  alignment provided in a file
-	L->  list      provided in a file
-	aln-> alignment computed and provided in a file
-	list->list      computed and provided in a file
-	*/
-
-
-	if ( job->jobid==-1)
-	{
-		M=(job->param)->TCM;
-		fprintf (local_stderr, "\n\tMethod %s: No Suitable Sequences [Type: %s]\n", method,M->seq_type);
-		return CL;
-	}
+  /*OUT_MODE:
+  A->  alignment provided in a file
+  L->  list      provided in a file
+  aln-> alignment computed and provided in a file
+  list->list      computed and provided in a file
+  */
 
 
-	job=queue2heap (job);
+  if ( job->jobid==-1)
+  {
+    M=(job->param)->TCM;
+    fprintf (local_stderr, "\n\tMethod %s: No Suitable Sequences [Type: %s]\n", method,M->seq_type);
+    return CL;
+  }
 
-	heap=job;
-	M=(job->param)->TCM;
-	if (M)M->PW_CL=method2pw_cl ( M, CL);
+
+  job=queue2heap (job);
+
+  heap=job;
+  M=(job->param)->TCM;
+  if (M)M->PW_CL=method2pw_cl ( M, CL);
 
 
-	/* Cf. parse method for possible out_mode flags*/
+  /* Cf. parse method for possible out_mode flags*/
 
-	njob=queue2n(job)+1;
-	pid_tmpfile=(char**)vcalloc (njob, sizeof (char*));
-	pid_list   =(int *)vcalloc (MAX_N_PID, sizeof (int *));
+  njob=queue2n(job)+1;
+  pid_tmpfile=(char**)vcalloc (njob, sizeof (char*));
+  pid_list   =(int *)vcalloc (MAX_N_PID, sizeof (int *));
 
-	fprintf ( local_stderr, "\n\tMulti Core Mode: %d processors:\n", nproc);
-	npid=0;
-	submited=0;
-	while (job)
-	{
-		job=print_lib_job (job, "io->CL=%p control->submitF=%p control->retrieveF=%p control->mode=%s",CL,submit_lib_job, retrieve_lib_job, CL->multi_thread );
-		pid_tmpfile[npid]=vtmpnam(NULL);
-		pid=vvfork (NULL);
-		if ( pid==0)
-		{
-			initiate_vtmpnam (NULL);
-			job=submit_job (job);
-			retrieve_job (job);
-			dump_constraint_list ((job->io)->CL,pid_tmpfile[npid], "w");
-			myexit (EXIT_SUCCESS);
-		}
-		else
-		{
-			job=job->c;
-			pid_list[pid]=npid;
-			//set_pid(pid);
-			npid++;
-			submited++;
+  fprintf ( local_stderr, "\n\tMulti Core Mode: %d processors:\n", nproc);
+  npid=0;
+  submited=0;
+  std::vector<int> thread_indexes;
+  while (job)
+  {
+    job=print_lib_job (job, "io->CL=%p control->submitF=%p control->retrieveF=%p control->mode=%s",CL,submit_lib_job, retrieve_lib_job, CL->multi_thread );
+    pid_tmpfile[npid]=vtmpnam(NULL);
+    pid = start_thread( [=]{ fork_cell_produce_list_task( job, pid_tmpfile[npid] ); } );
+    thread_indexes.push_back( pid );
 
-			if (submited>max_nproc)
-			{
-				for (a=0; a<nproc; a++)
-				{
-					int index;
-					local_stderr=output_completion ( local_stderr,npid,njob,1, "Processed   Job");
-					pid=vwait(NULL);
-					index=pid_list[pid];
-					CL=undump_constraint_list (CL,pid_tmpfile[index]);
-					remove (pid_tmpfile[index]);
-					submited--;
-				}
-			}
-		}
-	}
+    job=job->c;
+    pid_list[pid]=npid;
+    //set_pid(pid);
+    npid++;
+    submited++;
+  }
 
-	for (a=0; a<submited; a++)
-	{
-		int index;
-		local_stderr=output_completion ( local_stderr,npid-a, npid,1, "Processed   Job");
-		pid=vwait(NULL);
-		index=pid_list[pid];
-		CL=undump_constraint_list (CL,pid_tmpfile[index]);
-		remove (pid_tmpfile[index]);
-	}
-	vfree (pid_list);
-	vfree (pid_tmpfile);
+  join( thread_indexes );
+  for (a=0; a<submited; a++)
+  {
+    local_stderr=output_completion ( local_stderr,npid-a, npid,1, "Processed   Job");
+    CL=undump_constraint_list (CL,pid_tmpfile[a]);
+    remove (pid_tmpfile[a]);
+  }
+  vfree (pid_list);
+  vfree (pid_tmpfile);
 
-	CL->local_stderr=local_stderr;
+  CL->local_stderr=local_stderr;
 
-	free_queue  (heap);
+  free_queue  (heap);
 
-	return CL;
+  return CL;
 }
 
 Job_TC *retrieve_lib_job ( Job_TC *job)
@@ -1287,7 +1244,7 @@ char *make_aln_command(TC_method *m, char *seq, char *aln)
 /*                                                                   */
 /*                                                                   */
 /*********************************************************************/
-Constraint_list *  unfreeze_constraint_list (Constraint_list *CL)
+void unfreeze_constraint_list (Constraint_list *CL)
 {
 	free_int (CL->freeze, -1);
 	CL->freeze=NULL;
@@ -2098,107 +2055,94 @@ Constraint_list* read_n_constraint_list(char **fname,int n_list, char *in_mode,c
  */
 Constraint_list* fork_read_n_constraint_list(char **fname,int n_list, char *in_mode,char *mem_mode,char *weight_mode, char *type,FILE *local_stderr, Constraint_list *CL,char *seq_source, int nproc)
 {
-	int a, b;
-	Sequence *S;
-	char **tmp_list;
-	int*proclist;
-	int  ns;
+  int a, b;
+  Sequence *S;
+  char **tmp_list;
+  int*proclist;
+  int  ns;
 
 
-	proclist=(int*)vcalloc (MAX_N_PID, sizeof (int));
-	tmp_list=(char**)vcalloc (n_list+1, sizeof (char*));
-	for (a=0; a<n_list; a++)tmp_list[a]=vtmpnam(NULL);
+  proclist=(int*)vcalloc (MAX_N_PID, sizeof (int));
+  tmp_list=(char**)vcalloc (n_list+1, sizeof (char*));
+  for (a=0; a<n_list; a++)tmp_list[a]=vtmpnam(NULL);
 
-	if (!(CL->S) && (S=read_seq_in_n_list (fname, n_list,type,seq_source))==NULL)
-	{
-		myexit (fprintf_error ( stderr, "NO SEQUENCE WAS SPECIFIED"));
-	}
-	else if (CL->S==NULL)
-	{
-		CL->S=S;
-	}
+  if (!(CL->S) && (S=read_seq_in_n_list (fname, n_list,type,seq_source))==NULL)
+  {
+    myexit (fprintf_error ( stderr, "NO SEQUENCE WAS SPECIFIED"));
+  }
+  else if (CL->S==NULL)
+  {
+    CL->S=S;
+  }
 
-	/*CHECK IF THERE IS A MATRIX AND GET RID OF OTHER METHODS*/
-	for (b=0, a=0; a< n_list; a++)if (is_matrix(fname[a]) ||is_matrix(fname[a]+1) )b=a+1;
+  /*CHECK IF THERE IS A MATRIX AND GET RID OF OTHER METHODS*/
+  for (b=0, a=0; a< n_list; a++)if (is_matrix(fname[a]) ||is_matrix(fname[a]+1) )b=a+1;
 
-	if ( b)
-	{
-		if ( b==1);
-		else sprintf ( fname[0], "%s", fname[b-1]);
-		n_list=1;
+  if ( b)
+  {
+    if ( b==1);
+    else sprintf ( fname[0], "%s", fname[b-1]);
+    n_list=1;
 
-		return read_constraint_list (CL, fname[0], in_mode, mem_mode,weight_mode);
-// 		return fork_read_n_constraint_list(fname,n_list, in_mode,mem_mode,weight_mode, type,local_stderr, CL, seq_source,1);
+    return read_constraint_list (CL, fname[0], in_mode, mem_mode,weight_mode);
+    // 		return fork_read_n_constraint_list(fname,n_list, in_mode,mem_mode,weight_mode, type,local_stderr, CL, seq_source,1);
 
-	}
+  }
 
-	if (!CL)CL=declare_constraint_list ( S,NULL, NULL, 0,(strm(mem_mode, "disk"))?tmpfile():NULL, NULL);
+  if (!CL)CL=declare_constraint_list ( S,NULL, NULL, 0,(strm(mem_mode, "disk"))?tmpfile():NULL, NULL);
 
-	if (CL->ne)
-	{
-		dump_constraint_list(CL,tmp_list[n_list], "w");
-		CL->ne=0;
-	}
+  if (CL->ne)
+  {
+    dump_constraint_list(CL,tmp_list[n_list], "w");
+    CL->ne=0;
+  }
 
-	CL->local_stderr=local_stderr;
-	fprintf ( local_stderr, "\n\tMulti Core Mode: %d processors:\n", nproc);
-	for (ns=0,a=0; a< n_list; a++)
-	{
-		int pid;
-		ns++;
-		pid=vvfork (NULL);
-		if ( pid==0)
-		{
-			int in;
-			initiate_vtmpnam (NULL);
-			CL->local_stderr=vfopen("/dev/null", "w");
-			in=CL->ne;
-			CL=read_constraint_list (CL, fname[a], in_mode, mem_mode,weight_mode);
-			if (CL->ne>in)dump_constraint_list(CL,tmp_list[a], "w");
-			myexit (EXIT_SUCCESS);
-		}
-		else
-		{
-			//set_pid (pid);
-			fprintf ( local_stderr, "\n\t--- Process Method/Library/Aln %s", fname[a], ns);
-			proclist[pid]=a;
-			if (ns>=nproc)
-			{
-				b=proclist[vwait(NULL)];
-				fprintf (local_stderr, "\n\txxx Retrieved %s",fname[a]);
-				if (tmp_list[b] && check_file_exists (tmp_list[b]))
-				{
-					CL=undump_constraint_list(CL,tmp_list[b]);
-				}
-				ns--;
-			}
-		}
-	}
+  CL->local_stderr=local_stderr;
+  fprintf ( local_stderr, "\n\tMulti Core Mode: %d processors:\n", nproc);
+  std::vector<int> thread_indexes;
+  for (ns=0,a=0; a< n_list; a++)
+  {
+    int pid;
+    ns++;
+    pid = start_thread([=]
+    {
+      int in;
+      initiate_vtmpnam (NULL);
+      CL->local_stderr=vfopen("/dev/null", "w");
+      in=CL->ne;
+      Constraint_list* rCL = read_constraint_list (CL, fname[a], in_mode, mem_mode,weight_mode);
+      if (rCL->ne>in)dump_constraint_list(rCL,tmp_list[a], "w");
+    });
+    thread_indexes.push_back( pid );
+    fprintf ( local_stderr, "\n\t--- Process Method/Library/Aln %s", fname[a], ns);
+    proclist[pid]=a;
+  }
 
-	while (ns)
-	{
-		int pid2;
-		pid2=vwait(NULL);
-		a=proclist[pid2];
-		fprintf (local_stderr, "\n\txxx Retrieved %s",fname[a]);
-		if (tmp_list[a] && check_file_exists (tmp_list[a]))
-		{
-			CL=undump_constraint_list (CL,tmp_list[a]);
-		}
-		ns--;
-	}
-	fprintf ( local_stderr, "\n\n\tAll Methods Retrieved\n");
+  join( thread_indexes );
+  int i=0;
+  while (ns)
+  {
+    int index = thread_indexes[i++];
+    a=proclist[index];
+    fprintf (local_stderr, "\n\txxx Retrieved %s",fname[a]);
+    if (tmp_list[a] && check_file_exists (tmp_list[a]))
+    {
+      CL=undump_constraint_list (CL,tmp_list[a]);
+    }
+    ns--;
+  }
+  fprintf ( local_stderr, "\n\n\tAll Methods Retrieved\n");
 
-	if (tmp_list[n_list] && check_file_exists (tmp_list[n_list]))
-	{
-		CL=undump_constraint_list(CL,tmp_list[n_list]);
-	}
+  if (tmp_list[n_list] && check_file_exists (tmp_list[n_list]))
+  {
+    CL=undump_constraint_list(CL,tmp_list[n_list]);
+  }
 
-	CL->local_stderr=local_stderr;
+  CL->local_stderr=local_stderr;
 
-	vfree (proclist);
-	vfree (tmp_list);
-	return CL;
+  vfree (proclist);
+  vfree (tmp_list);
+  return CL;
 }
 
 
@@ -3182,7 +3126,7 @@ FILE * save_constraint_list ( Constraint_list *CL,int start, int len, char *fnam
 	return fp;
 }
 
-FILE * save_sub_list_header ( FILE *OUT, int n, char **name, Constraint_list *CL)
+FILE * save_sub_list_header ( FILE *pOUT, int n, char **name, Constraint_list *CL)
 {
 	int a,b;
 	int nseq=0;
@@ -3194,16 +3138,16 @@ FILE * save_sub_list_header ( FILE *OUT, int n, char **name, Constraint_list *CL
 			if (strm (name[b] ,  (CL->S)->name[a]))
 				nseq+=((CL->S)->len[a]!=-1);
 
-			fprintf ( OUT, "! TC_LIB_FORMAT_01\n%d\n",nseq);
+      fprintf ( pOUT, "! TC_LIB_FORMAT_01\n%d\n",nseq);
 		for ( a=0; a<n; a++)
 			for ( b=0; b<(CL->S)->nseq; b++)
 				if (strm (name[a] ,  (CL->S)->name[b]))
-					if ((CL->S)->len[b]!=-1) fprintf ( OUT, "%s %d %s\n", (CL->S)->name[b], (CL->S)->len[b],(CL->S)->seq[b]);
+          if ((CL->S)->len[b]!=-1) fprintf ( pOUT, "%s %d %s\n", (CL->S)->name[b], (CL->S)->len[b],(CL->S)->seq[b]);
 
-					return OUT;
+          return pOUT;
 }
 
-FILE * save_list_header ( FILE *OUT,Constraint_list *CL)
+FILE * save_list_header ( FILE *pOUT,Constraint_list *CL)
 {
 	int a;
 	int nseq=0;
@@ -3211,30 +3155,30 @@ FILE * save_list_header ( FILE *OUT,Constraint_list *CL)
 	for ( a=0; a<(CL->S)->nseq; a++)nseq+=((CL->S)->len[a]!=-1);
 
 
-	fprintf ( OUT, "! TC_LIB_FORMAT_01\n%d\n",nseq);
+  fprintf ( pOUT, "! TC_LIB_FORMAT_01\n%d\n",nseq);
 	for ( a=0; a<(CL->S)->nseq; a++)
 		if ((CL->S)->len[a]!=-1)
 		{
-			fprintf ( OUT, "%s %d %s\n", (CL->S)->name[a], (CL->S)->len[a],(CL->S)->seq[a]);
+      fprintf ( pOUT, "%s %d %s\n", (CL->S)->name[a], (CL->S)->len[a],(CL->S)->seq[a]);
 
 		}
-		return OUT;
+    return pOUT;
 }
 
-FILE *save_list_footer (FILE *OUT,Constraint_list *CL)
+FILE *save_list_footer (FILE *pOUT,Constraint_list *CL)
 {
-	if ( CL->cpu)fprintf (OUT, "! CPU %d\n",get_time());
-	fprintf (OUT, "! SEQ_1_TO_N\n");
-	return OUT;
+  if ( CL->cpu)fprintf (pOUT, "! CPU %d\n",get_time());
+  fprintf (pOUT, "! SEQ_1_TO_N\n");
+  return pOUT;
 }
-FILE * save_constraint_list_ascii ( FILE *OUT,Constraint_list *CL, int start,int len, int *translation)
+FILE * save_constraint_list_ascii ( FILE *pOUT,Constraint_list *CL, int start,int len, int *translation)
 {
 	int a, b, s1, s2, r1, r2;
 
 	if (len==start && CL->cpu!=-1)
 	{
-		fprintf (OUT, "! CPU %d\n",get_time());
-		return OUT;
+    fprintf (pOUT, "! CPU %d\n",get_time());
+    return pOUT;
 	}
 	else
 	{
@@ -3277,11 +3221,11 @@ FILE * save_constraint_list_ascii ( FILE *OUT,Constraint_list *CL, int start,int
 		      int x2=translation[s2];
 		      if (tot[s2] && x1!=-1 && x2!=-1 && x1<x2)
 			{
-			  fprintf ( OUT, "#%d %d\n", x1+1, x2+1);
+        fprintf ( pOUT, "#%d %d\n", x1+1, x2+1);
 			  for ( r2=0; r2<tot[s2];r2++)
 			    {
 			      int *v=cacheI[s2][r2];
-			      fprintf (OUT, "%5d %5d %5d %5d %5d\n",cacheR[s2][r2], v[R2], v[WE], v[CONS], v[MISC]);
+            fprintf (pOUT, "%5d %5d %5d %5d %5d\n",cacheR[s2][r2], v[R2], v[WE], v[CONS], v[MISC]);
 			    }
 			}
 		      tot[s2]=0;
@@ -3297,7 +3241,7 @@ FILE * save_constraint_list_ascii ( FILE *OUT,Constraint_list *CL, int start,int
 		vfree (max);
 	}
 	
-	return save_list_footer (OUT, CL);
+  return save_list_footer (pOUT, CL);
 	
 }
 
@@ -3324,7 +3268,7 @@ Constraint_list * extend_constraint_list ( Constraint_list *CL)
 	int tot=0;
 	char *tmp;
 	FILE *fp;
-	int a,e,b,c;
+  int a,e,b;
 	int s1, r1, s2, r2,w2, s3, r3, w3;
 
 	static int *entry;
@@ -3369,7 +3313,7 @@ Constraint_list * extend_constraint_list ( Constraint_list *CL)
 						entry[R2]=r3;
 						entry[WE]=MIN(w2, w3);
 						entry [CONS]=1;
-						tot++;c++;
+            tot++;
 						for (e=0; e<CL->entry_len; e++)fprintf ( fp, "%d ", entry[e]);
 
 						entry[SEQ1]=s3;
@@ -3411,6 +3355,63 @@ Constraint_list * relax_constraint_list (Constraint_list *CL)
   else {njobs=nproc=1;}
 
   return fork_relax_constraint_list (CL, njobs,nproc);
+}
+
+void fork_relax_constraint_list_task(int j, Constraint_list *CL, char **pid_tmpfile, int **sl, Sequence *S, int **hasch)
+{
+  int norm,norm1,norm2;
+  int t_s1, t_s2, t_r1, t_r2,x;
+  double score;
+  int a, s1, s2, r1, r2;
+
+  initiate_vtmpnam(NULL);
+  FILE *fp=vfopen (pid_tmpfile[j], "w");
+
+  for (s1=sl[j][0]; s1<sl[j][1]; s1++)
+  {
+    if (j==0)output_completion (CL->local_stderr,s1,sl[0][1],1, "Relax Library");
+    for (r1=1; r1<S->len[s1]; r1++)
+    {
+      norm1=0;
+      for (x=1; x< CL->residue_index[s1][r1][0]; x+=ICHUNK)
+      {
+        t_s1=CL->residue_index[s1][r1][x+SEQ2];
+        t_r1=CL->residue_index[s1][r1][x+R2];
+        hasch[t_s1][t_r1]=CL->residue_index[s1][r1][x+WE];
+        norm1++;
+
+      }
+      for ( a=1; a<CL->residue_index[s1][r1][0]; a+=ICHUNK)
+      {
+        score=0;
+        norm2=0;
+        s2=CL->residue_index[s1][r1][a+SEQ2];
+        r2=CL->residue_index[s1][r1][a+R2];
+
+        for (x=1; x< CL->residue_index[s2][r2][0]; x+=ICHUNK)
+        {
+          t_s2=CL->residue_index[s2][r2][x+SEQ2];
+          t_r2=CL->residue_index[s2][r2][x+R2];
+          if (t_s2==s1 && t_r2==r1)score+=(float)CL->residue_index[s2][r2][x+WE];
+          else if (hasch[t_s2][t_r2])
+          {
+            score+=MIN((((float)hasch[t_s2][t_r2])),(((float)CL->residue_index[s2][r2][x+WE])));
+          }
+          norm2++;
+        }
+        norm=MIN(norm1,norm2);
+        score=((norm)?score/norm:0);
+        fprintf (fp, "%d ",(int)(score));
+      }
+      for (x=1; x< CL->residue_index[s1][r1][0]; x+=ICHUNK)
+      {
+        t_s1=CL->residue_index[s1][r1][x+SEQ2];
+        t_r1=CL->residue_index[s1][r1][x+R2];
+        hasch[t_s1][t_r1]=0;
+      }
+    }
+  }
+  vfclose (fp);
 }
 
 /**
@@ -3467,8 +3468,8 @@ Constraint_list * relax_constraint_list (Constraint_list *CL)
  */
 
 Constraint_list * fork_relax_constraint_list (Constraint_list *CL, int njobs,int nproc)
-    {
-    
+{
+
   int a, s1, s2, r1, r2,j;
 
   int thr=10;
@@ -3482,216 +3483,50 @@ Constraint_list * fork_relax_constraint_list (Constraint_list *CL, int njobs,int
   static int **hasch;
   static int max_len;
 
-  int t_s1, t_s2, t_r1, t_r2,x;
-  double score;
-
-//   HERE ("%d", nproc);
+  //   HERE ("%d", nproc);
   if (!CL || !CL->residue_index)return CL;
   fprintf ( CL->local_stderr, "\nLibrary Relaxation: Multi_proc [%d]\n ", nproc);
 
   if ( !hasch || max_len!=(CL->S)->max_len)
-    {
-      max_len=(CL->S)->max_len;
-      if ( hasch) free_int ( hasch, -1);
-      hasch=declare_int ( (CL->S)->nseq, (CL->S)->max_len+1);
-    }
+  {
+    max_len=(CL->S)->max_len;
+    if ( hasch) free_int ( hasch, -1);
+    hasch=declare_int ( (CL->S)->nseq, (CL->S)->max_len+1);
+  }
 
   S=CL->S;
   in=CL->ne;
 
   sl=n2splits (njobs, (CL->S)->nseq);
   pid_tmpfile=(char**)vcalloc (njobs, sizeof (char*));
-
+  std::vector<int> thread_indexes;
   for (sjobs=0,j=0;j<njobs; j++)
-    {
-      pid_tmpfile[j]=vtmpnam(NULL);
+  {
+    pid_tmpfile[j]=vtmpnam(NULL);
 
-      // Child process
-      if (vvfork (NULL)==0)
-	{
-	  int norm,norm1,norm2;
+    int thread_index = start_thread( [=]{
+      fork_relax_constraint_list_task( j, CL, pid_tmpfile, sl, S, hasch ); } );
+    thread_indexes.push_back( thread_index );
+    sjobs++;
+  }
 
-	  initiate_vtmpnam(NULL);
-	  fp=vfopen (pid_tmpfile[j], "w");
+  join( thread_indexes );
 
-	  for (s1=sl[j][0]; s1<sl[j][1]; s1++)
-	    {
-	      if (j==0)output_completion (CL->local_stderr,s1,sl[0][1],1, "Relax Library");
-	      for (r1=1; r1<S->len[s1]; r1++)
-		{
-		  norm1=0;
-		  for (x=1; x< CL->residue_index[s1][r1][0]; x+=ICHUNK)
-		    {
-		      t_s1=CL->residue_index[s1][r1][x+SEQ2];
-		      t_r1=CL->residue_index[s1][r1][x+R2];
-		      hasch[t_s1][t_r1]=CL->residue_index[s1][r1][x+WE];
-		      norm1++;
-
-		    }
-		  for ( a=1; a<CL->residue_index[s1][r1][0]; a+=ICHUNK)
-		    {
-		      score=0;
-		      norm2=0;
-		      s2=CL->residue_index[s1][r1][a+SEQ2];
-		      r2=CL->residue_index[s1][r1][a+R2];
-
-		      for (x=1; x< CL->residue_index[s2][r2][0]; x+=ICHUNK)
-			{
-			  t_s2=CL->residue_index[s2][r2][x+SEQ2];
-			  t_r2=CL->residue_index[s2][r2][x+R2];
-			  if (t_s2==s1 && t_r2==r1)score+=(float)CL->residue_index[s2][r2][x+WE];
-			  else if (hasch[t_s2][t_r2])
-			    {
-			      score+=MIN((((float)hasch[t_s2][t_r2])),(((float)CL->residue_index[s2][r2][x+WE])));
-			    }
-			  norm2++;
-			}
-		      norm=MIN(norm1,norm2);
-		      score=((norm)?score/norm:0);
-		      fprintf (fp, "%d ",(int)(score));
-		    }
-		  for (x=1; x< CL->residue_index[s1][r1][0]; x+=ICHUNK)
-		    {
-		      t_s1=CL->residue_index[s1][r1][x+SEQ2];
-		      t_r1=CL->residue_index[s1][r1][x+R2];
-		      hasch[t_s1][t_r1]=0;
-		    }
-		}
-	    }
-	  vfclose (fp);
-	  myexit (EXIT_SUCCESS);
-	}
-      // Parent process
-      else
-	{
-	  sjobs++;
-	}
-    }
-
-//Constraint_list * fork_relax_constraint_list (Constraint_list *CL, int njobs,int nproc)
-//    {
-//  int a, s1, s2, r1, r2,j;
-//
-//  /** Sascha: No filtering please */
-//  int thr=0;
-//  FILE *fp;
-//  char **pid_tmpfile;
-//  int sjobs;
-//  int **sl;
-//  Sequence *S;
-//  int in;
-//
-//  static int **hasch;
-//  static int max_len;
-//
-//  int t_s1, t_s2, t_r1, t_r2,x;
-//  double score;
-//  int np;
-//
-////   HERE ("%d", nproc);
-//  if (!CL || !CL->residue_index)return CL;
-//  fprintf ( CL->local_stderr, "\nLibrary Relaxation: Multi_proc [%d]\n ", nproc);
-//
-//  if ( !hasch || max_len!=(CL->S)->max_len)
-//    {
-//      max_len=(CL->S)->max_len;
-//      if ( hasch) free_int ( hasch, -1);
-//      hasch=declare_int ( (CL->S)->nseq, (CL->S)->max_len+1);
-//    }
-//
-//  S=CL->S;
-//  in=CL->ne;
-//
-//  sl=n2splits (njobs, (CL->S)->nseq);
-//  pid_tmpfile=vcalloc (njobs, sizeof (char*));
-//
-//  for (sjobs=0,j=0;j<njobs; j++)
-//    {
-//      pid_tmpfile[j]=vtmpnam(NULL);
-//      if (vvfork (NULL)==0)
-//	{
-//	  int norm,norm1,norm2;
-//
-//	  initiate_vtmpnam(NULL);
-//	  fp=vfopen (pid_tmpfile[j], "w");
-//
-//	  for (s1=sl[j][0]; s1<sl[j][1]; s1++)
-//	    {
-//	      if (j==0)output_completion (CL->local_stderr,s1,sl[0][1],1, "Relax Library");
-//	      for (r1=1; r1<S->len[s1]; r1++)
-//		{
-//		  norm1=0;
-//		  for (x=1; x< CL->residue_index[s1][r1][0]; x+=ICHUNK)
-//		    {
-//		      t_s1=CL->residue_index[s1][r1][x+SEQ2];
-//		      t_r1=CL->residue_index[s1][r1][x+R2];
-//		      hasch[t_s1][t_r1]=CL->residue_index[s1][r1][x+WE];
-//		      /** Sascha: Sum up all weights / probabilities going out from here. */
-//		      norm1 += hasch[t_s1][t_r1];
-//
-//		    }
-//		  for ( a=1; a<CL->residue_index[s1][r1][0]; a+=ICHUNK)
-//		    {
-//		      score=0;
-//		      norm2=0;
-//		      s2=CL->residue_index[s1][r1][a+SEQ2];
-//		      r2=CL->residue_index[s1][r1][a+R2];
-//
-//		      for (x=1; x< CL->residue_index[s2][r2][0]; x+=ICHUNK)
-//			{
-//			  t_s2=CL->residue_index[s2][r2][x+SEQ2];
-//			  t_r2=CL->residue_index[s2][r2][x+R2];
-//			  if (t_s2==s1 && t_r2==r1) score+= (float) CL->residue_index[s2][r2][x+WE];
-//			  else if (hasch[t_s2][t_r2])
-//			    {
-//			      /** Sascha: Product of probabilities! See ProbCons paper */
-//			      score+= ((float)hasch[t_s2][t_r2]) * ((float)CL->residue_index[s2][r2][x+WE]);
-//			    }
-//			  /** Sascha: Sum up all weights / probabilities going out from here. */
-//			  norm2 += CL->residue_index[s2][r2][x+WE];
-//			}
-//		      /** Sascha: Normalized by the product of posterior probabilities */
-//		      //norm=(float)norm1*norm2;
-//		      /** Sascha: Take only nominator, the marginal probability of Aligning A with B through C */
-//		      norm = 1000;
-//		      score=((score)?score/norm:0);
-//		      fprintf (fp, "%d ",(int)(score));
-//		    }
-//		  for (x=1; x< CL->residue_index[s1][r1][0]; x+=ICHUNK)
-//		    {
-//		      t_s1=CL->residue_index[s1][r1][x+SEQ2];
-//		      t_r1=CL->residue_index[s1][r1][x+R2];
-//		      hasch[t_s1][t_r1]=0;
-//		    }
-//		}
-//	    }
-//	  vfclose (fp);
-//	  myexit (EXIT_SUCCESS);
-//	}
-//      else
-//	{
-//	  sjobs++;
-//	}
-//    }
-
-
-
-  while (sjobs>=0){vwait(NULL); sjobs--;}//wait for all jobs to complete
   for (j=0; j<njobs; j++)
-    {
-      fp=vfopen (pid_tmpfile[j], "r");
-      for (s1=sl[j][0]; s1<sl[j][1]; s1++)
-	for (r1=1; r1<S->len[s1]; r1++)
-	  for ( a=1; a<CL->residue_index[s1][r1][0]; a+=ICHUNK)
-	    {
-	      if (!(fscanf ( fp, "%d ", &CL->residue_index[s1][r1][a+WE])))
-		{
-		  printf_exit (EXIT_FAILURE,stderr, "Could not complete relaxation cycle");
-		}
-	    }
-      vfclose (fp);
-      remove (pid_tmpfile[j]);
-    }
+  {
+    fp=vfopen (pid_tmpfile[j], "r");
+    for (s1=sl[j][0]; s1<sl[j][1]; s1++)
+      for (r1=1; r1<S->len[s1]; r1++)
+        for ( a=1; a<CL->residue_index[s1][r1][0]; a+=ICHUNK)
+        {
+          if (!(fscanf ( fp, "%d ", &CL->residue_index[s1][r1][a+WE])))
+          {
+            printf_exit (EXIT_FAILURE,stderr, "Could not complete relaxation cycle");
+          }
+        }
+    vfclose (fp);
+    remove (pid_tmpfile[j]);
+  }
 
   CL=filter_constraint_list (CL,WE,thr);
   fprintf ( CL->local_stderr, "\nRelaxation Summary: [%d]--->[%d]\n", in,CL->ne);

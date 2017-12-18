@@ -31,7 +31,6 @@
 #include <ctype.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <dirent.h>
 
 
 #include "io_lib_header.h"
@@ -326,7 +325,7 @@ void compute_ref_alignments(char *seq_file_name, char* ref_directory, int num_al
 	char directory[500];
 	if (ref_directory[0]== '~')
 	{
-		sprintf(directory,"%s%s",getenv("HOME"),ref_directory+1);
+    sprintf(directory,"%s%s",getenv(ENV_HOME),ref_directory+1);
 	}
 	else
 	{
@@ -335,7 +334,7 @@ void compute_ref_alignments(char *seq_file_name, char* ref_directory, int num_al
 	struct stat st;
 	if(stat(directory, &st) != 0)
 	{
-		mkdir(directory,0700);
+    tc_mkdir(directory,0700);
 	}
 
 	printf("made\n");
@@ -579,8 +578,8 @@ double agreement_score(char *ref_file_name, char *aln_file_name)
 
 
 	FILE *result;
-	result = popen(command, "r");
-	fgets(line, LINE_LENGTH, result);
+  result = popen(command, "r");
+  fgets(line, LINE_LENGTH, result);
 	fgets(line, LINE_LENGTH, result);
 	fgets(line, LINE_LENGTH, result);
 
@@ -600,19 +599,38 @@ double agreement_score(char *ref_file_name, char *aln_file_name)
 
 int complete_agreement_score(char *aln_file_name, const char *ref_directory)
 {
-	struct dirent *dp;
-	char *name = strrchr(aln_file_name,'/')+1;
+  char *name = strrchr(aln_file_name,'/')+1;
 // 	printf("%s ",name);
      // enter existing path to directory below
-	char directory[500];
-	if (ref_directory[0]== '~')
-	{
-		sprintf(directory,"%s%s",getenv("HOME"),ref_directory+1);
-	}
-	else
-	{
-		sprintf(directory,"%s",ref_directory);
-	}
+  char directory[500];
+  if (ref_directory[0]== '~')
+  {
+    sprintf(directory,"%s%s",getenv(ENV_HOME),ref_directory+1);
+  }
+  else
+  {
+    sprintf(directory,"%s",ref_directory);
+  }
+
+#ifdef _MSC_VER
+  WIN32_FIND_DATA fd;
+  strcat( directory, "/*.*" );
+  HANDLE hFind = ::FindFirstFile( directory, & fd );
+  if( INVALID_HANDLE_VALUE != hFind )
+  {
+    char ref_file_name[MAX_PATH];
+    do
+    {
+      if( !( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) )
+      {
+        sprintf( ref_file_name, "%s/%s", directory, fd.cFileName );
+        printf( "%s %f\n", name, agreement_score( ref_file_name, aln_file_name ) );
+      }
+    } while( ::FindNextFile( hFind, & fd ) );
+    ::FindClose( hFind );
+  }
+#else
+	struct dirent *dp;
 	DIR *dir = opendir(directory);
 
 	char ref_file_name[200];
@@ -620,19 +638,17 @@ int complete_agreement_score(char *aln_file_name, const char *ref_directory)
 	{
 		if ((strcmp(dp->d_name,".")) && (strcmp(dp->d_name,"..")))
 		{
-
 			sprintf(ref_file_name, "%s/%s",directory, dp->d_name);
 			printf("%s %f\n",name, agreement_score(ref_file_name, aln_file_name));
 // 			printf("%f ", agreement_score(ref_file_name, aln_file_name));
-
 		}
 	}
-	printf("\n");
 	closedir(dir);
-	return 0;
+#endif
 
+  printf("\n");
+  return 0;
 }
-
 
 // 	char delims[] = " ";
 // 	int node[3];

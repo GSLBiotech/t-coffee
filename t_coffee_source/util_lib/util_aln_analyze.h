@@ -66,7 +66,7 @@ int display_simple_sar_analyze_col ( Alignment *inA, Alignment *SAR, char *mode)
 Alignment *sar_analyze4  (Alignment *A, Alignment *SAR, char *name);/*28/08/06*/
 Alignment *sar_analyze3  (Alignment *A, Alignment *SAR, char *name);
 Alignment *sar_analyze2  (Alignment *A, Alignment *SAR, char *name);
-Alignment *sar_analyze  (Alignment *A, Alignment *SAR, char *name);
+void       sar_analyze  (Alignment *A, Alignment *SAR, char *name);
 int aln2sar_column_list ( Alignment *A, char *filter);
 float get_sar_sim (char *seq1, char *seq2);
 float get_sar_sim2 (char *seq1, char *seq2);

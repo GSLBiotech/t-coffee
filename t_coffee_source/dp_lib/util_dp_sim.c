@@ -59,7 +59,7 @@ int calcons(int *aa0,int n0,int *aa1,int n1,int *res,int *nc,int *nident, Alignm
 
 
 #define SIM_GAP -1
-#define min(x,y) ((x)<=(y) ? (x) : (y))
+#define TC_MIN(x,y) ((x)<=(y) ? (x) : (y))
 //#define TC_SCORE_SIM(x,y) TC_SCORE (x,y)
 
 static int q, r;			/* gap penalties */
@@ -323,7 +323,7 @@ int sim_pair_wise_lalign (Alignment *in_A, int *in_ns, int **in_l_s,Constraint_l
   JJ = ( int * ) sim_vcalloc(M + 1, sizeof(int));
   XX = ( int * ) sim_vcalloc(M + 1, sizeof(int));
   YY = ( int * ) sim_vcalloc(M + 1, sizeof(int));
-  S = ( int * )  sim_vcalloc(min(M,N)*5/4+1, sizeof (int));
+  S = ( int * )  sim_vcalloc(TC_MIN(M,N)*5/4+1, sizeof (int));
   row = ( pairptr * ) sim_vcalloc( (M + 1), sizeof(pairptr));
 
 

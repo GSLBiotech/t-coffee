@@ -195,7 +195,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-parameters"        ,\
 			    /*Flag*/      &garbage        ,\
 			    /*TYPE*/      "R_F"              ,\
-			    /*OPTIONAL?*/ OPTIONAL         ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL         ,\
 			    /*MAX Nval*/  1                ,\
 			    /*DOC*/       "Read the files in the parameter file" ,\
 			    /*Parameter*/ &parameters          ,\
@@ -224,7 +224,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-quiet"      ,\
 			    /*Flag*/      &quiet        ,\
 			    /*TYPE*/      "W_F"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/ &se_name      ,\
@@ -246,7 +246,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-in"         ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "S"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  200           ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/ list_file     ,\
@@ -264,7 +264,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-struc_to_use"         ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "S"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  200           ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/ struc_to_use     ,\
@@ -283,7 +283,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-io_format"  ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "S"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  200           ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/  &comparison_io,\
@@ -301,7 +301,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-aln"         ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "S"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1           ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/  &aln,\
@@ -320,7 +320,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-repeat_seq"         ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "S"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1           ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/  &repeat_seq,\
@@ -339,7 +339,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-repeat_pdb"         ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "S"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1           ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/  &repeat_pdb,\
@@ -357,7 +357,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-n_excluded_nb"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "D"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "Exclude the N Nb on each side of the central residue. -1 triggers an automatic setting equal to the window size corresponding to the sphere"          ,\
 			    /*Parameter*/ &n_excluded_nb          ,\
@@ -374,7 +374,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-similarity_threshold"    ,\
 			    /*Flag*/      &garbage       ,\
 			    /*TYPE*/      "F"            ,\
-			    /*OPTIONAL?*/ OPTIONAL       ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL       ,\
 			    /*MAX Nval*/  1              ,\
 			    /*DOC*/       "ND"           ,\
 			    /*Parameter*/ &similarity_threshold,\
@@ -391,7 +391,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-filter"    ,\
 			    /*Flag*/      &garbage       ,\
 			    /*TYPE*/      "F"            ,\
-			    /*OPTIONAL?*/ OPTIONAL       ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL       ,\
 			    /*MAX Nval*/  1              ,\
 			    /*DOC*/       "Filter by only keeping the best quantile"           ,\
 			    /*Parameter*/ &filter,\
@@ -408,7 +408,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-filter_aln"    ,\
 			    /*Flag*/      &garbage       ,\
 			    /*TYPE*/      "D"            ,\
-			    /*OPTIONAL?*/ OPTIONAL       ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL       ,\
 			    /*MAX Nval*/  1              ,\
 			    /*DOC*/       "Lower Case For Residues Filtered Out"           ,\
 			    /*Parameter*/ &filter_aln,\
@@ -425,7 +425,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-irmsd_graph"    ,\
 			    /*Flag*/      &garbage       ,\
 			    /*TYPE*/      "D"            ,\
-			    /*OPTIONAL?*/ OPTIONAL       ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL       ,\
 			    /*MAX Nval*/  1              ,\
 			    /*DOC*/       "Outputs the irmsd, position/position"           ,\
 			    /*Parameter*/ &irmsd_graph,\
@@ -442,7 +442,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-nirmsd_graph"    ,\
 			    /*Flag*/      &garbage       ,\
 			    /*TYPE*/      "D"            ,\
-			    /*OPTIONAL?*/ OPTIONAL       ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL       ,\
 			    /*MAX Nval*/  1              ,\
 			    /*DOC*/       "Outputs the NIRMSD VS N Removed Residues Curve"           ,\
 			    /*Parameter*/ &nirmsd_graph,\
@@ -459,7 +459,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-md_threshold"     ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "F"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/ &md_threshold ,\
@@ -477,7 +477,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-maximum_distance"     ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "F"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/ &maximum_distance          ,\
@@ -496,7 +496,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-maximum_ratio"     ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "F"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/ &maximum_ratio          ,\
@@ -515,7 +515,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-print_rapdb"     ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "D"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "Prints the neighborhood of each pair of aligned residues, along with the associated local score"          ,\
 			    /*Parameter*/ &print_rapdb          ,\
@@ -534,7 +534,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-run_name"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "W_F"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/ &run_name      ,\
@@ -553,7 +553,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-outfile"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "W_F"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/ &outfile      ,\
@@ -571,7 +571,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-apdb_outfile"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "W_F"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/ &apdb_outfile      ,\
@@ -590,7 +590,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-output"      ,\
 			    /*Flag*/      &garbage       ,\
 			    /*TYPE*/      "S"            ,\
-			    /*OPTIONAL?*/ OPTIONAL       ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL       ,\
 			    /*MAX Nval*/  200              ,\
 			    /*DOC*/       "ND"           ,\
 			    /*Parameter*/ out_aln_format,\
@@ -611,7 +611,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-color_mode"        ,\
 			    /*Flag*/      &garbage       ,\
 			    /*TYPE*/      "S"            ,\
-			    /*OPTIONAL?*/ OPTIONAL       ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL       ,\
 			    /*MAX Nval*/  1              ,\
 			    /*DOC*/       "ND"           ,\
 			    /*Parameter*/ &color_mode ,\
@@ -629,7 +629,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-seqnos"        ,\
 			    /*Flag*/      &garbage       ,\
 			    /*TYPE*/      "S"            ,\
-			    /*OPTIONAL?*/ OPTIONAL       ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL       ,\
 			    /*MAX Nval*/  1              ,\
 			    /*DOC*/       "ND"           ,\
 			    /*Parameter*/ &output_res_num ,\
@@ -646,7 +646,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-cache"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "W_F"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "use,ignore,update,local, directory name"          ,\
 			    /*Parameter*/ &cache       ,\
@@ -664,7 +664,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-local_mode"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "W_F"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "Mode for choosing the Neighborhood (bubble or window)\nWhen selecting window, maximum distance becomes the window 1/2 size, in residues\nWhen using sphere, maximum_distance is the sphere radius in Angstrom"          ,\
 			    /*Parameter*/ &local_mode       ,\
@@ -683,7 +683,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-template_file"         ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "S"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1000           ,\
 			    /*DOC*/       "List of templates file for the sequences",\
 			    /*Parameter*/ template_file_list     ,	\
@@ -701,7 +701,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-mode"         ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "S"           ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1           ,\
 			    /*DOC*/       "Mode: irmsd, ",\
 			    /*Parameter*/ &mode    ,	\
@@ -720,7 +720,7 @@ int apdb ( int argc, char *argv[])
 			    /*Name*/      "-prot_min_sim"        ,\
 			    /*Flag*/      &prot_min_sim        ,\
 			    /*TYPE*/      "D"              ,\
-			    /*OPTIONAL?*/ OPTIONAL         ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL         ,\
 			    /*MAX Nval*/  1                ,\
 			    /*DOC*/       "Minimum similarity between a sequence and its PDB target" ,\
 			    /*Parameter*/ &prot_min_sim          ,\
@@ -738,7 +738,7 @@ get_cl_param(\
 			    /*Name*/      "-prot_max_sim"        ,\
 			    /*Flag*/      &prot_max_sim        ,\
 			    /*TYPE*/      "D"              ,\
-			    /*OPTIONAL?*/ OPTIONAL         ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL         ,\
 			    /*MAX Nval*/  1                ,\
 			    /*DOC*/       "Maximum similarity between a sequence and its BLAST relatives" ,\
 			    /*Parameter*/ &prot_max_sim          ,\
@@ -756,7 +756,7 @@ get_cl_param(\
 			    /*Name*/      "-prot_min_cov"        ,\
 			    /*Flag*/      &prot_min_cov        ,\
 			    /*TYPE*/      "D"              ,\
-			    /*OPTIONAL?*/ OPTIONAL         ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL         ,\
 			    /*MAX Nval*/  1                ,\
 			    /*DOC*/       "Minimum coverage of a sequence by its BLAST relatives" ,\
 			    /*Parameter*/ &prot_min_cov          ,\
@@ -774,7 +774,7 @@ get_cl_param(\
 			    /*Name*/      "-pdb_min_sim"        ,\
 			    /*Flag*/      &pdb_min_sim        ,\
 			    /*TYPE*/      "D"              ,\
-			    /*OPTIONAL?*/ OPTIONAL         ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL         ,\
 			    /*MAX Nval*/  1                ,\
 			    /*DOC*/       "Minimum similarity between a sequence and its PDB target" ,\
 			    /*Parameter*/ &pdb_min_sim          ,\
@@ -792,7 +792,7 @@ get_cl_param(\
 			    /*Name*/      "-pdb_max_sim"        ,\
 			    /*Flag*/      &pdb_max_sim        ,\
 			    /*TYPE*/      "D"              ,\
-			    /*OPTIONAL?*/ OPTIONAL         ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL         ,\
 			    /*MAX Nval*/  1                ,\
 			    /*DOC*/       "Maximum similarity between a sequence and its PDB target" ,\
 			    /*Parameter*/ &pdb_max_sim          ,\
@@ -809,7 +809,7 @@ get_cl_param(\
 			    /*Name*/      "-pdb_min_cov"        ,\
 			    /*Flag*/      &pdb_min_cov        ,\
 			    /*TYPE*/      "D"              ,\
-			    /*OPTIONAL?*/ OPTIONAL         ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL         ,\
 			    /*MAX Nval*/  1                ,\
 			    /*DOC*/       "Minimum coverage of a sequence by its PDB target" ,\
 			    /*Parameter*/ &pdb_min_cov          ,\
@@ -830,7 +830,7 @@ declare_name (pdb_blast_server);
 			    /*Name*/      "-pdb_blast_server"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "W_F"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/&pdb_blast_server       ,\
@@ -848,7 +848,7 @@ declare_name (prot_blast_server);
 			    /*Name*/      "-blast"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "W_F"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/&prot_blast_server       ,\
@@ -867,7 +867,7 @@ declare_name (prot_blast_server);
 			    /*Name*/      "-blast_server"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "W_F"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "ND"          ,\
 			    /*Parameter*/&prot_blast_server       ,\
@@ -889,7 +889,7 @@ declare_name (prot_blast_server);
 			    /*Name*/      "-pdb_db"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "W_F"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "Non Redundant PDB database"          ,\
 			    /*Parameter*/&pdb_db       ,\
@@ -909,7 +909,7 @@ declare_name (prot_db);
 			    /*Name*/      "-protein_db"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "W_F"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "ND"          ,\
  			    /*Parameter*/&prot_db       ,\
@@ -926,7 +926,7 @@ declare_name (prot_db);
 			    /*Name*/      "-gapped"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "D"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "ND"          ,\
  			    /*Parameter*/&gapped       ,\
@@ -942,7 +942,7 @@ declare_name (prot_db);
 			    /*Name*/      "-min_ncol"    ,\
 			    /*Flag*/      &garbage      ,\
 			    /*TYPE*/      "D"         ,\
-			    /*OPTIONAL?*/ OPTIONAL      ,\
+			    /*OPTIONAL?*/ TC_OPTIONAL      ,\
 			    /*MAX Nval*/  1             ,\
 			    /*DOC*/       "minimum number of columns (negative: fraction)"          ,\
  			    /*Parameter*/&min_ncol       ,\
@@ -1731,7 +1731,7 @@ float **** irmsdmin_apdb_filtration ( Alignment *A, float ****residues, Constrai
 {
   int s1, s2, a,col1, n,n2=0, t,flag;
   int **pos, **list;
-  float nirmsd, min_nirmsd,max_nirmsd,ref_sum, sum, sum2;
+  float nirmsd, min_nirmsd,max_nirmsd,ref_sum, sum;
   float **normalized_len;
 
   normalized_len=declare_float (A->nseq+1, A->nseq+1);
@@ -1768,7 +1768,6 @@ float **** irmsdmin_apdb_filtration ( Alignment *A, float ****residues, Constrai
 
 	    list[n][0]=pos[s1][col1]-1;
 	    list[n][1]=(int)100000*residues[s1][s2][pos[s1][col1]-1][4];
-	    sum2+=residues[s1][s2][pos[s1][col1]-1][4];
 	    n++;
 	  }
 
@@ -2797,16 +2796,16 @@ float square_atom ( Atom *X)
 
   return X->x*X->x + X->y*X->y + X->z*X->z;
 }
-Atom* reframe_atom ( Atom *X, Atom*Y, Atom *Z, Atom *IN, Atom *R)
+Atom* reframe_atom ( Atom *X, Atom*Y, Atom *Z, Atom *pIN, Atom *R)
      {
        float new_x, new_y, new_z;
 
        if ( R==NULL)R=(Atom*)vcalloc ( 1, sizeof (Atom));
 
 
-        new_x= X->x*IN->x + Y->x*IN->y +Z->x*IN->z;
-	new_y= X->y*IN->x + Y->y*IN->y +Z->y*IN->z;
-	new_z= X->z*IN->x + Y->z*IN->y +Z->z*IN->z;
+        new_x= X->x*pIN->x + Y->x*pIN->y +Z->x*pIN->z;
+	new_y= X->y*pIN->x + Y->y*pIN->y +Z->y*pIN->z;
+	new_z= X->z*pIN->x + Y->z*pIN->y +Z->z*pIN->z;
 
 	R->x=new_x;
 	R->y=new_y;

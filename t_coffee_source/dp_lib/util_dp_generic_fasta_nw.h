@@ -24,6 +24,8 @@
 /*  cedric.notredame@europe.com                                                             */
 /*...............................................                                           */
 /******************************COPYRIGHT NOTICE*******************************/
+typedef int (*model_emission_function_type)(Alignment*, int **, int, int*, int, int **, int, int*, int, struct Constraint_list *);
+
 struct Dp_Model
 {
   int *diag;
@@ -42,7 +44,7 @@ struct Dp_Model
   int **model;
   int **model_properties;
   int **bounded_model;
-  int (***model_emission_function)(Alignment*, int **, int, int*, int, int **, int, int*, int, struct Constraint_list *);
+  model_emission_function_type **model_emission_function;
 
   int LEN_I;
   int LEN_J;

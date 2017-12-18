@@ -141,5 +141,5 @@ void get_rgb_values_ascii ( int val, Color *C);
 FILE_format* vfopen_ascii ( char *name);
 FILE_format* vfclose_ascii ( FILE_format *fascii);
 int       output_seq_reliability_ascii     ( Alignment *B,Alignment *S, char *name);
-int aln2compressed_ps (Alignment *A,char *file);
+void aln2compressed_ps (Alignment *A,char *file);
 int aln2compressed_pdf (Alignment *A,char *file);
