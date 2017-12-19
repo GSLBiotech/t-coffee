@@ -21,4 +21,4 @@ TMalign:
 
 clean:
 	@echo " Cleaning..."
-	`find . -name *.o | xargs rm -rf {}`
+	`find . -name *.o -o -name *.deps | xargs rm -rf {}`
