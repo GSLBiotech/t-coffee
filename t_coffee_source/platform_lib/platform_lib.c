@@ -106,3 +106,5 @@ pid_t waitpid(pid_t pid, int* status, int /* optionsUnused */)
 }
 //=========================================================
 #endif
+
+std::mutex PrintThread::_mutexPrint{};

@@ -32,6 +32,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdarg.h>
+#include <mutex>
 
 #include "io_lib_header.h"
 #include "util_lib_header.h"
@@ -386,7 +387,7 @@ Constraint_list *copy_constraint_list (Constraint_list *CL, int mode)
 	   if (CL->comment)NCL->comment=(char*)vcalloc(strlen (NCL->comment)+1, sizeof (char));
 	   sprintf (NCL->comment, "%s", CL->comment);
 	 }
-       
+
 
     return NCL;
     }
@@ -765,15 +766,15 @@ void free_sequence ( Sequence *LS, int nseq)
 
 
 	if ( !LS) return;
-	
+
 	free_char ( LS->file, -1);
-	
+
 	free_char ( LS->seq_comment, -1);
 	free_char ( LS->aln_comment, -1);
 
 	free_char ( LS->seq, -1);
 	free_char ( LS->name,-1);
-	
+
 	free_int  (LS->dc, -1);
 
 	free_arrayN((void*)LS->T, 2);
@@ -866,7 +867,7 @@ Alignment* copy_aln ( Alignment *A, Alignment *B)
 	      if (cl>nlen)nlen=cl;
 	    }
 	  nlen++;
-	  
+
 	  if (B)
 	    B=realloc_alignment2 (B, nnseq, nlen);
 	  else
@@ -902,7 +903,7 @@ Alignment* copy_aln ( Alignment *A, Alignment *B)
 	    B->file=copy_char ( A->file,     B->file,     -1,-1);
 	    B->tree_order=copy_char ( A->tree_order,     B->tree_order,     -1,-1);
 	    B->expanded_order=A->expanded_order;
-	    
+
 	    //Copy seq_al
 	    free_char ( B->seq_al, -1);
 	    B->seq_al=(char**)vcalloc (B->max_n_seq, sizeof (char*));
@@ -916,9 +917,9 @@ Alignment* copy_aln ( Alignment *A, Alignment *B)
 		    memcpy(B->seq_al[a], A->seq_al[a], sizeof (char)*l);
 		  }
 	      }
-	    
 
-	    
+
+
 	    // B->seq_al=declare_char(B->max_n_seq, B->declared_len);
 	    // HERE ("A: MAX_NSEQ=%d %d %d %d",B->nseq, B->max_n_seq, B->declared_len, B->len_aln);
 	    // HERE ("B: MAX_NSEQ=%d %d %d %d",A->nseq, A->max_n_seq, A->declared_len, A->len_aln);
@@ -929,8 +930,8 @@ Alignment* copy_aln ( Alignment *A, Alignment *B)
 	    //for (b=0; b<B->declared_len; b++)
 	    //  B->seq_al[a][b]=A->seq_al[a][b];
 	    //}
-	    
-	    
+
+
 
 	    B->order=copy_int  ( A->order,    B->order,    -1, -1);
 	    B->S=A->S;
@@ -986,7 +987,7 @@ Alignment* copy_aln ( Alignment *A, Alignment *B)
 	    /*Deal with Trees*/
 	    //if (A->Tree)
 	    //B->Tree=copy_aln (A->Tree, NULL);
-	    
+
 	    return B;
 	}
 
@@ -1204,52 +1205,52 @@ Alignment * realloc_alignment2 ( Alignment *A, int n_nseq, int n_len)
 	return A;
 	}
 
-
+static std::mutex g_stack_mutex;
 long aln_stack (Alignment *A, int mode)
 {
+  std::lock_guard<std::mutex> guard( g_stack_mutex );
   static long *list;
   static int size;
   static int max_size;
 
-
   if (A==NULL) return 0;
   else if ( mode==DECLARE_ALN)
+  {
+    if ( size==max_size)
     {
-      if ( size==max_size)
-	{
-	  max_size+=1000;
-	  list=(long int*)vrealloc (list, max_size*sizeof (long));
-	}
-      list[size++]=(long)A;
-      return 0;
+      max_size+=1000;
+      list=(long int*)vrealloc (list, max_size*sizeof (long));
     }
+    list[size++]=(long)A;
+    return 0;
+  }
   else if (mode==FREE_ALN)
+  {
+    int a, b;
+    for (a=0; a<size; a++)
     {
-      int a, b;
-      for (a=0; a<size; a++)
-	{
-	  if (list[a]==(long)A)
-	    {
-	      for (b=a+1; b<size;b++)
-		{
-		  list[b-1]=list[b];
-		}
-	      list[b-1]=0;
-	      size--;
-	      return 1;
-	    }
-	}
-      return 0;
+      if (list[a]==(long)A)
+      {
+        for (b=a+1; b<size;b++)
+        {
+          list[b-1]=list[b];
+        }
+        list[b-1]=0;
+        size--;
+        return 1;
+      }
     }
+    return 0;
+  }
   else if ( mode==EXTRACT_ALN)
-    {
-      return list[size--];
-    }
+  {
+    return list[size--];
+  }
   else
-    {
-      printf_exit (EXIT_FAILURE, stderr, "ERROR: Unknown mode for aln_stack");
-      return 0;
-    }
+  {
+    printf_exit (EXIT_FAILURE, stderr, "ERROR: Unknown mode for aln_stack");
+    return 0;
+  }
 }
 
 Sequence* free_aln ( Alignment *LA){ return free_Alignment(LA);}
@@ -1389,9 +1390,9 @@ void set_max_mem (int m)
 int verify_memory (int s)
 {
   static int flushed;
-    
+
   alloc_mem+=s;
-  
+
   tot_mem=(alloc_mem>tot_mem)?alloc_mem:tot_mem;
 
   if (max_mem && alloc_mem>max_mem && !flushed)
@@ -1433,38 +1434,37 @@ int my_assert ( void *p, int index)
 
 
 void * vmalloc ( size_t size)
-	{
-	void * x;
-	Memcontrol *M;
+{
+  void * x;
+  Memcontrol *M;
 
-	verify_memory (size+2*sizeof (Memcontrol));
-	
-	if ( size==0)
-	    return NULL; /*crash ("\n0 bytes in vmalloc\n");*/
-	else
-	    {
+  verify_memory (size+2*sizeof (Memcontrol));
 
-	      x= malloc (size + 2*sizeof (Memcontrol));
-	      //x=dlmalloc (size + 2*sizeof (Memcontrol));
-	    if ( x==NULL)
-		{
-		  printf_exit (EXIT_FAILURE,stderr, "\nFAILED TO ALLOCATE REQUIRED MEMORY (vmalloc)\n");
+  if ( size==0)
+    return NULL; /*crash ("\n0 bytes in vmalloc\n");*/
+  else
+  {
 
-		}
-	    else
-	      {
-		M=(Memcontrol*)x;
-		M[0].size=size;
-		M[0].size_element=0;
-		sprintf ( M[0].check, "dy");
-		M+=2;
-		x=M;
-		return x;
-	      }
-	    }
-	return NULL;}
+    x= malloc (size + 2*sizeof (Memcontrol));
+    //x=dlmalloc (size + 2*sizeof (Memcontrol));
+    if ( x==NULL)
+    {
+      printf_exit (EXIT_FAILURE,stderr, "\nFAILED TO ALLOCATE REQUIRED MEMORY (vmalloc)\n");
 
-
+    }
+    else
+    {
+      M=(Memcontrol*)x;
+      M[0].size=size;
+      M[0].size_element=0;
+      sprintf ( M[0].check, "dy");
+      M+=2;
+      x=M;
+      return x;
+    }
+  }
+  return NULL;
+}
 
 void *vcalloc (size_t nobj, size_t size)
 {
@@ -1475,37 +1475,39 @@ void *vcalloc_nomemset ( size_t nobj, size_t size)
   return sub_vcalloc (nobj, size, NO_MEMSET0);
 }
 void *sub_vcalloc ( size_t nobj, size_t size, int MODE)
-	{
-	void *x;
-	Memcontrol *M;
+{
+  void *x;
+  Memcontrol *M;
 
-	if ( nobj<=0 || size<=0)return NULL;/*crash ("\n0 bytes in vmalloc\n");*/
-	else x=vmalloc (nobj*size);
+  if ( nobj<=0 || size<=0)return NULL;/*crash ("\n0 bytes in vmalloc\n");*/
+  else x=vmalloc (nobj*size);
 
+  M=(Memcontrol*)x;
+  M-=2;M[0].size_element=size;
+  M+=2;
+  x=M;
 
-	M=(Memcontrol*)x;
-	M-=2;M[0].size_element=size;
-	M+=2;
-	x=M;
-
-	if ( x==NULL)
-		{
-		crash ( "\nFAILED TO ALLOCATE REQUIRED MEMORY (vcalloc)\n");
-		return NULL;
-		}
-	else
-	  {
-	    if ( MODE==MEMSET0)
-	      {
-		x=memset (x,0, nobj*size);
-	      }
-	    else
-	      {
-		if (nobj)x=memset (x, 0, size);
-	      }
-	    return x;
-	  }
-	}
+  if ( x==NULL)
+  {
+    crash ( "\nFAILED TO ALLOCATE REQUIRED MEMORY (vcalloc)\n");
+    return NULL;
+  }
+  else
+  {
+    if ( MODE==MEMSET0)
+    {
+      x=memset (x,0, nobj*size);
+    }
+    else
+    {
+      if (nobj)
+      {
+        x=memset (x, 0, size);
+      }
+    }
+    return x;
+  }
+}
 
 void *vrealloc ( void *p, size_t size)
 {
@@ -1649,12 +1651,12 @@ void * free_arrayN(void *p, int n)
   if ( p==NULL) return NULL;
   else if ( n==1)vfree ((void *)p);
   else
-    {
-      i=(void**)p;
-      s=read_array_size ( (void *)p, sizeof ( void *));
-      for ( a=0; a< s; a++) free_arrayN ((void *)i[a], n-1);
-      vfree (p);
-    }
+  {
+    i=(void**)p;
+    s=read_array_size ( (void *)p, sizeof ( void *));
+    for ( a=0; a< s; a++) free_arrayN ((void *)i[a], n-1);
+    vfree (p);
+  }
   return NULL;
 }
 
@@ -1669,26 +1671,26 @@ void * declare_arrayNnomemset (int ndim, size_t size, ...)
 
   array=(int*)vcalloc (ndim, sizeof (int));
   for ( a=0; a< ndim; a++)
-    {
-      array[a]=va_arg (ap,int);
-      if ( array[a]<0){va_end(ap);return NULL;}
+  {
+    array[a]=va_arg (ap,int);
+    if ( array[a]<0){va_end(ap);return NULL;}
 
-    }
+  }
   va_end (ap);
 
   if ( ndim==2)
-    {
+  {
 
-      p=(void**)vcalloc_nomemset (array[0], sizeof ( void*));
-      for (a=0; a< array[0]; a++)
-	{
-	p[a]=vcalloc_nomemset (array[1], size);
-	}
-    }
-  else
+    p=(void**)vcalloc_nomemset (array[0], sizeof ( void*));
+    for (a=0; a< array[0]; a++)
     {
-      p=(void**)declare_arrayN2nomemset (ndim, array, size);
+      p[a]=vcalloc_nomemset (array[1], size);
     }
+  }
+  else
+  {
+    p=(void**)declare_arrayN2nomemset (ndim, array, size);
+  }
   vfree (array);
   return p;
 }
@@ -1699,15 +1701,15 @@ void *declare_arrayN2nomemset ( int ndim, int *A, size_t size)
   void **p;
 
   if ( ndim>1)
-    {
-      p=(void**)vcalloc_nomemset (A[0], sizeof (void*));
-      for ( a=0; a<A[0]; a++)
-    	p[a]=declare_arrayN2(ndim-1, A+1, size);
-    }
+  {
+    p=(void**)vcalloc_nomemset (A[0], sizeof (void*));
+    for ( a=0; a<A[0]; a++)
+      p[a]=declare_arrayN2(ndim-1, A+1, size);
+  }
   else
-    {
-      p=(void**)vcalloc_nomemset (A[0], size);
-    }
+  {
+    p=(void**)vcalloc_nomemset (A[0], size);
+  }
   return p;
 }
 
@@ -1723,25 +1725,26 @@ void * declare_arrayN (int ndim, size_t size, ...)
 
   array=(int*)vcalloc (ndim, sizeof (int));
   for ( a=0; a< ndim; a++)
-    {
-      array[a]=va_arg (ap,int);
-      if ( array[a]<0){va_end(ap);return NULL;}
+  {
+    array[a]=va_arg (ap,int);
+    if ( array[a]<0){va_end(ap);return NULL;}
 
-    }
+  }
   va_end (ap);
 
   if ( ndim==2)
-    {
-
-      p=(void**)vcalloc_nomemset (array[0], sizeof ( void*));
-      for (a=0; a< array[0]; a++)
-	p[a]=vcalloc (array[1], size);
-    }
+  {
+    p=(void**)vcalloc_nomemset (array[0], sizeof ( void*));
+    for (a=0; a< array[0]; a++)
+      p[a]=vcalloc (array[1], size);
+  }
   else
-    {
-      p=(void**)declare_arrayN2 (ndim, array, size);
-    }
+  {
+    p=(void**)declare_arrayN2 (ndim, array, size);
+  }
+
   vfree (array);
+
   return p;
 }
 
@@ -1751,15 +1754,16 @@ void *declare_arrayN2 ( int ndim, int *A, size_t size)
   void **p;
 
   if ( ndim>1)
-    {
-      p=(void**)vcalloc_nomemset (A[0], sizeof (void*));
-      for ( a=0; a<A[0]; a++)
-    	p[a]=declare_arrayN2(ndim-1, A+1, size);
-    }
+  {
+    p=(void**)vcalloc_nomemset (A[0], sizeof (void*));
+    for ( a=0; a<A[0]; a++)
+      p[a]=declare_arrayN2(ndim-1, A+1, size);
+  }
   else
-    {
-      p=(void**)vcalloc (A[0], size);
-    }
+  {
+    p=(void**)vcalloc (A[0], size);
+  }
+
   return p;
 }
 
@@ -1771,9 +1775,9 @@ void **declare_array (int first, int second, size_t size)
 
 #define DECLARE_ARRAY(type,wf,rf,function)\
 type**  function (int first, int second)\
-  {\
-    return (type **)declare_arrayN (2,sizeof(type), first, second);\
-   }
+{\
+  return (type **)declare_arrayN (2,sizeof(type), first, second);\
+}
 
 int **declare_int2 (int f, int *s, int d)
 {

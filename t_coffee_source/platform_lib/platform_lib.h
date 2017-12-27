@@ -52,4 +52,41 @@
   #define tc_gethostname gethostname
 #endif
 
+//=========================================================
+//Thread-safe print of current thread id and a message. Useful for debugging.
+#include <iostream>
+#include <sstream>
+#include <mutex>
+#include <thread>
+
+#define PRINT_THREAD()            PrintThread(__FILE__, __LINE__, __PRETTY_FUNCTION__);
+#define PRINT_THREAD1(MSG)        PrintThread(__FILE__, __LINE__, __PRETTY_FUNCTION__, MSG);
+#define PRINT_THREAD2(MSG, VALUE) PrintThread(__FILE__, __LINE__, __PRETTY_FUNCTION__, MSG, VALUE);
+
+class PrintThread: public std::ostringstream
+{
+public:
+  PrintThread() = default;
+
+  PrintThread(const char* file, int line, const char* func)
+  { *this << file << ':' << line << ' ' << func << ' '; }
+
+  PrintThread(const char* file, int line, const char* func, const char* msg)
+  { *this << file << ':' << line << ' ' << func << ' ' << msg; }
+
+  template<typename T>
+  PrintThread(const char* file, int line, const char* func, const char* msg, T value)
+  { *this << file << ':' << line << ' ' << func << ' ' << msg << value; }
+
+  ~PrintThread()
+  {
+    std::lock_guard<std::mutex> guard(_mutexPrint);
+    std::cout << std::this_thread::get_id() << ' ' << this->str() << '\n';
+  }
+
+private:
+  static std::mutex _mutexPrint;
+};
+//=========================================================
+
 #endif // PLATFORM_LIB_H_

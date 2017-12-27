@@ -63,7 +63,7 @@ int compare_constraint_list_entry ( const void*vx, const void*vy);
 /*                                                                   */
 /*********************************************************************/
 Constraint_list* make_test_lib (Constraint_list *CL);
- 
+
 
 Constraint_list *fork_line_produce_list   ( Constraint_list *CL, Sequence *S, char * method,char *weight,char *mem_mode,Job_TC *job, int nproc,FILE *local_stderr);
 Constraint_list *fork_cell_produce_list   ( Constraint_list *CL, Sequence *S, char * method,char *weight,char *mem_mode,Job_TC *job, int nproc,FILE *local_stderr);
@@ -489,9 +489,9 @@ Job_TC *submit_lib_job ( Job_TC *job)
 	Job_param_TC *p;
 	Job_io_TC *io;
 	TC_method *M;
-	static char *tdir;
-	static char *cdir;
-	
+	static char *tdir=NULL;
+	static char *cdir=NULL;
+
 	if (!tdir)tdir=get_tmp_4_tcoffee();
 	if (!cdir)cdir=get_pwd(NULL);
 
@@ -507,7 +507,7 @@ Job_TC *submit_lib_job ( Job_TC *job)
 	  }
 	else if (strm4 (M->out_mode,"A", "L", "aln", "lib"))
 	  {
-	    char *com;
+	    char *com=NULL;
 	    static int do_flip;
 	    int flipped=0;
 
@@ -729,7 +729,7 @@ Job_TC* method2job_list ( char *method_name,Sequence *S, char *weight, char *lib
       int byte=CL->o2a_byte;
       int max=0;
       FILE *fp;
-     
+
       for (x=0; x<(CL->S)->nseq; x++)max+=(CL->master[x]);
 
       if (CL->o2a_byte>=max)byte=(max/get_nproc())+1;
@@ -1989,7 +1989,7 @@ Constraint_list *sort_constraint_list(Constraint_list *CL, int start, int len)
 {
 	int s1, r1;
 	Sequence *S=CL->S;
-	
+
 	for (s1=0; s1<S->nseq; s1++)
 	{
 		for (r1=1; r1<=S->len[s1]; r1++)
@@ -2566,7 +2566,7 @@ Constraint_list * old_read_constraint_list_file(Constraint_list *CL, char *fname
 	int error=0;
 	int keepNS=0;
 	int start=0;
-	
+
 	NS=read_seq_in_n_list (&fname, 1,NULL, NULL);
 
 	if (!CL)
@@ -2654,7 +2654,7 @@ Constraint_list *read_constraint_list_file(Constraint_list *CL, char *fname)
 		else
 			ov = 1;
 	}
-	
+
 	if (ov)
 	  return old_read_constraint_list_file(CL, fname);
 
@@ -2669,7 +2669,7 @@ Constraint_list *read_constraint_list_file(Constraint_list *CL, char *fname)
 	char arg[10];
 	unsigned int length;
 	int start=0;
-	
+
 	NS=read_seq_in_n_list (&fname, 1,NULL, NULL);
 
 	if (!CL)
@@ -2697,7 +2697,7 @@ Constraint_list *read_constraint_list_file(Constraint_list *CL, char *fname)
 			  CL->comment=vcat(CL->comment, buf);
 		      }
 		    else continue;
-		  }	
+		  }
 		else if (buf[0]!='#' && !start)continue;
 		else if (buf[0]=='#')
 		  {
@@ -2718,14 +2718,14 @@ Constraint_list *read_constraint_list_file(Constraint_list *CL, char *fname)
 		      {
 			x=sscanf (buf, "%s %d %d %d %d %d",arg, &length, &r1,&r2,&we,&cons,&misc);
 		      }
-		    
+
 		    for (i = 0; i < length; ++i)
 		      {
 			if (r1>NS->len[s1] || r2>NS->len[s2] || x<3)error=1;
 			else
 			  {
 			    int is1, is2, ir1, ir2;
-			    
+
 			    is1=entry[SEQ1]=index[s1][0];//0-N-1
 			    is2=entry[SEQ2]=index[s2][0];//0-N-1
 			    ir1=entry[R1]=index[s1][r1];//1-N
@@ -2735,7 +2735,7 @@ Constraint_list *read_constraint_list_file(Constraint_list *CL, char *fname)
 			    entry[MISC]=misc;
 			    if (ir1>(CL->S)->len[is1] || ir2>(CL->S)->len[is2])
 			      {
-				
+
 				myexit(fprintf_error (stderr, "%s::%d -- %s::%d ---- %s::%d %s::%d", NS->name[s1],r1, NS->name[s2],r2, (CL->S)->name[is1],ir1, (CL->S)->name[is2],ir2));
 			      }
 			    if (entry[SEQ1]>-1 && entry[SEQ2]>-1 && entry[R1]>0 && entry[R2]>0 && entry[WE]>0)
@@ -2744,14 +2744,14 @@ Constraint_list *read_constraint_list_file(Constraint_list *CL, char *fname)
 			++r1;
 			++r2;
 		      }
-		    
+
 		  }
 		if (error)
 		  printf_exit (EXIT_FAILURE,stderr,"Parsing Error [L:%d F:%s S:%s]",line,fname,buf);
 	}
-	
+
 	vfclose (fp);
-	
+
 	if (!keepNS)free_sequence (NS,-1);
 	vfree (entry);
 	vfree (buf);
@@ -3049,23 +3049,23 @@ int save_contact_constraint_list (Constraint_list *CL, char *name)
   FILE *fp;
   Sequence *S1;
   int a,b;
-  
+
 
   S1=CL->S;
   fp=vfopen (name, "w");
   fprintf ( fp, "! TC_LIB_FORMAT_01\n");
   if (!CL->comment)fprintf ( fp, "!CMT: Intra sequence contacts\n");
   else fprintf ( fp, "%s", CL->comment);
-  
+
   fprintf (fp, "%d\n", S1->nseq);
   for (a=0; a<S1->nseq; a++)fprintf ( fp, "%s %d %s\n",S1->name[a], S1->len[a], S1->seq[a]);
   for (a=0; a<S1->nseq; a++)
     {
       int r1, r2, we;
       int **contact;
-      fprintf (fp,"#%d %d\n",a+1,a+1); 
+      fprintf (fp,"#%d %d\n",a+1,a+1);
       contact=declare_int (S1->len[a]+1,S1->len[a]+1);
-      
+
       for (r1=1; r1<=S1->len[a]; r1++)
 	{
 	  for (b=1; b<CL->residue_index[a][r1][0]; b+=ICHUNK)
@@ -3240,9 +3240,9 @@ FILE * save_constraint_list_ascii ( FILE *pOUT,Constraint_list *CL, int start,in
 		vfree (tot);
 		vfree (max);
 	}
-	
+
   return save_list_footer (pOUT, CL);
-	
+
 }
 
 
@@ -3543,7 +3543,7 @@ Constraint_list * expand_constraint_list_4gp (Constraint_list *CL, int T)
 	int s1, s2, r1, r2, a, b, c, d, w;
 	int *entry;
 	Sequence *S;
-	
+
 
 	entry=(int*)vcalloc (CL->entry_len+1, sizeof (int));
 
@@ -3700,7 +3700,7 @@ Constraint_list * nfork_relax_constraint_list_4gp (Constraint_list *CL)
 	char *tmp;
 	Sequence *S=CL->S;
 	FILE *fp;
-	
+
 	tmp=vtmpnam(NULL);
 	entry=(int*)vcalloc (CL->entry_len, sizeof (int));
 
@@ -3749,7 +3749,7 @@ int constraint_list2max  ( Constraint_list *CL)
 	int max=0;
 	int b, s1, r1, s2 ,r2 ,w2;
 	Sequence *S=CL->S;
-	
+
 	for (s1=0; s1<S->nseq; s1++)
 	{
 		for (r1=1; r1<=S->len[s1]; r1++)
@@ -3770,7 +3770,7 @@ int constraint_list2ne  ( Constraint_list *CL)
 	int max=0;
 	int s1,r1;
 	Sequence *S;
-	
+
 	if (!CL || !CL->residue_index || !CL->S)return 0;
 
 	S=CL->S;
@@ -3825,7 +3825,7 @@ int constraint_list2avg ( Constraint_list *CL)
 	int max=0, n=0;
 	int b, s1, r1, s2, r2, w2;
 	Sequence *S=CL->S;
-	
+
 	for (s1=0; s1<S->nseq; s1++)
 	{
 		for (r1=1; r1<=S->len[s1]; r1++)
@@ -3854,23 +3854,23 @@ Constraint_list * constraint_list2sub_constraint_list (Constraint_list *CL, Sequ
   int a,ns,i;
   int *lu;
   int do_print=0;
-  
+
   S=CL->S;
   lu=(int*)vcalloc (S->nseq, sizeof(int));
-  
+
   for (ns=0,a=0; a<SMALL->nseq; a++)
     {
       if ((i=name_is_in_list (SMALL->name[a], S->name, S->nseq,100))!=-1)lu[i]=++ns;
     }
-  
- 
+
+
   out=vfopen (tmp_out, "w");
   fprintf (out,"%d\n", ns);
   for (a=0; a<S->nseq; a++)
     {
       if (lu[a])fprintf (out, "%s %d %s\n",S->name[a],S->len[a], S->seq[a]);
     }
-  
+
   vfclose (save_constraint_list ( CL, 0, CL->ne,tmp_in, NULL, "ascii",CL->S));
   in=vfopen (tmp_in,"r");
 
@@ -3886,7 +3886,7 @@ Constraint_list * constraint_list2sub_constraint_list (Constraint_list *CL, Sequ
 	      do_print=1;
 	      fprintf (out, "#%d %d\n", lu[s1-1], lu[s2-1]);
 	    }
-	  else 
+	  else
 	    do_print=0;
 	}
       else if (buf[0]=='!' || do_print==1)fprintf (out, "%s", buf);
@@ -3895,7 +3895,7 @@ Constraint_list * constraint_list2sub_constraint_list (Constraint_list *CL, Sequ
   vfclose (in);
   return read_constraint_list_file (NULL,tmp_out);
 }
-  
+
 
 /**
  * Deletes unimportant edges from the Constraint_list.
@@ -4940,9 +4940,9 @@ Constraint_list *read_contact_lib ( Sequence *S, char *fname, Constraint_list *R
 {
   char **list;
   int n=0,a;
-  
+
   if (!R)R=declare_constraint_list ( S,NULL, NULL, 0,NULL, NULL);
-  
+
   if  (fname && check_file_exists (fname) && is_lib(fname))return read_constraint_list_file (R, fname);
   else if (fname && check_file_exists (fname) && is_lib(fname)) list=read_lib_list ( fname, &n);
   else
@@ -4957,7 +4957,7 @@ Constraint_list *read_contact_lib ( Sequence *S, char *fname, Constraint_list *R
 	    }
 	}
     }
-  
+
   for (a=0; a< n; a++)
     {
       if (list[a])R=read_constraint_list_file (R, list[a]);

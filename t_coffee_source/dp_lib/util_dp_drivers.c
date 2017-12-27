@@ -944,42 +944,41 @@ Alignment * realign_block ( Alignment *A, int col1, int col2, char *pg)
 
 
 Constraint_list * align_pdb_pair_2 (char *seq, Constraint_list *CL)
-        {
-	    char *tmp_name=NULL;
-	    int s1, s2;
+{
+  char *tmp_name=NULL;
+  int s1, s2;
 
+  static char *command;
+  static char *program;
 
-	    static char *command;
-	    static char *program;
+  tmp_name=vtmpnam ( NULL);
 
-	    tmp_name=vtmpnam ( NULL);
-
-	    if ( !program)program=(char*)vcalloc ( LONG_STRING, sizeof (char));
-	    if ( !command)command=(char*)vcalloc ( LONG_STRING, sizeof (char));
+  if ( !program)program=(char*)vcalloc ( LONG_STRING, sizeof (char));
+  if ( !command)command=(char*)vcalloc ( LONG_STRING, sizeof (char));
 
 #ifndef     ALIGN_PDB_4_TCOFFEE
-	    if ( getenv ( "ALIGN_PDB_4_TCOFFEE")==NULL)crash ("ALIGN_PDB_4_TCOFFEE IS NOT DEFINED");
-	    else  sprintf ( program, "%s", (getenv ( "ALIGN_PDB_4_TCOFFEE")));
+  if ( getenv ( "ALIGN_PDB_4_TCOFFEE")==NULL)crash ("ALIGN_PDB_4_TCOFFEE IS NOT DEFINED");
+  else  sprintf ( program, "%s", (getenv ( "ALIGN_PDB_4_TCOFFEE")));
 #else
-	    if ( getenv ( "ALIGN_4_TCOFFEE")==NULL)sprintf (program, "%s", ALIGN_PDB_4_TCOFFEE);
-	    else sprintf ( program, "%s", (getenv ( "ALIGN_PDB_4_TCOFFEE")));
+  if ( getenv ( "ALIGN_4_TCOFFEE")==NULL)sprintf (program, "%s", ALIGN_PDB_4_TCOFFEE);
+  else sprintf ( program, "%s", (getenv ( "ALIGN_PDB_4_TCOFFEE")));
 #endif
 
-	    atoi(strtok (seq,SEPARATORS));
-	    s1=atoi(strtok (NULL,SEPARATORS));
-	    s2=atoi(strtok (NULL,SEPARATORS));
+  atoi(strtok (seq,SEPARATORS));
+  s1=atoi(strtok (NULL,SEPARATORS));
+  s2=atoi(strtok (NULL,SEPARATORS));
 
-	    sprintf ( command , "%s -in P%s P%s -gapopen=-40 -max_delta=2.5 -gapext=0 -scale=0 -hasch_mode=hasch_ca_trace_bubble -maximum_distance=10 -output pdb_constraint_list -outfile stdout> %s%s",program, (CL->S)->file[s1], (CL->S)->file[s2], get_cache_dir(),tmp_name);
+  sprintf ( command , "%s -in P%s P%s -gapopen=-40 -max_delta=2.5 -gapext=0 -scale=0 -hasch_mode=hasch_ca_trace_bubble -maximum_distance=10 -output pdb_constraint_list -outfile stdout> %s%s",program, (CL->S)->file[s1], (CL->S)->file[s2], get_cache_dir(),tmp_name);
 
-	    my_system  ( command);
-	    CL=read_constraint_list_file(CL, tmp_name);
-
-
-	    vremove ( tmp_name);
+  my_system  ( command);
+  CL=read_constraint_list_file(CL, tmp_name);
 
 
-	    return CL;
-	}
+  vremove ( tmp_name);
+
+
+  return CL;
+}
 
 Constraint_list *align_pdb_pair   (char *seq_in, char *dp_mode,char *evaluate_mode, char *file, Constraint_list *CL, Job_TC *job)
  {
@@ -1439,9 +1438,9 @@ Constraint_list * pdb_pair (TC_method *M , char *in_seq, Constraint_list *CL)
 	      fprintf ( stderr, "\nERROR: pdb_pair requires a structural alignment method: pdb_pair@EP@EXECUTABLE2@<method> [FATAL:%s]\n", PROGRAM);
 	      myexit (EXIT_FAILURE);
 	    }
-	  
+
 	  sprintf ( seq, "%s", in_seq);
-	  
+
 	  atoi(strtok (seq,SEPARATORS));
 	  s1=atoi(strtok (NULL,SEPARATORS));
 	  s2=atoi(strtok (NULL,SEPARATORS));
@@ -1449,15 +1448,15 @@ Constraint_list * pdb_pair (TC_method *M , char *in_seq, Constraint_list *CL)
 	  pdb1=seq2P_template_file(CL->S,s1);
 	  pdb2=seq2P_template_file(CL->S,s2);
 	  if ( !pdb1 || !pdb2) return CL;
-	  
-	  
+
+
 	  pdb1_file=vtmpnam (NULL);
 	  pdb2_file=vtmpnam (NULL);
 	  result=vtmpnam (NULL);
-	  
+
 	  printf_system ("extract_from_pdb -infile %s -atom ALL -chain FIRST  -nodiagnostic > %s", pdb1, pdb1_file);
 	  printf_system ("extract_from_pdb -infile %s -atom ALL -chain FIRST  -nodiagnostic > %s", pdb2, pdb2_file);
-	  
+
 	  if (strm ((CL->S)->type, "RNA"))
 	    {
 	      char *rnatmp1=vtmpnam(NULL);
@@ -1467,10 +1466,10 @@ Constraint_list * pdb_pair (TC_method *M , char *in_seq, Constraint_list *CL)
 	      printf_system ("mv %s %s", rnatmp1, pdb1_file);
 	      printf_system ("mv %s %s", rnatmp2, pdb2_file);
 	    }
-	  
+
 	  printf_system ("tc_generic_method.pl -mode=pdb_pair -method=%s %s%s %s%s %s%s -tmpdir=%s", M->executable2,M->in_flag,pdb1_file, M->in_flag2,pdb2_file,M->out_flag, result, get_tmp_4_tcoffee());
 	  F=main_read_aln (result, NULL);
-	  
+
 	  if ( !F)fprintf ( stderr, "\n\tpdb_pair/%s failed:\n\t%s\n",M->executable2, command);
 	  else
 	    {
@@ -1707,13 +1706,13 @@ Constraint_list * srap_pair   (char *seq, char *weight, Constraint_list *CL)
 {
   atom=(char*)vcalloc (100, sizeof (char));
 
-  
+
   //sprintf (atom, "C1PRIME");CL=sap_pair   (seq, weight, CL);
   //sprintf (atom, "C2PRIME");CL=sap_pair   (seq, weight, CL);
   sprintf (atom, "C3PRIME");CL=sap_pair   (seq, weight, CL);
   //sprintf (atom, "C4PRIME");CL=sap_pair   (seq, weight, CL);
   //sprintf (atom, "C5PRIME");CL=sap_pair   (seq, weight, CL);
-    
+
   vfree (atom); atom=NULL;
   return CL;
 }
@@ -1737,16 +1736,16 @@ Constraint_list * sap_pair   (char *seq_in, char *weight, Constraint_list *CL)
 	    char *seq=NULL;
 
 
-	    
+
 	    seq=(char*)vcalloc (strlen (seq_in)+1, sizeof(char));
 	    sprintf ( seq, "%s", seq_in);
-	    
+
 	    atoi(strtok (seq,SEPARATORS));
 	    s1=atoi(strtok (NULL,SEPARATORS));
 	    s2=atoi(strtok (NULL,SEPARATORS));
 	    template1=seq2T_value(CL->S,s1, "template_name", "_P_");
 	    template2=seq2T_value(CL->S,s2, "template_name", "_P_");
-	    
+
 	    if (!template1 || !template2) return CL;
 
 
@@ -1759,7 +1758,7 @@ Constraint_list * sap_pair   (char *seq_in, char *weight, Constraint_list *CL)
 #endif
 
 
-	    
+
 	    tmp_name1=(char*)vcalloc (100, sizeof (char));
 	    sprintf ( tmp_name1, "%s_%s.sap_results",template1,template2);
 	    tmp_name2=(char*)vcalloc (100, sizeof (char));
@@ -1779,7 +1778,7 @@ Constraint_list * sap_pair   (char *seq_in, char *weight, Constraint_list *CL)
 		char local1[100];
 		char local2[100];
 		char cdir[1001];
-		
+
 		tmp_name=tmp_name1;
 
 		tmp_pdb1=normalize_pdb_file(seq2P_template_file(CL->S,s1),(CL->S)->seq[s1], vtmpnam (NULL));
@@ -1795,7 +1794,7 @@ Constraint_list * sap_pair   (char *seq_in, char *weight, Constraint_list *CL)
     sprintf (local1, "%d_1.%d.sap_tmp", getpid(), rand()%10000);
     sprintf (local2, "%d_2.%d.sap_tmp", getpid(), rand()%10000);
 
-		
+
 		if (strm ((CL->S)->type, "RNA"))
 		  {
 		    printf_system ("rnapdb2protpdb.pl C3PRIME %s > %s",tmp_pdb1, local1);
@@ -1806,7 +1805,7 @@ Constraint_list * sap_pair   (char *seq_in, char *weight, Constraint_list *CL)
 		    printf_system ("cp %s %s", tmp_pdb1, local1);
 		    printf_system ("cp %s %s", tmp_pdb2, local2);
 		  }
-		
+
 		printf_system ("%s %s %s >%s 2>/dev/null::IGNORE_FAILURE::",program,local1,local2, full_name);
 		printf_system ("rm %s", local1);
 		printf_system ("rm %s", local2);
@@ -1819,7 +1818,7 @@ Constraint_list * sap_pair   (char *seq_in, char *weight, Constraint_list *CL)
 		    vfree (seq);
 		    return CL;
 		  }
-		
+
 		if ( flag_file2remove_is_on())add2file2remove_list (full_name);
 		remove ("super.pdb");
 	      }
@@ -1976,7 +1975,6 @@ Constraint_list * best_pair4rna(Job_TC *job)
 {
 	int n,a;
 
-
 	static char *seq;
 	Alignment *A;
 	Constraint_list *PW_CL;
@@ -2058,7 +2056,6 @@ Constraint_list * best_pair4rna(Job_TC *job)
 Constraint_list * best_pair4prot      (Job_TC *job)
 {
   int n,a;
-
 
   static char *seq;
   Alignment *A;
@@ -2237,7 +2234,7 @@ Alignment * fast_pair      (Job_TC *job)
 		extend_seqaln (A->S,NULL);
 		extend_seqaln (NULL,A);
 	      }
-	    
+
 	    score=pair_wise ( A, ns, l_s, PW_CL);
 	    //PostProcessing of the sequences
 	    if (PW_CL->reverse_seq || flipped==1)
@@ -2572,7 +2569,6 @@ Alignment *recompute_local_aln (Alignment *A, Sequence *S,Constraint_list *CL, i
 
 Alignment *stack_progressive_nol_aln_with_seq_coor(Constraint_list *CL,int gop, int gep,Sequence *S, int **seq_coor, int nseq)
     {
-
     static int ** local_coor1;
     static int ** local_coor2;
     if ( local_coor1!=NULL)free_int (local_coor1, -1);
@@ -3865,14 +3861,14 @@ NT_node* local_tree_aln ( NT_node l, NT_node r, Alignment*A,int nseq, Constraint
   static int set_display;
   static int display;
 
-  
+
   if (!set_display)
     {
       set_display=1;
       if (int_variable_isset ("display"))display=get_int_variable ("display");
     }
-  
-  
+
+
   if (!r && !l) return NULL;
   else if (!r)P=l;
   else if (!l)P=r;
@@ -3961,8 +3957,8 @@ NT_node rec_local_tree_aln ( NT_node P, Alignment*A, Constraint_list *CL,int pri
     if (print==1)
       if (L->nseq>R->nseq) print2=0;
 
-    pid1 = start_thread( [&]{ rec_local_tree_aln_task( L, A, CL, print1, tmp1 ); } );
-    pid2 = start_thread( [&]{ rec_local_tree_aln_task( R, A, CL, print2, tmp2 ); } );
+    pid1 = start_thread( [=]{ rec_local_tree_aln_task( L, A, CL, print1, tmp1 ); } );
+    pid2 = start_thread( [=]{ rec_local_tree_aln_task( R, A, CL, print2, tmp2 ); } );
     join( pid1 );
     join( pid2 );
 
@@ -4016,7 +4012,6 @@ NT_node* tree2ao ( NT_node LT, NT_node RT, Alignment*A, int nseq, Constraint_lis
     int *n_s;
     int ** l_s;
     int a, b;
-
     static int n_groups_done, do_split=0;
     int  nseq2align=0;
     int *translation;
@@ -4409,7 +4404,6 @@ Alignment* delayed_tree_aln1 ( NT_node P,Alignment*A,Constraint_list *CL, int th
 {
   int *ns, **ls, a, sim;
   NT_node LT, RT, D, UD;
-
   static NT_node R;
   static int n_groups_done;
 
@@ -4491,7 +4485,6 @@ Alignment* delayed_tree_aln2 ( NT_node P,Alignment*A,Constraint_list *CL, int th
 {
 
   NT_node LT, RT, D;
-
   static NT_node R;
 
 
@@ -5207,42 +5200,42 @@ char **mpw_gap_padd (char **array,int *ns,int **ls,int *pos)
 
 
 int pair_wise   (Alignment *A, int*ns, int **l_s,Constraint_list *CL )
-    {
-	/*
-	 CL->maximise
-	 CL->gop;
-	 CL->gep
-	 CL->TG_MODE;
-	*/
-	int score;
+{
+  /*
+   CL->maximise
+   CL->gop;
+   CL->gep
+   CL->TG_MODE;
+  */
+  int score;
 
-	int glocal;
-	Pwfunc function;
-
-
-
-	if (read_size_int (ns, sizeof (int))==3 && ns[2]!=-1)return pair_wise_ms(A,ns,l_s,CL);
+  int glocal;
+  Pwfunc function;
 
 
-	/*Make sure evaluation functions update their cache if needed*/
-	A=update_aln_random_tag (A);
 
-	if (! CL->pw_parameters_set)
-		   {
-		       fprintf ( stderr, "\nERROR pw_parameters_set must be set in pair_wise [FATAL]\n" );crash("");
-		   }
+  if (read_size_int (ns, sizeof (int))==3 && ns[2]!=-1)return pair_wise_ms(A,ns,l_s,CL);
 
 
-	function=get_pair_wise_function(CL->pair_wise,  CL->dp_mode,&glocal);
-	if ( CL->get_dp_cost==NULL)CL->get_dp_cost=get_dp_cost;
+  /*Make sure evaluation functions update their cache if needed*/
+  A=update_aln_random_tag (A);
 
-	if (strlen ( A->seq_al[l_s[0][0]])==0 || strlen ( A->seq_al[l_s[1][0]])==0)
-	  score=empty_pair_wise ( A, ns, l_s, CL, glocal);
-	else
-	  score=function ( A, ns, l_s, CL);
+  if (! CL->pw_parameters_set)
+  {
+    fprintf ( stderr, "\nERROR pw_parameters_set must be set in pair_wise [FATAL]\n" );crash("");
+  }
 
-	return score;
-    }
+
+  function=get_pair_wise_function(CL->pair_wise,  CL->dp_mode,&glocal);
+  if ( CL->get_dp_cost==NULL)CL->get_dp_cost=get_dp_cost;
+
+  if (strlen ( A->seq_al[l_s[0][0]])==0 || strlen ( A->seq_al[l_s[1][0]])==0)
+    score=empty_pair_wise ( A, ns, l_s, CL, glocal);
+  else
+    score=function ( A, ns, l_s, CL);
+
+  return score;
+}
 
 int empty_pair_wise ( Alignment *A, int *ns, int **l_s, Constraint_list *CL, int glocal)
 {

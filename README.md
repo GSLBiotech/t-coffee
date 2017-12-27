@@ -1,11 +1,9 @@
-Overview
-========
+# Overview
 
 This is a modification of the last stable release of TCOFFEE
 that allows it to build and run natively on Windows with MSVC.
 
-Modifications
-=============
+# Modifications
 
 - Use threads instead of process forking, because there is no equivalent on Windows.
 - Renamed some constants and variables that conflicted with macro names
@@ -29,17 +27,33 @@ Modifications
 - Use Windows environment variables where necessary.
 - Disabled embedded perl script due to exceeding MSVC compiler limits.
   This needs to be revisited to re-activate.
-- Removed some unused variables and function args, but some might still remain.
+- Removed some unused variables, functions and function args, but some might still remain.
 
-Debugging
-=========
+# Building
+
+You'll need a c++11 compliant compiler.
+
+## Mac/Linux
+
+    cd t_coffee_source
+    make -j
+    
+## Windows
+
+You have to use GNU Make to support some convenient make extensions. 
+Get it from either Chocolatey, GnuWin32 or a Git package.
+
+    cd t_coffee_source
+    gmake -j -f makefile.win
+
+# Debugging
 
 QtCreator can be used to debug the executable.
 
-Build it from the command line with GNU Make:
+Build it from the command line with an extra flag:
 
     gmake -f makefile.win DEBUG_ENABLED=1
 
-Use these args in Project->Run:
+Use these args in QtCreator->Project->Run:
 
     -infile C:\tmp\input.fasta -type=dna -outfile C:\tmp\output.txt

@@ -105,7 +105,7 @@ static char *logfile;
 
 /*********************************************************************/
 /*                                                                   */
-/*                                  SANDBOX
+/*                                  SANDBOX                          */
 /*                                                                   */
 /*                                                                   */
 /*********************************************************************/
@@ -638,36 +638,37 @@ void sort_double ( double **V,int N_F, int F, int left, int right)
 
 
 void sort_list_int ( int **V,int N_F, int F, int left, int right)
-        {
-	if (!V)return;
-	sort_field=F;
-	qsort ( V, (right-left)+1, sizeof(int**),(int(*)(const void*,const void*))(cmp_list_int));
-	}
+{
+  if (!V)return;
+  sort_field=F;
+  qsort ( V, (right-left)+1, sizeof(int**),(int(*)(const void*,const void*))(cmp_list_int));
+}
+
 static int *order;
 void sort_list_int2 ( int **V,int *list,int N_F, int left, int right)
-        {
-	  // just like sort_int_list, but uses list to to order the comparison of the keys
-	  if (!V)return;
-	order=list;
+{
+  // just like sort_int_list, but uses list to to order the comparison of the keys
+  if (!V)return;
+  order=list;
 
-	qsort ( V, (right-left)+1, sizeof(int**),(int(*)(const void*,const void*))(cmp_list_int2));
-	}
+  qsort ( V, (right-left)+1, sizeof(int**),(int(*)(const void*,const void*))(cmp_list_int2));
+}
 int cmp_list_int2 (const int**a, const int**b)
-	{
-	  int p=0;;
-	  int c,d;
+{
+  int p=0;;
+  int c,d;
 
 
 
-	  while ((c=order[p])!=-1)
-	  {
+  while ((c=order[p])!=-1)
+  {
 
-	    if ( a[0][c]>b[0][c])return   1;
-	    else if ( a[0][c]<b[0][c])return  -1;
-	    p++;
-	  }
-	return 0;
-	}
+    if ( a[0][c]>b[0][c])return   1;
+    else if ( a[0][c]<b[0][c])return  -1;
+    p++;
+  }
+  return 0;
+}
 
 void sort_float_inv ( float **V,int N_F, int F, int left, int right)
 	{
@@ -1966,46 +1967,45 @@ void crash ( char *s)
 
 static int *local_table;
 int ** make_recursive_combination_table ( int tot_n_param, int *n_param, int *nc, int**table, int field)
+{
+  int a, b, c;
+      /* makes a table of all possible combinations*/
+
+  if ( tot_n_param==0)
+  {
+    nc[0]=1;
+    fprintf ( stderr, "\nNULL RETURNED");
+    return NULL;
+  }
+  if (table==NULL)
+  {
+    if ( local_table!=NULL)vfree (local_table);
+    local_table=(int*)vcalloc ( tot_n_param, sizeof (int));
+    field=0;
+    for ( a=0; a< tot_n_param; a++)local_table[a]=-1;
+    for ( a=0; a< tot_n_param; a++)nc[0]=nc[0]*n_param[a];
+
+
+    table=declare_int ( nc[0],tot_n_param);
+    nc[0]=0;
+  }
+
+  for ( b=0; b<n_param[field]; b++)
+  {
+
+    local_table[field]=b;
+    if ( field<tot_n_param-1)
     {
-    int a, b, c;
-
-    /* makes a table of all possible combinations*/
-
-    if ( tot_n_param==0)
-	{
-	    nc[0]=1;
-	    fprintf ( stderr, "\nNULL RETURNED");
-	    return NULL;
-	}
-    if (table==NULL)
-        {
-        if ( local_table!=NULL)vfree (local_table);
-	local_table=(int*)vcalloc ( tot_n_param, sizeof (int));
-	field=0;
-	for ( a=0; a< tot_n_param; a++)local_table[a]=-1;
-	for ( a=0; a< tot_n_param; a++)nc[0]=nc[0]*n_param[a];
-
-
-	table=declare_int ( nc[0],tot_n_param);
-	nc[0]=0;
-	}
-
-    for ( b=0; b<n_param[field]; b++)
-	       {
-
-               local_table[field]=b;
-	       if ( field<tot_n_param-1)
-	          {
-                  table=make_recursive_combination_table ( tot_n_param, n_param, nc, table, field+1);
-		  }
-	       else
-	          {
-                  for ( c=0; c< tot_n_param; c++)table[nc[0]][c]=local_table[c];
-		  nc[0]++;
-		  }
-	       }
-    return table;
+      table=make_recursive_combination_table ( tot_n_param, n_param, nc, table, field+1);
     }
+    else
+    {
+      for ( c=0; c< tot_n_param; c++)table[nc[0]][c]=local_table[c];
+      nc[0]++;
+    }
+  }
+  return table;
+}
 
 /*********************************************************************/
 /*                                                                   */
@@ -3429,7 +3429,7 @@ int array_is_in_set ( char *x, char *set )
 
 int is_in_set ( char r, char *list)
 {
-	static char s[2];
+	static thread_local char s[2]={0};
 	s[0]=r;
 	if ( strstr ( list,s)!=NULL)
 		return 1;
@@ -3582,26 +3582,26 @@ char **left_pad_string_array ( char **array, int n, int len, char pad)
      return array;
      }
 char * crop_string (char *string, int start, int end)
-     {
-     static char *buf;
-     /*Extract [start-end[*/
+{
+  static char *buf;
+  /*Extract [start-end[*/
 
-     if ( strlen (string)<end)
-             {
-	     myexit(fprintf_error ( stderr, "\nString=%s, start=%d end=%d", string, start, end));
-	     crash ( "Wrong End in crop String [FATAL]");
-	     }
-     else
-         {
-	 buf=(char*)vcalloc (strlen (string)+1, sizeof (char));
-	 string[end]='\0';
-	 sprintf ( buf, "%s", string+start);
-	 sprintf ( string,"%s", buf);
-	 vfree (buf);
-	 }
+  if ( strlen (string)<end)
+  {
+    myexit(fprintf_error ( stderr, "\nString=%s, start=%d end=%d", string, start, end));
+    crash ( "Wrong End in crop String [FATAL]");
+  }
+  else
+  {
+    buf=(char*)vcalloc (strlen (string)+1, sizeof (char));
+    string[end]='\0';
+    sprintf ( buf, "%s", string+start);
+    sprintf ( string,"%s", buf);
+    vfree (buf);
+  }
 
-     return string;
-     }
+  return string;
+}
 
 int get_distance2char ( char *x, char*list)
     {
@@ -4350,7 +4350,6 @@ void kill_child_list (int *list)
 static int done =0;
 int get_child_list (int pid,int *clist)
 {
-
 	if (done)
 		return 0;
 	char ***list;
@@ -4563,22 +4562,19 @@ char *get_plugins_4_tcoffee_old ( char *mode)
 }
 char *get_home_4_tcoffee ()
 {
-  static char *home_4_tcoffee;
-  static char home[1000];
+  static char *home_4_tcoffee=NULL;
 
+  if ( home_4_tcoffee) return home_4_tcoffee;
 
-  if ( !home_4_tcoffee)
-    home_4_tcoffee=(char*)vcalloc ( 1000, sizeof (char));
+  home_4_tcoffee=(char*)vcalloc ( 1000, sizeof (char));
 
-  if ( home_4_tcoffee[0])return home_4_tcoffee;
-  else if ( check_dir_getenv ("HOME_4_TCOFFEE"))
+  if ( check_dir_getenv ("HOME_4_TCOFFEE"))
     {
       sprintf (home_4_tcoffee, "%s/", getenv ("HOME_4_TCOFFEE"));
     }
   else if ( check_dir_getenv (ENV_HOME))
     {
       sprintf (home_4_tcoffee, "%s/", getenv (ENV_HOME));
-      sprintf (home, "%s/", home_4_tcoffee);
     }
   else if ( check_dir_getenv ("TMP"))
     {
@@ -4598,7 +4594,7 @@ char *get_home_4_tcoffee ()
 }
 char *get_dir_4_tcoffee()
 {
-  static char dir_4_tcoffee[1000];
+  static char dir_4_tcoffee[1000]={0};
 
   if (dir_4_tcoffee[0])return dir_4_tcoffee;
   else
@@ -4612,16 +4608,10 @@ char *get_dir_4_tcoffee()
 }
 char *get_tmp_4_tcoffee ()
 {
-  static char *tmp_4_tcoffee;
-  if (!tmp_4_tcoffee)
-  {
-    tmp_4_tcoffee=(char*)vcalloc ( 1000, sizeof (char));
-
-  }
+  static char tmp_4_tcoffee[1000]={0};
 
   if ( tmp_4_tcoffee[0])
   {
-
     return tmp_4_tcoffee;
   }
   else
@@ -4635,15 +4625,15 @@ char *get_tmp_4_tcoffee ()
     if (getenv ("UNIQUE_DIR_4_TCOFFEE"))
     {
       printf("UNIQUE_DIR_4_TCOFFEE\n");
-      sprintf (tmp_4_tcoffee, "%s/", getenv("UNIQUE_DIR_4_TCOFFEE"));
+      sprintf (tmp_4_tcoffee, "%s", getenv("UNIQUE_DIR_4_TCOFFEE"));
     }
-    if (v && strm (v, "TMP"))sprintf (tmp_4_tcoffee, "%s/", getenv("TMP"));
-    else if (v && strm (v, "LOCAL"))sprintf (tmp_4_tcoffee, "%s/", getcwd(NULL,0));
-    else if (v && strm (v, "."))sprintf (tmp_4_tcoffee, "%s/", getcwd(NULL,0));
+    if (v && strm (v, "TMP"))sprintf (tmp_4_tcoffee, "%s", getenv("TMP"));
+    else if (v && strm (v, "LOCAL"))sprintf (tmp_4_tcoffee, "%s", getcwd(NULL,0));
+    else if (v && strm (v, "."))sprintf (tmp_4_tcoffee, "%s", getcwd(NULL,0));
     else if (v)sprintf (tmp_4_tcoffee, "%s", v);
-    else if (isdir("/var/tmp"))sprintf (tmp_4_tcoffee, "/var/tmp/");
+    else if (isdir("/var/tmp"))sprintf (tmp_4_tcoffee, "/var/tmp");
     else if (isdir(get_dir_4_tcoffee ()))sprintf (tmp_4_tcoffee, "%s", get_dir_4_tcoffee());
-    else sprintf (tmp_4_tcoffee, "%s/", getcwd(NULL,0));
+    else sprintf (tmp_4_tcoffee, "%s", getcwd(NULL,0));
 
     //now that rough location is decided, create the subdir structure
 
@@ -4651,24 +4641,20 @@ char *get_tmp_4_tcoffee ()
     if (is_root_thread())
     {
       cputenv ("ROOT_TMP_4_TCOFFEE=%s",  tmp_4_tcoffee);
-      sprintf (buf, "%s/t_coffee.tmp/tmp.%s.%d/", tmp_4_tcoffee,host,getpid());
+      sprintf (buf, "%s/t_coffee.tmp/tmp.%s.%d", tmp_4_tcoffee,host,getpid());
       sprintf (tmp_4_tcoffee, "%s", buf);
 
       my_mkdir(tmp_4_tcoffee);
       my_rmdir(tmp_4_tcoffee);
       my_mkdir(tmp_4_tcoffee);
     }
-    substitute (tmp_4_tcoffee, "//", "/");
-    substitute (tmp_4_tcoffee, "//", "/");
-    substitute (tmp_4_tcoffee, "//", "/");
   }
 
   return tmp_4_tcoffee;
 }
 char *get_cache_4_tcoffee ()
 {
-
-  static char cache_4_tcoffee [1000];
+  static char cache_4_tcoffee [1000]={0};
   if ( cache_4_tcoffee[0])return cache_4_tcoffee;
   else
     {
@@ -4683,7 +4669,7 @@ char *get_cache_4_tcoffee ()
 
 char *get_mcoffee_4_tcoffee ()
 {
-  static char mcoffee_4_tcoffee [1000];
+  static char mcoffee_4_tcoffee [1000]={0};
   if ( mcoffee_4_tcoffee[0])return mcoffee_4_tcoffee;
   else
     {
@@ -4696,7 +4682,7 @@ char *get_mcoffee_4_tcoffee ()
 }
 char *get_methods_4_tcoffee ()
 {
-  static char methods_4_tcoffee [1000];
+  static char methods_4_tcoffee [1000]={0};
   if ( methods_4_tcoffee[0])return methods_4_tcoffee;
   else
     {
@@ -4710,7 +4696,7 @@ char *get_methods_4_tcoffee ()
 
 char *get_plugins_4_tcoffee ()
 {
-  static char plugins_4_tcoffee [1000];
+  static char plugins_4_tcoffee [1000]={0};
   if ( plugins_4_tcoffee[0])return plugins_4_tcoffee;
   else
     {
@@ -4723,17 +4709,16 @@ char *get_plugins_4_tcoffee ()
 }
 char *get_lockdir_4_tcoffee ()
 {
-  static char lockdir_4_tcoffee [1000];
+  static char lockdir_4_tcoffee[1000]={0};
   char *v;
 
   if ( lockdir_4_tcoffee[0] )return lockdir_4_tcoffee;
   else
     {
-      char buf[1000];
       v=getenv ("LOCKDIR_4_TCOFFEE");
-      if (getenv ("UNIQUE_DIR_4_TCOFFEE"))sprintf (lockdir_4_tcoffee, "%s/", get_tmp_4_tcoffee());
-      else if (v)sprintf (lockdir_4_tcoffee, "%s/", v);
-      else sprintf (lockdir_4_tcoffee, "%s/", get_tmp_4_tcoffee());
+      if (getenv ("UNIQUE_DIR_4_TCOFFEE"))sprintf (lockdir_4_tcoffee, "%s", get_tmp_4_tcoffee());
+      else if (v)sprintf (lockdir_4_tcoffee, "%s", v);
+      else sprintf (lockdir_4_tcoffee, "%s", get_tmp_4_tcoffee());
     }
 
   if (is_root_thread())
@@ -5236,71 +5221,71 @@ char* unset_string_variable (char *name)
  */
 char* store_string_variable (char *name, char* v, int mode)
 {
-    static char **name_array, **val_array;
-    static int n;
-    int a;
+  static char **name_array=NULL;
+  static char **val_array=NULL;
+  static int n=0;
+  int a;
 
-    if ( mode == SET)
+  if ( mode == SET)
+  {
+    for (a=0; a<n; a++)
     {
-
-        for (a=0; a<n; a++)
+      if ( strm (name,name_array[a]))
+      {
+        if (v)
         {
-            if ( strm (name,name_array[a]))
-            {
-                if (v)
-                {
-                    val_array[a]=(char*)vrealloc (val_array[a], strlen (v)+1);
-                    sprintf (val_array[a],"%s",v);
-                }
-                else if( val_array[a] ) val_array[a][0]='\0';
-                return v;
-            }
+          val_array[a]=(char*)vrealloc (val_array[a], strlen (v)+1);
+          sprintf (val_array[a],"%s",v);
         }
-        if (!name_array)
-        {
-            name_array=(char**)vcalloc (1, sizeof (char*));
-            val_array=(char**)vcalloc  (1, sizeof (char*));
-        }
-        else
-        {
-            name_array=(char**)vrealloc (name_array, (n+1)*sizeof (char*));
-            val_array=(char**)vrealloc (val_array, (n+1)*sizeof (char*));
-        }
-        name_array[n]=(char*)vcalloc ( strlen (name)+1, sizeof (char));
-        val_array[n]=(char*)vcalloc ( strlen (v)+1, sizeof (char));
-
-        sprintf ( name_array[n], "%s", name);
-        sprintf ( val_array[n], "%s", v);
-        n++;
-
+        else if( val_array[a] ) val_array[a][0]='\0';
         return v;
+      }
+    }
+    if (!name_array)
+    {
+      name_array=(char**)vcalloc (1, sizeof (char*));
+      val_array=(char**)vcalloc  (1, sizeof (char*));
+    }
+    else
+    {
+      name_array=(char**)vrealloc (name_array, (n+1)*sizeof (char*));
+      val_array=(char**)vrealloc (val_array, (n+1)*sizeof (char*));
+    }
+    name_array[n]=(char*)vcalloc ( strlen (name)+1, sizeof (char));
+    val_array[n]=(char*)vcalloc ( strlen (v)+1, sizeof (char));
 
-    }
-    else if ( mode == ISSET)
+    sprintf ( name_array[n], "%s", name);
+    sprintf ( val_array[n], "%s", v);
+    n++;
+
+    return v;
+
+  }
+  else if ( mode == ISSET)
+  {
+    for (a=0; a<n; a++)
+      if ( strm (name_array[a], name))return (char *)1;
+  }
+  else if ( mode == UNSET)
+  {
+    for (a=0; a<n; a++)
+      if ( strm (name_array[a], name))
+      {
+        name_array[a][0]='\0';
+        val_array[a][0]='\0';
+        return 0;
+      }
+    add_warning (stdout, "Could not UNSET the value of %s. You must SET the value before it is used", name);
+  }
+  else if (mode==GET)
+  {
+    for (a=0; a<n; a++)
     {
-        for (a=0; a<n; a++)
-            if ( strm (name_array[a], name))return (char *)1;
+      if ( strm (name_array[a], name))
+        return val_array[a];
     }
-    else if ( mode == UNSET)
-    {
-        for (a=0; a<n; a++)
-            if ( strm (name_array[a], name))
-            {
-                name_array[a][0]='\0';
-                val_array[a][0]='\0';
-                return 0;
-            }
-        add_warning (stdout, "Could not UNSET the value of %s. You must SET the value before it is used", name);
-    }
-    else if (mode==GET)
-    {
-        for (a=0; a<n; a++)
-        {
-            if ( strm (name_array[a], name))
-                return val_array[a];
-        }
-    }
-    return NULL;
+  }
+  return NULL;
 }
 int int_variable_isset (const char *name_in)
 {
@@ -5327,63 +5312,63 @@ int unset_int_variable (const char name_in[])
 
 int store_int_variable (char *name, int v, int mode)
 {
-  static char **name_array;
-  static int *val_array;
-  static int n;
+  static char **name_array=NULL;
+  static int *val_array=NULL;
+  static int n=0;
   int a;
 
   if ( mode == SET)
+  {
+    for (a=0; a<n; a++)
     {
-      for (a=0; a<n; a++)
-	{
-	  if ( strm (name,name_array[a]))
-	    {
-	      val_array[a]=v;
-	      return v;
-	    }
-	}
-      if (!name_array)
-	{
-	  name_array=(char**)vcalloc (1, sizeof (char*));
-	  val_array=(int*)vcalloc  (1, sizeof (int));
-	}
-      else
-	{
-	  name_array=(char**)vrealloc (name_array, (n+1)*sizeof (char*));
-	  val_array=(int*)vrealloc (val_array, (n+1)*sizeof (int));
-	}
-      name_array[n]=(char*)vcalloc ( strlen (name)+1, sizeof (char));
-      sprintf ( name_array[n], "%s", name);
-      val_array[n]=v;
-      n++;
-
-      return v;
-
+      if ( strm (name,name_array[a]))
+      {
+        val_array[a]=v;
+        return v;
+      }
     }
+    if (!name_array)
+    {
+      name_array=(char**)vcalloc (1, sizeof (char*));
+      val_array=(int*)vcalloc  (1, sizeof (int));
+    }
+    else
+    {
+      name_array=(char**)vrealloc (name_array, (n+1)*sizeof (char*));
+      val_array=(int*)vrealloc (val_array, (n+1)*sizeof (int));
+    }
+    name_array[n]=(char*)vcalloc ( strlen (name)+1, sizeof (char));
+    sprintf ( name_array[n], "%s", name);
+    val_array[n]=v;
+    n++;
+
+    return v;
+
+  }
   else if ( mode == ISSET)
-    {
-       for (a=0; a<n; a++)
-	 if ( strm (name_array[a], name))return 1;
-    }
+  {
+    for (a=0; a<n; a++)
+      if ( strm (name_array[a], name))return 1;
+  }
   else if ( mode == UNSET)
-    {
-      for (a=0; a<n; a++)
-	if ( strm (name_array[a], name))
-	  {
-	    name_array[a][0]='\0';
-	    val_array[a]=0;
-	    return 0;
-	  }
-      add_warning (stdout, "Could not UNSET the value of %s. You must SET the value before it is used", name);
-    }
+  {
+    for (a=0; a<n; a++)
+      if ( strm (name_array[a], name))
+      {
+        name_array[a][0]='\0';
+        val_array[a]=0;
+        return 0;
+      }
+    add_warning (stdout, "Could not UNSET the value of %s. You must SET the value before it is used", name);
+  }
   else if (mode==GET)
+  {
+    for (a=0; a<n; a++)
     {
-      for (a=0; a<n; a++)
-	{
-	  if ( strm (name_array[a], name))
-	    return val_array[a];
-	}
+      if ( strm (name_array[a], name))
+        return val_array[a];
     }
+  }
   return 0;
 }
 
@@ -5741,13 +5726,18 @@ char *chomp (char *name)
 static thread_local Tmpname *tmpname;
 static thread_local Tmpname *ntmpname;
 
-static int n_tmpname;
+static int n_tmpname=0;
 static int file2remove_flag;
 
+static std::mutex g_extension_mutex;
 char *set_file2remove_extension (char *extension, int mode)
 {
-  static char ext[100];
-  if (mode==SET)sprintf (ext, "%s", extension);
+  std::lock_guard<std::mutex> guard( g_extension_mutex );
+  static char ext[100]={0};
+  if (mode==SET)
+  {
+    sprintf (ext, "%s", extension);
+  }
   else if ( mode==UNSET) ext[0]='\0';
   else if ( mode==GET);
   return ext;
@@ -5778,7 +5768,6 @@ char *add2file2remove_list (char *name)
   sprintf (ntmpname->name, "%s", name);
   return ntmpname->name;
 }
-//char *short_tmpnam_2(char *s);//used to generate very compact tmp names
 void  initiate_vtmpnam (char *file)
 {
   add2file2remove_list (NULL);
@@ -5832,63 +5821,24 @@ char *tmpnam_2 (char *s)
 {
   static thread_local int root=0;
   static thread_local int file=0;
-	char buf[VERY_LONG_STRING];
-  static thread_local char root2[VERY_LONG_STRING];
-	static char *tmpdir;
-	static int name_size;
+  static thread_local char root2[VERY_LONG_STRING]={0};
 
 	if ( !root || !s)
 	{
-		char *vtmpnam_prefixe;
-
-		name_size=MAX( 2*L_tmpnam, MAXNAMES*2)+1;
 		root=get_vtmpnam2_root();
     sprintf ( root2, "%d_%d_%d_", root, (int)getpid(), get_thread_index());
-
-		vtmpnam_prefixe=(char*)vcalloc (strlen (root2)+strlen (get_tmp_4_tcoffee())+2, sizeof (char));
-		sprintf (vtmpnam_prefixe, "%s/%s", get_tmp_4_tcoffee(), root2);
-		set_string_variable ("vtmpnam_prefixe1", vtmpnam_prefixe);
-		set_string_variable ("vtmpnam_prefixe2", root2);
-		vfree (vtmpnam_prefixe);
 	}
 
-	if (!s)return NULL;
-	tmpdir=get_tmp_4_tcoffee();
+	if (!s) return NULL;
+
+  static char *tmpdir=get_tmp_4_tcoffee();
+  char buf[VERY_LONG_STRING];
 
 	sprintf (buf, "%s/%s%d_TCtmp%s",tmpdir,root2, file++,set_file2remove_extension (NULL, GET));
-	if ( strlen(buf)>=name_size)s=(char*)vrealloc (s,(strlen(buf)+1)*sizeof (char));
+	if ( strlen(buf) > strlen(s) ) s = (char*) vrealloc (s, (strlen(buf)+1)*sizeof (char));
 	sprintf (s, "%s", buf);
+
 	return s;
-}
-char *short_tmpnam_2(char *s)
-{
-  static int root;
-  static int file;
-  char buf[VERY_LONG_STRING];
-  static char root2[VERY_LONG_STRING];
-
-  static int name_size;
-
-  if ( !root || !s)
-    {
-      char *vtmpnam_prefixe;
-
-      name_size=MAX( 2*L_tmpnam, MAXNAMES*2)+1;
-      root=get_vtmpnam2_root();
-      sprintf ( root2, "%d%d", root,getpid());
-
-      vtmpnam_prefixe=(char*)vcalloc (strlen (root2)+strlen (get_tmp_4_tcoffee())+2, sizeof (char));
-      sprintf (vtmpnam_prefixe, "%s", root2);
-      set_string_variable ("vtmpnam_prefixe1", vtmpnam_prefixe);
-      set_string_variable ("vtmpnam_prefixe2", root2);
-      vfree (vtmpnam_prefixe);
-    }
-  if (!s) return NULL;
-
-  sprintf (buf, "%s%d%s",root2, file++,set_file2remove_extension (NULL, GET));
-  if ( strlen(buf)>=name_size)s=(char*)vrealloc (s,(strlen(buf)+1)*sizeof (char));
-  sprintf (s, "%s", buf);
-  return s;
 }
 
 char *vremove2 (char *s)
@@ -5974,7 +5924,7 @@ FILE *NFP;/*Null file pointer: should only be open once*/
 /*                                                                   */
 /*                                                                   */
 /*********************************************************************/
-static char *cache;
+static char *cache=NULL;
 char * prepare_cache ( const char *mode)
 {
   cache =(char*)vcalloc ( 10000, sizeof(char));
@@ -6050,13 +6000,11 @@ FILE * vfopen  ( char *name_in, char *mode)
   int cache_used=0;
   FILE *tmp_fp;
   int c;
-  static char *name;
-  static char *name2;
-  static char *stdin_file;
+  char name[1000]={0};
+  char name2[1000]={0};
+  char *stdin_file=NULL;
 
   if ( !name_in)return NULL;
-  if (!name){name=(char*)vcalloc (1000, sizeof (char));}
-  if (!name2){name2=(char*)vcalloc (1000, sizeof (char));}
 
   //intercept net files
 
@@ -6086,7 +6034,6 @@ FILE * vfopen  ( char *name_in, char *mode)
     if ( NFP==NULL)NFP=fopen (NULL_DEVICE, mode);
     return NFP;
   }
-
   else if ( strm3 (name,"stderr","STDERR","Stderr"))return stderr;
   else if ( strm3 (name,"stdout","STDOUT","Stdout"))return stdout;
   else if ( strm3 ( name, "stdin","STDIN","Stdin"))
@@ -6100,7 +6047,6 @@ FILE * vfopen  ( char *name_in, char *mode)
     }
     return vfopen (stdin_file, "r");
   }
-
   else if ( strm (name, "") && (strm (mode, "w") ||strm (mode, "a")) )return stdout;
   else if ( strm (name, "") && strm (mode, "r"))return stdin;
   else if ( (fp= fopen ( name, mode))==NULL)
@@ -6414,20 +6360,20 @@ int file2size(char *name)
  * \code
  * 	       declare_name (extend_mode);
  * 	       get_cl_param(\
- * 			    /*argc* /      argc          ,
- *              /*argv* /      argv          ,\
- *              /*output* /    &le           ,\
- *              /*Name* /      "-extend_mode"     ,\
- *              /*Flag* /      &garbage    ,\
- *              /*TYPE* /      "S"           ,\
- *              /*OPTIONAL?* / OPTIONAL      ,\
- *              /*MAX Nval* /  1             ,\
- *              /*DOC* /       "Library extension mode"          ,\
- *              /*Parameter* / &extend_mode    ,\
- *              /*Def 1* /     "very_fast_triplet"           ,\
- *              /*Def 2* /     ""           ,\
- *              /*Min_value* / "any"         ,\
- *              /*Max Value* / "any"          \
+ * 			        / *argc* /      argc          ,
+ *              / *argv* /      argv          ,\
+ *              / *output* /    &le           ,\
+ *              / *Name* /      "-extend_mode"     ,\
+ *              / *Flag* /      &garbage    ,\
+ *              / *TYPE* /      "S"           ,\
+ *              / *OPTIONAL?* / OPTIONAL      ,\
+ *              / *MAX Nval* /  1             ,\
+ *              / *DOC* /       "Library extension mode"          ,\
+ *              / *Parameter* / &extend_mode    ,\
+ *              / *Def 1* /     "very_fast_triplet"           ,\
+ *              / *Def 2* /     ""           ,\
+ *              / *Min_value* / "any"         ,\
+ *              / *Max Value* / "any"          \
  *              );
  * \endcode
  *
@@ -6903,41 +6849,38 @@ int token_is_in_file ( char *fname, char *token)
 int token_is_in_file_n ( char *fname, char *token, int nlines)
 {
   /*TH:an argument against torture: innocents get tortured longer, likewise for token testing*/
-  FILE *fp;
-  static char *buf;
-  char *b, *p;
+  static thread_local char *buf=NULL;
+  char *b=NULL, *p=NULL;
   int begining;
   int line_number=0;
 
-
   if (token[0]=='\n')
-    {
-
-      begining=1;
-      token++;
-    }
+  {
+    begining=1;
+    token++;
+  }
   else
-    {
-      begining=0;
-    }
+  {
+    begining=0;
+  }
 
   if ( !fname || !file_exists(NULL,fname))return 0;
   else
+  {
+    FILE* fp=vfopen (fname, "r");
+    while ((b=vfgets (buf,fp))!=NULL && (line_number<nlines || nlines==0))
     {
-      fp=vfopen (fname, "r");
-      while ((b=vfgets (buf,fp))!=NULL && (line_number<nlines || nlines==0))
-	{
-	  buf=b;
+      buf=b;
 
-	  p=strstr (buf, token);
-	  if (!p);
-	  else if ( begining==1 && p==buf){vfclose (fp); return 1;}
-	  else if ( begining==0 && p){vfclose (fp); return 1;}
-	  line_number++;
-	}
-      vfclose (fp);
-      return 0;
+      p=strstr (buf, token);
+      if (!p);
+      else if ( begining==1 && p==buf){vfclose (fp); return 1;}
+      else if ( begining==0 && p){vfclose (fp); return 1;}
+      line_number++;
     }
+    vfclose (fp);
+    return 0;
+  }
   return 0;
 }
 
@@ -6968,7 +6911,7 @@ char *vfgets ( char *buf, FILE *fp)
   l=0;
   c=fgetc (fp);
 
-  if ( (c==EOF)){return NULL;}
+  if ( c==EOF){return NULL;}
   ungetc (c, fp);
 
   while ( (c=fgetc (fp))!='\n' && c!=EOF)
@@ -6995,46 +6938,41 @@ char *vfgets ( char *buf, FILE *fp)
 
 
 FILE * find_token_in_file ( char *fname, FILE * fp, char *token)
-	{
-	int c;
-	static char *name;
-	int token_len;
+{
+  int c;
+  static thread_local char *name=NULL;
+  int token_len;
 
-	int only_start;
+  int only_start;
 
-	/*Note: Token: any string
-	        If Token[0]=='\n' Then Token only from the beginning of the line
-	*/
+  /*Note: Token: any string
+          If Token[0]=='\n' Then Token only from the beginning of the line
+  */
 
-	if (!fp && !file_exists("CACHE",fname))return NULL;
+  if (!fp && !file_exists("CACHE",fname))return NULL;
 
-	if ( token[0]=='\n'){token++;only_start=1;}
-	else only_start=0;
+  if ( token[0]=='\n'){token++;only_start=1;}
+  else only_start=0;
 
-	token_len=strlen (token);
+  token_len=strlen (token);
 
+  if (!fp)
+  {
+    if (name)vfree (name);
+    name = (char*)vcalloc (((fname)?measure_longest_line_in_file (fname):10000)+1, sizeof (char));
+    fp=vfopen ( fname, "r");
+  }
 
+  while ( (fscanf ( fp, "%s", name))!=EOF)
+  {
+    if ( name[0]=='*')while ( ((c=fgetc (fp))!='\n')&& (c!=EOF));
+    else if (strncmp ( name, token,token_len)==0){return fp;}
+    else if (only_start) while ( ((c=fgetc (fp))!='\n')&& (c!=EOF));
+  }
 
-
-
-	if (!fp)
-	  {
-	    if (name)vfree (name);
-	    name = (char*)vcalloc (((fname)?measure_longest_line_in_file (fname):10000)+1, sizeof (char));
-	    fp=vfopen ( fname, "r");
-	  }
-
-	while ( (fscanf ( fp, "%s", name))!=EOF)
-		{
-
-		if ( name[0]=='*')while ( ((c=fgetc (fp))!='\n')&& (c!=EOF));
-		else if (strncmp ( name, token,token_len)==0){return fp;}
-		else if (only_start) while ( ((c=fgetc (fp))!='\n')&& (c!=EOF));
-		}
-
-	vfclose ( fp);
-	return NULL;
-	}
+  vfclose ( fp);
+  return NULL;
+}
 
 
 
@@ -7749,33 +7687,29 @@ char* check_url_exists  ( char *fname_in)
 }
 
 char* check_file_exists ( char *fname_in)
-	{
+{
+  thread_local char fname1[1000]={0};
+  thread_local char fname2[1000]={0};
 
-	static char *fname1;
-	static char *fname2;
+  if (!fname_in)return NULL;
+  if (!fname_in[0])return NULL;
+  if (fname_in[0]=='-')return NULL;
 
-	if (!fname_in)return NULL;
-	if (!fname_in[0])return NULL;
-	if (fname_in[0]=='-')return NULL;
+  if (strstr (fname_in, "tp://"))return check_url_exists(fname_in);
 
-	if (strstr (fname_in, "tp://"))return check_url_exists(fname_in);
+  sprintf ( fname1, "%s", fname_in);tild_substitute (fname1, "~", get_home_4_tcoffee());
+  sprintf ( fname2, "%s%s", get_cache_dir(),fname1);
 
-	if (!fname1){fname1=(char*)vcalloc (1000, sizeof (char));}
-	if (!fname2){fname2=(char*)vcalloc (1000, sizeof (char));}
-
-	sprintf ( fname1, "%s", fname_in);tild_substitute (fname1, "~", get_home_4_tcoffee());
-	sprintf ( fname2, "%s%s", get_cache_dir(),fname1);
-
-	if ( filename_is_special (fname1))return fname1;
-	if ( strm5 (fname1, "no", "NO", "No", "NO_FILE","no_file"))return NULL/*fname1*/;
-	if (!file_exists( NULL,fname1))
-	  {
-	    if (!file_exists (NULL,fname2))return NULL;
-	    else return fname2;
-	  }
-	else return fname1;
-	return NULL;
-	}
+  if ( filename_is_special (fname1))return fname1;
+  if ( strm5 (fname1, "no", "NO", "No", "NO_FILE","no_file"))return NULL/*fname1*/;
+  if (!file_exists( NULL,fname1))
+  {
+    if (!file_exists (NULL,fname2))return NULL;
+    else return fname2;
+  }
+  else return fname1;
+  return NULL;
+}
 
 
 void create_file ( char *name)
@@ -7874,7 +7808,6 @@ FILE * output_completion4halfmat ( FILE *fp,int n, int tot, int n_reports, char 
 
 FILE * output_completion ( FILE *fp,int n, int tot, int n_reports, char *string)
         {
-
 	  static int ref_val;
 	  static int flag;
 	  static int ref_time;
@@ -9275,7 +9208,6 @@ int   km_file2dim   ( char *file, int *n,int *dim, int *len)
 	}
     }
   free (buf);
-  n[0];
   dim[0]=mdim;
   vfclose (fp);
   return n[0];

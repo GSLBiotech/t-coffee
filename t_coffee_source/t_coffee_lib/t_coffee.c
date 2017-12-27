@@ -5765,13 +5765,13 @@ char *get_rcoffee_defaults(char *buf, char *type)
   return buf;
 }
 char *get_sracoffee_defaults(char *buf, char *type)
-{ 
+{
   if (buf==NULL)buf=(char*)vcalloc (1000, sizeof (char));
   check_program_is_installed (SAP_4_TCOFFEE,NULL, NULL,SAP_ADDRESS, INSTALL_OR_DIE);
   check_program_is_installed (MUSTANG_4_TCOFFEE,NULL, NULL,MUSTANG_ADDRESS, INSTALL_OR_DIE);
-  
+
   buf=strcat (buf,"-method sap_pair mustang_pair -template_file=RNA -extend_mode rna2 -output clustalw,html -transform dna2rna");
-  
+
   return buf;
 }
 char *get_saracoffee_defaults(char *buf, char *type)
@@ -5989,14 +5989,14 @@ Sequence* prepare_master (char *seq, Sequence *S, Constraint_list *CL, char *dmo
 
     if ( ttag=='N')nseq=((float)S->nseq*((float)nseq/(float)100.0));
   }
-  
+
   //if no seqiuences or all, keep everything and return
   if ( nseq>=S->nseq || nseq==0)
   {
     for (a=0; a<(CL->S)->nseq; a++)CL->master[a]=1;
     return NULL;
   }
-  
+
   //If keep tghe nlonguest make a sorted list of sequence indexes
   if ( strstr (seq, "_NLONG_"))
   {

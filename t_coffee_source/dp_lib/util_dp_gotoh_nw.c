@@ -814,7 +814,7 @@ int gotoh_pair_wise (Alignment *A,int*ns, int **l_s,Constraint_list *CL)
 	int k;
 	static int sample=0;//road==0, random tie; road=1: upper road; road=2 lower road;
 	static int set_sample;
-	
+
 	/********Prepare penalties*******/
 	gop=CL->gop*SCORE_K;
 	gep=CL->gep*SCORE_K;
@@ -843,7 +843,7 @@ int gotoh_pair_wise (Alignment *A,int*ns, int **l_s,Constraint_list *CL)
 	    set_sample=1;
 	    sample=atoigetenv ("SAMPLE_DP_4_TCOFFEE");
 	  }
-	
+
 	lenal[0]=strlen (A->seq_al[l_s[0][0]]);
 	lenal[1]=strlen (A->seq_al[l_s[1][0]]);
 	len= MAX(lenal[0],lenal[1])+1;
@@ -1413,7 +1413,7 @@ int cl2list_borders  (Alignment *A, int *ns, int **ls, Constraint_list *CL, int 
 	  for (a=0; a<2; a++)
 	    {
 	      p2=(a==0)?0:l2;
-	      
+
 	      addE(p1,p2,((l1-(p1))+(p2)),((CL->gep)*SCORE_K*p1), list_in, n_in);
 	    }
 	}
@@ -1835,7 +1835,7 @@ int fork_cl2pair_list_ext ( Alignment *A, int *ns, int **ls, Constraint_list *CL
   for (sjobs=0, j=0; j<njobs; j++)
   {
     pid_tmpfile[j]=vtmpnam(NULL);
-    int thread_index = start_thread( [&]{ fork_cl2pair_list_ext_task( j, pid_tmpfile, sl, pos, ns, ls, CL, sl1, sl2, inv_pos, l1, l2, nr ); } );
+    int thread_index = start_thread( [=]{ fork_cl2pair_list_ext_task( j, pid_tmpfile, sl, pos, ns, ls, CL, sl1, sl2, inv_pos, l1, l2, nr ); } );
     thread_indexes.push_back( thread_index );
     sjobs++;
   }
@@ -1907,7 +1907,6 @@ int linked_pair_wise ( Alignment *A, int *ns, int **ls, Constraint_list *CL)
 
 
   /*Prepare the list*/
-
 
   cl2pair_list_ext    (A, ns, ls, CL, &list, &n);
   cl2diag_cap         (A, ns, ls, CL, &list, &n);

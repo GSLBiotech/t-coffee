@@ -34,9 +34,9 @@
 #include "util_lib_header.h"
 #include "define_header.h"
 #include "dp_lib_header.h"
-               
+
 float compute_lambda (int **matrix,char *alphabet);
- 
+
 /**
  * \file evaluate.c
  * Functions to evaluate consistency between CL and Alignment
@@ -59,16 +59,16 @@ int sub_aln2ecl_raw_score (Alignment *A, Constraint_list *CL, int ns, int *ls)
   if ( !A) return 0;
   A=reorder_aln (A, (CL->S)->name,(CL->S)->nseq);
   pos=aln2pos_simple ( A,A->nseq);
-  
-  
-  
+
+
+
   for (p1=0; p1<A->len_aln; p1++)
     {
       for (s1=0; s1<ns-1; s1++)
 	{
 	  for (s2=s1+1; s2<ns; s2++)
 	    {
-	      
+
 	      r1=pos[ls[s1]][p1];
 	      r2=pos[ls[s2]][p1];
 	      if (r1>0 && r2>0)
@@ -89,16 +89,16 @@ int aln2ecl_raw_score (Alignment *A, Constraint_list *CL)
   if ( !A) return 0;
   A=reorder_aln (A, (CL->S)->name,(CL->S)->nseq);
   pos=aln2pos_simple ( A,A->nseq);
-  
 
-  
+
+
   for (p1=0; p1<A->len_aln; p1++)
     {
       for (s1=0; s1<A->nseq-1; s1++)
 	{
 	  for (s2=s1+1; s2<A->nseq; s2++)
 	    {
-	      
+
 	      r1=pos[s1][p1];
 	      r2=pos[s2][p1];
 	      if (r1>0 && r2>0)score+= residue_pair_extended_list_pc (CL,s1, r1, s2, r2);
@@ -111,7 +111,7 @@ int aln2ecl_raw_score (Alignment *A, Constraint_list *CL)
 int node2sub_aln_score    (Alignment *A,Constraint_list *CL, char *mode, NT_node T)
 {
   if ( !T || !T->right ||!T->left)return 0;
-  else 
+  else
     {
       int *ns;
       int **ls;
@@ -121,7 +121,7 @@ int node2sub_aln_score    (Alignment *A,Constraint_list *CL, char *mode, NT_node
       ns[1]=(T->right)->nseq;
       ls[0]= (T->left)->lseq;
       ls[1]=(T->right)->lseq;
-      
+
       return sub_aln2sub_aln_score (A, CL, mode, ns, ls);
     }
 }
@@ -132,14 +132,14 @@ int sub_aln2sub_aln_score ( Alignment *A,Constraint_list *CL, const char *mode, 
   int **pos;
   int a;
   float score=0;
-  
+
   /*Make sure evaluation functions update their cache if needed*/
   A=update_aln_random_tag (A);
   pos=aln2pos_simple ( A, -1, ns, ls);
   for (a=0; a< A->len_aln; a++)
     score+=CL->get_dp_cost (A, pos, ns[0], ls[0], a, pos, ns[1],ls[1], a, CL);
   free_int (pos, -1);
-   
+
   score=(int)(((float)score)/(A->len_aln*SCORE_K));
   score=(int)(CL->residue_index && CL->normalise)?((score*MAXID)/(CL->normalise)):(score);
   return (int)score;
@@ -151,7 +151,7 @@ int sub_aln2sub_aln_raw_score ( Alignment *A,Constraint_list *CL, const char *mo
   int **pos;
   int a;
   float score=0;
-  
+
   /*Make sure evaluation functions update their cache if needed*/
   A=update_aln_random_tag (A);
   pos=aln2pos_simple ( A, -1, ns, ls);
@@ -165,22 +165,22 @@ Alignment* main_coffee_evaluate_output_sub_aln ( Alignment *A,Constraint_list *C
 {
   Alignment *SUB1, *SUB2, *SUB3;
   int a, b, c,*list_seq;
-  
-  
+
+
   if (strm ( CL->evaluate_mode, "no"))return NULL;
-  else 
+  else
     {
         list_seq=(int*)vcalloc (n_s[0]+n_s[1], sizeof (int));
 	for (b=0, a=0; a< 2; a++){for (c=0;c< n_s[a]; c++)list_seq[b++]=l_s[a][c];}
-	
 
-	SUB1=copy_aln (A, NULL);	  
+
+	SUB1=copy_aln (A, NULL);
 	SUB2=extract_sub_aln (SUB1,n_s[0]+n_s[1],list_seq);
 	SUB3=main_coffee_evaluate_output (SUB2,CL,CL->evaluate_mode);
 	free_aln (SUB1);
 	free_aln (SUB2);
 	vfree (list_seq);
-	
+
 	return SUB3;
     }
 }
@@ -188,10 +188,10 @@ Alignment * overlay_alignment_evaluation     ( Alignment *I, Alignment *O)
 {
   int a, b, r;
   int *buf;
-  
+
   if ( !I || !O) return O;
   if ( I->len_aln!=O->len_aln)printf_exit (EXIT_FAILURE, stderr, "ERROR: Incompatible alignments in overlay_alignment_evaluation");
-  
+
   buf=(int*)vcalloc ( MAX(I->len_aln, O->len_aln), sizeof (int));
 
   for (a=0; a<O->nseq; a++)
@@ -209,9 +209,9 @@ Alignment * overlay_alignment_evaluation     ( Alignment *I, Alignment *O)
 
 Alignment * main_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL, const char *mode )
 {
-  
+
   Alignment *TopS=NULL, *LastS=NULL, *CurrentS=NULL;
-  
+
 
   if ( pIN->A){pIN=pIN->A;}
   while (pIN)
@@ -231,19 +231,19 @@ Alignment * main_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL, co
 
 Alignment * main_coffee_evaluate_output2 ( Alignment *pIN,Constraint_list *CL, const char *mode )
 {
-  
+
   /*Make sure evaluation functions update their cache if needed*/
- 
+
   pIN=update_aln_random_tag (pIN);
-  
+
   if ( CL->evaluate_residue_pair==evaluate_matrix_score || CL->ne==0 ||strm ( mode , "categories") || strm ( mode , "matrix")|| strm(mode, "sar")|| strstr (mode, "boxshade") )
      {
-      
+
        if ( strm ( mode , "categories")) return categories_evaluate_output (pIN, CL);
        else if ( strm ( mode , "matrix"))return matrix_evaluate_output (pIN, CL);
        else if ( strm ( mode, "sar"))return sar_evaluate_output (pIN, CL);
        else if ( strstr ( mode, "boxshade"))return boxshade_evaluate_output (pIN, CL, atoi (strstr(mode, "_")+1));
-       
+
        else if ( CL->evaluate_residue_pair==evaluate_matrix_score) return matrix_evaluate_output (pIN, CL);
        else if ( CL->ne==0) return matrix_evaluate_output (pIN, CL);
      }
@@ -254,7 +254,7 @@ Alignment * main_coffee_evaluate_output2 ( Alignment *pIN,Constraint_list *CL, c
      }
    else if ( strstr ( mode, "fast"))
      {
-      
+
        return fast_coffee_evaluate_output ( pIN,CL);
      }
    else if ( strstr ( mode, "slow"))
@@ -280,12 +280,12 @@ Alignment * main_coffee_evaluate_output2 ( Alignment *pIN,Constraint_list *CL, c
      {
        return non_extended_t_coffee_evaluate_output ( pIN,CL);
      }
-   
+
    else if ( strm (mode, "sequences"))
      {
        return coffee_seq_evaluate_output ( pIN,CL);
      }
-   else 
+   else
      {
        fprintf ( stderr, "\nUNKNOWN MODE FOR ALIGNMENT EVALUATION: *%s* [FATAL:%s]",mode, PROGRAM);
        crash ("");
@@ -300,47 +300,47 @@ Alignment * coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
     fprintf ( stderr, "\n[WARNING:%s]THE FUNCTION coffee_evaluate_output IS NOT ANYMORE SUPPORTED\n", PROGRAM);
     fprintf ( stderr, "\n[WARNING]fast_coffee_evaluate_output WILL BE USED INSTEAD\n");
-    
+
     return fast_coffee_evaluate_output (pIN,CL);
     }
 Alignment * matrix_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
-    int a,b, c,r, s, r1, r2;	
+    int a,b, c,r, s, r1, r2;
     Alignment *pOUT=NULL;
-  
+
     double **tot_res;
     double **max_res;
-    
+
     double **tot_seq;
     double **max_seq;
-    
+
     double **tot_col;
     double **max_col;
 
     double max_aln=0;
     double tot_aln=0;
-    
+
 
     /*
       Residue x: sum of observed extended X.. /sum of possible X..
     */
 
-    
+
     if ( !CL->M)CL->M=read_matrice ("blosum62mt");
-    
+
     pOUT=copy_aln (pIN, pOUT);
-    
-    
+
+
     tot_res=declare_double ( pIN->nseq, pIN->len_aln);
     max_res=declare_double ( pIN->nseq, pIN->len_aln);
-    
+
     tot_seq=declare_double ( pIN->nseq, 1);
     max_seq=declare_double ( pIN->nseq, 1);
     tot_col=declare_double ( pIN->len_aln,1);
     max_col=declare_double ( pIN->len_aln,1);
-    
+
     max_aln=tot_aln=0;
-    
+
     for (a=0; a< pIN->len_aln; a++)
         {
 	  double r, s;
@@ -354,30 +354,30 @@ Alignment * matrix_evaluate_output ( Alignment *pIN,Constraint_list *CL)
 		{
       r2=tolower(pIN->seq_al[c][a]);
 		  if (b==c || is_gap (r2))continue;
-		  
+
 		  s=(double)CL->M[r2-'A'][r1-'A'];
 		  s=(s>0)?1:0;
-		  
+
 		  tot_res[b][a]+=s;
 		  max_res[b][a]+=r;
-		  
+
 		  tot_col[a][0]+=s;
 		  max_col[a][0]+=r;
-		  
+
 		  tot_seq[b][0]+=s;
 		  max_seq[b][0]+=r;
-		  
+
 		  tot_aln+=s;
 		  max_aln+=r;
 		}
 	    }
 	}
-    
-    
+
+
     for ( a=0; a< pIN->nseq; a++)
       {
 	if ( !max_seq[a][0])continue;
-       
+
   pOUT->score_seq[a]=(tot_seq[a][0]*100)/max_seq[a][0];
   for (b=0; b< pIN->len_aln; b++)
 	  {
@@ -395,7 +395,7 @@ Alignment * matrix_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     sprintf (pOUT->name[pOUT->nseq], "cons");
     for ( a=0; a< pIN->len_aln; a++)
       {
-	
+
 	r1=((int)(max_col[a][0]==0)?0:(tot_col[a][0]*(double)10)/max_col[a][0]);
   (pOUT)->seq_al[pIN->nseq][a]=((r1>=10)?9:r1)+'0';
       }
@@ -405,15 +405,15 @@ Alignment * matrix_evaluate_output ( Alignment *pIN,Constraint_list *CL)
   pOUT->score_seq[pOUT->nseq]=pOUT->score_aln=(100*tot_aln)/max_aln;
   pOUT->score=pOUT->score_aln=(1000*tot_aln)/max_aln;
       }
-    
-	
-   
+
+
+
     free_double (tot_res,-1);
     free_double (max_res,-1);
-    
+
     free_double (tot_seq,-1);
     free_double (max_seq,-1);
-    
+
     return pOUT;
     }
 
@@ -421,40 +421,40 @@ Alignment * sar_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
       int a,b, c,r, s, r1, r2;
       Alignment *pOUT=NULL;
-      
+
       double **tot_res;
       double **max_res;
-      
+
       double **tot_seq;
       double **max_seq;
-      
+
       double **tot_col;
       double **max_col;
-      
+
       double max_aln=0;
       double tot_aln=0;
-      
-      
+
+
     /*
       Residue x: sum of observed extended X.. /sum of possible X..
     */
 
-    
+
     if ( !CL->M)CL->M=read_matrice ("blosum62mt");
-    
+
     pOUT=copy_aln (pIN, pOUT);
-    
-    
+
+
     tot_res=declare_double ( pIN->nseq, pIN->len_aln);
     max_res=declare_double ( pIN->nseq, pIN->len_aln);
-    
+
     tot_seq=declare_double ( pIN->nseq, 1);
     max_seq=declare_double ( pIN->nseq, 1);
     tot_col=declare_double ( pIN->len_aln,1);
     max_col=declare_double ( pIN->len_aln,1);
-    
+
     max_aln=tot_aln=0;
-    
+
     for (a=0; a< pIN->len_aln; a++)
         {
     for (b=0; b< pIN->nseq; b++)
@@ -464,28 +464,28 @@ Alignment * sar_evaluate_output ( Alignment *pIN,Constraint_list *CL)
 		    {
           r2=tolower(pIN->seq_al[c][a]);
 		      if (b==c)continue;
-		      
+
 		      if ( is_gap(r1) && is_gap(r2))s=0;
 		      else s=(r1==r2)?1:0;
-		      
+
 		      r=1;
-		      
+
 
 		      tot_res[b][a]+=s;
 		      max_res[b][a]+=r;
-		      
+
 		      tot_col[a][0]+=s;
 		      max_col[a][0]+=r;
-		      
+
 		      tot_seq[b][0]+=s;
 		      max_seq[b][0]+=r;
-		      
+
 		      tot_aln+=s;
 		      max_aln+=r;
 		    }
 		}
 	}
-     
+
     for ( a=0; a< pIN->nseq; a++)
       {
 	if ( !max_seq[a][0])continue;
@@ -500,7 +500,7 @@ Alignment * sar_evaluate_output ( Alignment *pIN,Constraint_list *CL)
       (pOUT)->seq_al[a][b]=r1+'0';
 	  }
       }
-    
+
     for ( a=0; a< pIN->len_aln; a++)
       {
 	r1=(max_col[a][0]==0)?0:((tot_col[a][0]*10)/max_col[a][0]);
@@ -510,13 +510,13 @@ Alignment * sar_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     sprintf ( pOUT->name[pIN->nseq], "cons");
     if (max_aln)pOUT->score_aln=(100*tot_aln)/max_aln;
 
-   
+
     free_double (tot_res,-1);
     free_double (max_res,-1);
-    
+
     free_double (tot_seq,-1);
     free_double (max_seq,-1);
-    
+
     return pOUT;
     }
 Alignment * boxshade_evaluate_output ( Alignment *pIN,Constraint_list *CL, int T)
@@ -525,16 +525,16 @@ Alignment * boxshade_evaluate_output ( Alignment *pIN,Constraint_list *CL, int T
       int **aa;
       int r,br, bs, a, b;
       float f;
-     
-      
+
+
     /*
       Residue x: sum of observed extended X.. /sum of possible X..
     */
 
-        
+
     pOUT=copy_aln (pIN, pOUT);
     aa=declare_int (26, 2);
-        
+
     for ( a=0; a< pOUT->len_aln; a++)
       {
 	for ( b=0; b< 26; b++){aa[b][1]=0;aa[b][0]='a'+b;}
@@ -545,30 +545,30 @@ Alignment * boxshade_evaluate_output ( Alignment *pIN,Constraint_list *CL, int T
 	  }
 	sort_int ( aa, 2, 1, 0,25);
   f=(aa[25][1]*100)/pOUT->nseq;
-	
+
 	if (f<T);
 	else
 	  {
 	    bs=((f-T)*10)/(100-T);
 	    br=aa[25][0];
-	
+
 	    if (bs==10)bs--;bs+='0';
       for ( b=0; b< pOUT->nseq; b++)
 	      {
     r=tolower(pOUT->seq_al[b][a]);
     if (r==br && bs>'1')pOUT->seq_al[b][a]=bs;
-	      }	
+	      }
       pOUT->seq_al[b][a]=bs;
 	  }
       }
     sprintf ( pOUT->name[pIN->nseq], "cons");
-    
+
     return pOUT;
     }
 
 Alignment * categories_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
-    
+
     Alignment *pOUT=NULL;
     int a, b, r;
     int *aa;
@@ -580,15 +580,15 @@ Alignment * categories_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     pOUT=copy_aln (pIN, pOUT);
     aa=(int*)vcalloc ( 26, sizeof (int));
     nseq2=pIN->nseq*pIN->nseq;
-    
+
     for (tot_aln=0, a=0; a< pIN->len_aln; a++)
       {
   for (n=0,b=0; b< pIN->nseq; b++)
 	  {
       r=pIN->seq_al[b][a];
-	    
+
 	    if ( is_gap(r))n++;
-	    else 
+	    else
 	      {
 		aa[tolower(r)-'a']++;
 		n++;
@@ -611,27 +611,27 @@ Alignment * categories_evaluate_output ( Alignment *pIN,Constraint_list *CL)
 
 Alignment * categories_evaluate_output_old ( Alignment *pIN,Constraint_list *CL)
     {
-    
+
     Alignment *pOUT=NULL;
     int nc,a, b, r;
     int *aa, ng;
     float score, nseq2, tot_aln, min=0;
-    
+
     /*
       Residue x: sum of observed extended X.. /sum of possible X..
     */
     pOUT=copy_aln (pIN, pOUT);
     aa=(int*)vcalloc ( 26, sizeof (int));
     nseq2=pIN->nseq*pIN->nseq;
-    
+
     for (tot_aln=0, a=0; a< pIN->len_aln; a++)
       {
   for (ng=0,b=0; b< pIN->nseq; b++)
 	  {
       r=pIN->seq_al[b][a];
-	    
+
 	    if ( is_gap(r))ng++;
-	    else 
+	    else
 	      {
 		aa[tolower(r)-'a']++;
 	      }
@@ -643,9 +643,9 @@ Alignment * categories_evaluate_output_old ( Alignment *pIN,Constraint_list *CL)
 	  }
 	if (nc>9)score=0;
 	else score=9-nc;
-	
+
   score=(2*min)/pIN->nseq;
-	
+
 	tot_aln+=score;
 	r=score*10;
 	r=(r>=10)?9:r;
@@ -666,9 +666,9 @@ Alignment * fork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list
 Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL);
 Alignment * triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
 {
-  
+
   if (!pIN || !CL || !CL->residue_index) return pIN;
-  
+
   if (get_nproc()==1)return  nfork_triplet_coffee_evaluate_output (pIN,CL);
   else if (strstr ( CL->multi_thread, "evaluate"))return  fork_triplet_coffee_evaluate_output (pIN,CL,get_nproc());
   else return fork_triplet_coffee_evaluate_output (pIN,CL,1);
@@ -689,6 +689,7 @@ void fork_triplet_coffee_evaluate_output_task(int j,
   int a,b, x, y,res;
   int s1,r1,s2,r2,w2,s3,r3,w3;
   FILE *fp;
+
 
   initiate_vtmpnam(NULL);
   fp=vfopen (pid_tmpfile[j], "w");
@@ -802,7 +803,7 @@ Alignment * fork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list
   for (sjobs=0,j=0; sjobs<njobs; j++)
   {
     pid_tmpfile[j]=vtmpnam(NULL);
-    int index = start_thread( [&]{ fork_triplet_coffee_evaluate_output_task(
+    int index = start_thread( [=]{ fork_triplet_coffee_evaluate_output_task(
                      j, pid_tmpfile, CL, pIN, sl, pos, lu, max_seq, score_seq ); } );
     thread_indexes.push_back( index );
     sjobs++;
@@ -855,27 +856,27 @@ Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_lis
     {
       Alignment *pOUT=NULL;
       int **pos;
-      
+
       double score_col=0, score_aln=0, score_res=0, score=0;
       double max_col=0, max_aln=0, max_res=0;
       double *max_seq, *score_seq;
-      
+
       int a,b, x, y,res;
       int s1,r1,s2,r2,w2,s3,r3,w3;
       int **lu;
-      
 
-      
+
+
       pOUT=copy_aln (pIN, pOUT);
       pos=aln2pos_simple(pIN, pIN->nseq);
       sprintf ( pOUT->name[pIN->nseq], "cons");
-      
+
       max_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
       score_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
       lu=declare_int (pIN->nseq, pIN->len_aln+1);
-      
-     
-          
+
+
+
       score_aln=max_aln=0;
       for (a=0; a<pIN->len_aln; a++)
 	{
@@ -887,7 +888,7 @@ Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_lis
 	      r1=pos[b][a];
 	      if (r1>=0)lu[s1][r1]=1;
 	    }
-	  
+
     for (b=0; b<pIN->nseq; b++)
 	    {
 	      score_res=max_res=NORM_F;
@@ -905,14 +906,14 @@ Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_lis
 		      s3=CL->residue_index[s2][r2][y+SEQ2];
 		      r3=CL->residue_index[s2][r2][y+R2];
 		      w3=CL->residue_index[s2][r2][y+WE];
-		      
+
 		      score=MIN(w2,w3);
-		      
+
 		      max_res+=score;
 		      max_col+=score;
 		      max_seq[b]+=score;
 		      max_aln+=score;
-		      
+
 		      if (lu[s3][r3])
 			{
 			  score_res+=score;
@@ -933,26 +934,26 @@ Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_lis
 	      r1=pos[b][a];
 	      if (r1>0)lu[s1][r1]=0;
 	    }
-	  
-	  res=(max_col==0)?NO_COLOR_RESIDUE:((score_col*10)/max_col);	
+
+	  res=(max_col==0)?NO_COLOR_RESIDUE:((score_col*10)/max_col);
 	  //res=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
 	  res=MIN(res,9);
     pOUT->seq_al[pIN->nseq][a]=res;
 	}
       fprintf ( stderr, "\n");
-      
+
       pIN->score_aln=pOUT->score_aln=(max_aln==0)?0:((score_aln*100)/max_aln);
       for ( a=0; a< pOUT->nseq; a++)
 	{
     pOUT->score_seq[a]=(max_seq[a]==0)?0:((score_seq[a]*100)/max_seq[a]);
 	}
-      
+
       free_int (lu,-1);
       free_int (pos , -1);
       vfree ( score_seq);
       vfree ( max_seq);
       return pOUT;
-    }   
+    }
 
 
 
@@ -964,10 +965,10 @@ int  sp_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL, cha
       int a, b,c, x, y;
       float w3,w, w4, pw, tw;
       FILE *fp;
-     
+
       fp=vfopen (fname, "w");
       pos=aln2pos_simple(pIN, pIN->nseq);
-      
+
       fprintf ( fp, "! SP_ASCII_FORMAT_O1\n");
       fprintf ( fp, "! <column> <seq1> <seq2> <tcs score>\n");
       for (a=0; a<pIN->len_aln; a++)
@@ -978,14 +979,14 @@ int  sp_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL, cha
         s1=pIN->order[b][0];
 	      r1=pos[b][a];
 	      if (r1<=0)continue;
-	      
+
         for (c=b+1; c<pIN->nseq; c++)
 		{
 		  pw=tw=0;
       s2=pIN->order[c][0];
 		  r2=pos[c][a];
 		  if (r2<=0)continue;
-		  
+
 		  //compute r1->x
 		  for ( x=1;x<CL->residue_index[s1][r1][0];x+=ICHUNK)
 		    {
@@ -1002,14 +1003,14 @@ int  sp_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL, cha
 			      r4=CL->residue_index[s3][r3][y+R2];
 			      w4=CL->residue_index[s3][r3][y+WE];
 			      w=MIN(w4,w3);
-			      
+
 			      if (s4==s1 && r4==r1);
 			      else if ( s4==s2 && r4==r2){pw+=w; tw+=w;}
 			      else if ( s4==s2)tw+=w;
 			    }
 			}
 		    }
-		  //compute r2->y 
+		  //compute r2->y
 		  for ( x=1;x<CL->residue_index[s2][r2][0];x+=ICHUNK)
 		    {
 		      s3=CL->residue_index[s2][r2][x+SEQ2];
@@ -1025,20 +1026,20 @@ int  sp_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL, cha
 			      r4=CL->residue_index[s3][r3][y+R2];
 			      w4=CL->residue_index[s3][r3][y+WE];
 			      w=MIN(w4,w3);
-			      
+
 			      if (s4==s2 && r4==r2);
 			      else if ( s4==s1 && r4==r1){pw+=w; tw+=w;}
 			      else if ( s4==s1)tw+=w;
 			    }
-			}  
+			}
 		    }
-		  fprintf ( fp, "%d %d %d %.3f\n", a+1, b+1, c+1, (tw>0)?pw/tw:0); 
+		  fprintf ( fp, "%d %d %d %.3f\n", a+1, b+1, c+1, (tw>0)?pw/tw:0);
 		}
 	    }
 	}
       vfclose (fp);
       return 1;
-    }  
+    }
 
 
 
@@ -1050,30 +1051,30 @@ int  sp_triplet_coffee_evaluate_output2 ( Alignment *pIN,Constraint_list *CL, ch
       float w1, w2, w3,w, w4, pw, tw;
       int a, b,c, x, y;
       FILE *fp;
-     
+
       fp=vfopen (fname, "w");
       save_list_header( fp, CL);
       pos=aln2pos_simple(pIN, pIN->nseq);
-      
+
   for (b=0; b<pIN->nseq-1; b++)		//---> for every seq
 	 {
       for (c=b+1; c<pIN->nseq; c++)
 	     {
-		fprintf ( fp, "#%d %d \n", b+1, c+1); 
-		
+		fprintf ( fp, "#%d %d \n", b+1, c+1);
+
     for (a=0; a<pIN->len_aln; a++)	//---> for every aa in a seq
 		 {
       output_completion (stderr,a,pIN->len_aln,1, "Final SP Evaluation");
-		  
+
       s1=pIN->order[b][0];
 		  r1=pos[b][a];
 		  if (r1<=0)continue;
-	      
+
 		  pw=tw=0;
       s2=pIN->order[c][0];
 		  r2=pos[c][a];
 		  if (r2<=0)continue;
-		  
+
 		  //compute r1->x
 		  for ( x=1;x<CL->residue_index[s1][r1][0];x+=ICHUNK)
 		    {
@@ -1090,14 +1091,14 @@ int  sp_triplet_coffee_evaluate_output2 ( Alignment *pIN,Constraint_list *CL, ch
 			      r4=CL->residue_index[s3][r3][y+R2];
 			      w4=CL->residue_index[s3][r3][y+WE];
 			      w=MIN(w4,w3);
-			      
+
 			      if (s4==s1 && r4==r1);
 			      else if ( s4==s2 && r4==r2){pw+=w; tw+=w;}
 			      else if ( s4==s2)tw+=w;
 			    }
 			}
 		    }
-		  //compute r2->y 
+		  //compute r2->y
 		  for ( x=1;x<CL->residue_index[s2][r2][0];x+=ICHUNK)
 		    {
 		      s3=CL->residue_index[s2][r2][x+SEQ2];
@@ -1113,20 +1114,20 @@ int  sp_triplet_coffee_evaluate_output2 ( Alignment *pIN,Constraint_list *CL, ch
 			      r4=CL->residue_index[s3][r3][y+R2];
 			      w4=CL->residue_index[s3][r3][y+WE];
 			      w=MIN(w4,w3);
-			      
+
 			      if (s4==s2 && r4==r2);
 			      else if ( s4==s1 && r4==r1){pw+=w; tw+=w;}
 			      else if ( s4==s1)tw+=w;
 			    }
-			}  
+			}
 		    }
-		  fprintf ( fp, "%5d %5d     %.0f\n", r1, r2, ((tw>0)?pw/tw:0)*1000 ); 
+		  fprintf ( fp, "%5d %5d     %.0f\n", r1, r2, ((tw>0)?pw/tw:0)*1000 );
 		}
 	    }
 	}
       vfclose (fp);
       return 1;
-    }  
+    }
 
 Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode, float imaxD, int enb,char *in_matrix_name)
 {
@@ -1137,16 +1138,16 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
   double *max_seq_sc;
   double *tot_seq_sc;
   double *gscore;
- 
+
   double *max_col_sc;
   double *tot_col_sc;
-  
+
   double tot_sc=0;
   double max_sc=0;
   Alignment *pOUT, *T;
   Sequence *S=NULL;
   int replicates;
-  
+
   int **dm1,**dm2,**pos,i,s, **lu,*rseq, a, b, c,d,s1,s2,c1,ic1,c2,r1,r2,p1,p2,we, rep, nM, it;
   int **matrix;
   int *max;
@@ -1162,16 +1163,16 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
   int nd, ntrees;
   long tot_inf=0;
   int use_columns=0;
-  
+
   if (!A) return A;
-  
+
   //Get arguments passed via environement
   if (getenv ("TREE_GAP_4_TCOFFEE")) max_gap  =atofgetenv("TREE_GAP_4_TCOFFEE");
   else max_gap=0.5;
-  
+
   if (getenv ("TREE_MODE_4_TCOFFEE"))tree_mode=getenv("TREE_MODE_4_TCOFFEE");
   else tree_mode="nj";
-    
+
   if (getenv ("REPLICATES_4_TCOFFEE"))
     {
       if ( strm (getenv ("REPLICATES_4_TCOFFEE"), "columns"))
@@ -1179,24 +1180,24 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 	  use_columns=1;
 	  replicates=A->len_aln;
 	}
-      else 
+      else
 	replicates=atoigetenv ("REPLICATES_4_TCOFFEE");
     }
   else replicates=0;
-  
+
   S=CL->S;
   pOUT=copy_aln (A, NULL);
-  
-  
+
+
   nM=0;strikeM=++nM;contactsM=++nM;distancesM=++nM;
   if (!mode || strm (mode, "strike"))modeM=strikeM;
   else if (strm (mode, "distances"))modeM=distancesM;
   else if (strm (mode, "contacts"))modeM=contactsM;
-  else 	
+  else
     {
       printf_exit ( EXIT_FAILURE,stderr, "\nERROR: struc_evaluate4tcoffe::mode %s is unknown", (mode)?mode:"unset");
     }
-  
+
 
 
   //identify sequences with contact information
@@ -1214,9 +1215,9 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 	      if (CL->residue_index[ls1][r1][0]>1){rseq[s1]=ls1;r1=S->len[ls1]+1;}
 	    }
 	  if (rseq[s1]!=-1)a++;
-	}      
+	}
     }
-  
+
   //Trim out sequences without contact information or exit if no a single contact information
   if (!a)
     printf_exit ( EXIT_FAILURE,stderr, "\nERROR: No contact information could be gathered for any sequence  [FATAL]");
@@ -1236,27 +1237,27 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 	}
       A->nseq=ns;
     }
-  
+
 
   //Prepare the evlauation information
-  
-  
+
+
   max_res_sc=declare_double (A->nseq, A->len_aln);
   tot_res_sc=declare_double (A->nseq, A->len_aln);
-  
+
   max_seq_sc=(double*)vcalloc (A->nseq, sizeof (double));
   tot_seq_sc=(double*)vcalloc (A->nseq, sizeof (double));
-  
+
   max_col_sc=(double*)vcalloc (A->len_aln, sizeof (double));
   tot_col_sc=(double*)vcalloc (A->len_aln, sizeof (double));
-  
+
   max_sc=0;
   tot_sc=0;
- 
+
   //Set the right evlaution matrix for proteins or RNA
   if (modeM==strikeM)
     {
-      
+
       matrix_name=(char*)vcalloc ((strlen(in_matrix_name)+2), sizeof (char));
       if (strm (in_matrix_name, "strike"))
 	{
@@ -1281,10 +1282,10 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
       matrix_name=NULL;
       matrix=NULL;
     }
- 
+
   dm1=declare_int (A->len_aln, A->len_aln);
   dm2=declare_int (A->len_aln, A->len_aln);
-  
+
   pos=aln2pos_simple (A, A->nseq);
   lu=declare_int (A->nseq, A->len_aln);
   for (s1=0; s1<A->nseq; s1++)
@@ -1298,20 +1299,20 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
   }
 
   vsrand (0);
-  
+
   highD=imaxD*100; //set in picometers
   lowD=1500;
   if (modeM==distancesM && replicates>0 && scan_maxD)lowD=500;
   else lowD=highD;
   for (nd=0,maxD=lowD;maxD<=highD; maxD+=100, nd++);
-  
-  
+
+
 
   //Prepare the gap cache
   nlen_aln=0;
   used_col=(int*)vcalloc (A->len_aln, sizeof (int));
   col_lu=(int*)vcalloc (A->len_aln, sizeof (int));
-  
+
   for (c1=0; c1<A->len_aln; c1++)
     {
       for (gap=0,r1=0; r1<A->nseq; r1++)
@@ -1321,7 +1322,7 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
     }
   if (nlen_aln==0)
     {printf_exit ( EXIT_FAILURE,stderr, "\nERROR: No column with less than %.2f %% gaps[FATAL]", max_gap*100);}
-  
+
 
   if (replicates>=1)
     {
@@ -1329,9 +1330,9 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
       max_pw_sc=declare_double (A->nseq, A->nseq);
       tot_pw_sc=declare_double (A->nseq, A->nseq);
       if (use_columns)replicates=nlen_aln;
-      
+
     }
-  else 
+  else
     {
       tree=0;
       replicates=1;
@@ -1340,11 +1341,11 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
   ntrees=nd*replicates;
   if (!A->Tree)T=A->Tree=declare_aln2(ntrees,0);
   T->RepColList=declare_int  (ntrees, ((use_columns)?1:nlen_aln)+1);
-  
 
-  
-  
-  for (maxD=lowD; maxD<=highD;maxD+=100) 
+
+
+
+  for (maxD=lowD; maxD<=highD;maxD+=100)
     {
       for (rep=0; rep<replicates; rep++)
 	{
@@ -1369,9 +1370,9 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 	    {
 	    int ls1=rseq[s1];
 	    int s2_has_contacts=0;
-	    
+
 	    if (ls1==-1)continue;
-	    
+
 	    //Get contacts from top sequence
 	    for (r1=1;r1<=S->len[ls1]; r1++)
 	      {
@@ -1381,7 +1382,7 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 		    r2 =CL->residue_index[ls1][r1][b+R2];
 		    we =CL->residue_index[ls1][r1][b+WE];
 		    ss2=CL->residue_index[ls1][r1][b+SEQ2];
-		    
+
 		    if (ss2!=ls1){HERE ("Warning: Contact library contains inter-sequence data contacts: %d %d", a, ss2);}
 		    p1=lu[s1][r1-1];
 		    p2=lu[s1][r2-1];
@@ -1396,7 +1397,7 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 		else if (ls2!=-1)
 		  {
 		    s2_has_contacts=1;
-		    
+
 		    for (r1=1;r1<=S->len[ls2]; r1++)
 		      {
 			for (b=1; b<CL->residue_index[ls2][r1][0]; b+=ICHUNK)
@@ -1405,7 +1406,7 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 			    r2 =CL->residue_index[ls2][r1][b+R2];
 			    we =CL->residue_index[ls2][r1][b+WE];
 			    ss2=CL->residue_index[ls2][r1][b+SEQ2];
-			    
+
 			    if (ss2!=ls2){HERE ("Warning: Contact library contains inter-sequence data contacts: %d %d", a,ss2);}
 			    p1=lu[s2][r1-1];
 			    p2=lu[s2][r2-1];
@@ -1418,33 +1419,33 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 		    s2_has_contacts=0;
 		  }
 		//Scan the pairs of contact for S1 vs S2
-		
-		if (modeM!=strikeM && !s2_has_contacts)continue;//ignore sequences w/o contacts 
-		
+
+		if (modeM!=strikeM && !s2_has_contacts)continue;//ignore sequences w/o contacts
+
 		for (ic1=0; ic1<nlen_aln1; ic1++)
 		  {
 		    c1=T->RepColList[rep][ic1];
-		    
+
 		    if (A->seq_al[s1][c1]=='-')continue;
 		    for (c2=0; c2<A->len_aln; c2++)
 		      {
 			double sc=0;
 			double in=0;
 			double w1=(double)dm1[c1][c2];
-			
-			
+
+
 			if (A->seq_al[s1][c2]=='-')continue;
-			else if (!col_lu[c2])continue; 
+			else if (!col_lu[c2])continue;
 			else if (FABS((pos[s1][c1]-pos[s1][c2]))<enb)continue;
 			else if (!dm1[c1][c2])continue;
 			else if (modeM==distancesM && w1>maxD)continue;
-			
+
 			if (modeM==strikeM && !s2_has_contacts)
 			  {
 			    if (A->seq_al[s2][c1]=='-' || A->seq_al[s2][c2]=='-'){sc=0;}
-			    else 
+			    else
 			      {
-				
+
 				sc=matrix[tolower(A->seq_al[s2][c1])][tolower(A->seq_al [s2][c2])]*2;
 				sc/=max[tolower(A->seq_al[s2][c1])]+max[tolower(A->seq_al[s2][c1])];
 			      }
@@ -1474,62 +1475,62 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 			    tot_pw_sc[s2][s1]+=sc;
 			    max_pw_sc[s1][s2]+=in;;
 			  }
-			
-			
+
+
 			//residues
 			max_res_sc[s1][c1]+=in;
 			tot_res_sc[s1][c1]+=sc;
-			
+
 			max_res_sc[s2][c1]+=in;
 			tot_res_sc[s2][c1]+=sc;
-			
+
 			//seq
 			tot_seq_sc[s1]+=sc;
 			max_seq_sc[s1]+=in;
-			
+
 			tot_seq_sc[s2]+=sc;
 			max_seq_sc[s2]+=in;
-			
+
 			//column
 			max_col_sc[c1]+=in;;
 			tot_col_sc[c1]+=sc;
-			
+
 			//aln
 			max_sc+=in;
 			tot_sc+=sc;
-			
+
 		      }
 		  }
 		for (c1=0; c1<A->len_aln; c1++)for (c2=0; c2<A->len_aln; c2++)dm2[c1][c2]=0;
 	      }
 	    for (c1=0; c1<A->len_aln; c1++)for (c2=0; c2<A->len_aln; c2++)dm1[c1][c2]=0;
 	    }
-	  
-	 
+
+
 	  //Estimate Phylogenetic Tree Replicates
 	  if (tree)
 	    {
 	    static char *treeF=vtmpnam (NULL);
-	    
+
 	    output_completion (stderr,T->nseq,ntrees,1, "Distance Tree Replicates");
-	    	    
+
 	    for (s1=0; s1<A->nseq; s1++)
 	      for (s2=0; s2<A->nseq; s2++)
 		if (max_pw_sc[s1][s2])
 		  {tot_pw_sc[s1][s2]/=max_pw_sc[s1][s2];tot_pw_sc[s1][s2]=(double)100*(1-tot_pw_sc[s1][s2]);}
-	    
-	    
+
+
 	    if (strm (tree_mode, "nj"))
 	      dist2nj_tree (tot_pw_sc, A->name, A->nseq, treeF);
 	    else if ( strm (tree_mode, "upgma"))
 	      dist2upgma_tree (tot_pw_sc, A->name, A->nseq, treeF);
 	    else
 	      printf_exit ( EXIT_FAILURE,stderr, "\nERROR: %s is not a known tree_mode[FATAL]",tree_mode);
-	    
+
 	    T->seq_al[T->nseq]=file2string(treeF);
-	    sprintf (T->name[T->nseq], "%d",T->nseq+1); 
+	    sprintf (T->name[T->nseq], "%d",T->nseq+1);
 	    T->nseq++;
-	    
+
 	    if (T->nseq<ntrees)
 	      {
 		for (s1=0; s1<A->nseq; s1++)
@@ -1537,24 +1538,24 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 		    max_seq_sc[s1]=tot_seq_sc[s1]=0;
 		    for (c1=0; c1<A->len_aln; c1++)
 		      max_res_sc[s1][c1]=tot_res_sc[s1][c1]=0;
-		    
+
 		    for (s2=0; s2<A->nseq; s2++)
 		      max_pw_sc[s1][s2]=tot_pw_sc[s1][s2]=0;
 		  }
 		for (c1=0; c1<A->len_aln; c1++)max_col_sc[c1]=tot_col_sc[c1]=0;
 	      }
-	    else 
+	    else
 	      {
     pOUT->dm=tot_pw_sc;
 	      }
 	    }
 	}
     }
-  
+
   //compute bs_score
-  
+
   if (tree)fprintf (stderr, "\n");
-  
+
   for (a=0; a<A->nseq; a++)
     {
       for (c=0; c<A->len_aln; c++)
@@ -1572,10 +1573,10 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
 	}
 
       A->score_seq[a]=pOUT->score_seq[a]=(max_seq_sc[a]==0)?0:(tot_seq_sc[a]*(double)100)/max_seq_sc[a];
-      
+
     }
   sprintf (pOUT->name[pOUT->nseq], "cons");
-  
+
   for (c=0; c<A->len_aln; c++)
     {
       int r1=(max_col_sc[c]==0)?0:(tot_col_sc[c]*(double)10)/max_col_sc[c];
@@ -1583,8 +1584,8 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
     }
 
   A->score=A->score_aln=pOUT->score=pOUT->score_aln=(int)(max_sc==0)?0:(tot_sc*1000)/max_sc;
-  
-  
+
+
   free_int (lu,  -1);
   free_int (dm1, -1);
   free_int (dm2, -1);
@@ -1593,32 +1594,32 @@ Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode
   if (max_pw_sc)free_double(max_pw_sc, -1);
   vfree (tot_seq_sc);vfree (max_seq_sc);
   vfree (tot_col_sc);vfree (max_col_sc);
-  
+
   return pOUT;
-}   	
+}
 Alignment *treealn_evaluate4tcoffee (Alignment *A, Sequence *G)
 {
   int a,b,c;
   int *count;
   double  max, min;
   double *tot_seq_sc, *gscore;
-  
+
   Alignment *pOUT;
   Alignment *T;
 
-  
-  
+
+
   if (!A) return A;
   else if (!G)printf_exit (EXIT_FAILURE,stderr, "ERROR: treealn_evaluate requires a group");
   else if (!A->Tree)printf_exit (EXIT_FAILURE,stderr, "ERROR: treealn_evaluate requires pre-computed trees");
 
   T=A->Tree;
-  
+
   pOUT=copy_aln (A, NULL);
   gscore =(double*)vcalloc (A->len_aln, sizeof (double));
   tot_seq_sc=(double*)vcalloc (A->nseq, sizeof (double));
-  count  =(int*)   vcalloc (A->len_aln, sizeof (int)); 
-  
+  count  =(int*)   vcalloc (A->len_aln, sizeof (int));
+
   for (a=0; a<T->nseq; a++)
     {
       double sc=(double)group2tree_score (G, T->seq_al[a]);
@@ -1626,22 +1627,22 @@ Alignment *treealn_evaluate4tcoffee (Alignment *A, Sequence *G)
       if (sc>=0)
 	{
 	  T->score_seq[a]=(int)((double)100*sc);
-	  
+
 	  b=0;
 	  while((c=T->RepColList[a][b++])!=-1)
 	    {
-	      
+
 	      gscore[c]+=sc;
 	      count[c]++;
 	    }
 	}
     }
-  
+
   for (a=0; a<A->len_aln; a++)
     {
       gscore[a]=(count[a])?(gscore[a]/(double)count[a]):-1;
       if (gscore[a]<0);
-      else 
+      else
 	{
 	  if (a==0)min=max=gscore[a];
 	  else
@@ -1651,18 +1652,18 @@ Alignment *treealn_evaluate4tcoffee (Alignment *A, Sequence *G)
 	    }
 	}
     }
-  
+
   for (a=0; a<A->len_aln; a++)
     {
       gscore[a]=((max-min)==0)?max:(gscore[a]-min)/(max-min);
     }
-  
+
   for (a=0; a<A->nseq; a++)
     {
       for (c=0; c<A->len_aln; c++)
 	{
     if (gscore[c]<0)pOUT->seq_al[a][c]=NO_COLOR_RESIDUE;
-	  else 
+	  else
 	    {
 	      int r1=(float)(gscore[c]*10);
 	      r1=(r1>=10)?9:r1;
@@ -1673,11 +1674,11 @@ Alignment *treealn_evaluate4tcoffee (Alignment *A, Sequence *G)
       A->score_seq[a]=pOUT->score_seq[a]=tot_seq_sc[a]*100;
     }
   sprintf (pOUT->name[pOUT->nseq], "cons");
-  
+
   for (c=0; c<A->len_aln; c++)
     {
       if (gscore[c]<0)pOUT->seq_al[a][c]='0';
-      else 
+      else
 	{
 	  int r1=(int)(gscore[c]*(float)10);
 	  r1=(r1>=10)?9:r1;
@@ -1685,20 +1686,20 @@ Alignment *treealn_evaluate4tcoffee (Alignment *A, Sequence *G)
 	}
     }
   max*=1000;
- 
+
   A->score=A->score_aln=pOUT->score=pOUT->score_aln=(int)max;
   vfree (count);
   vfree (gscore);
   vfree (tot_seq_sc);
   return pOUT;
 }
-  
+
 Alignment *evaluate_tree_group (Alignment *T, Sequence *G)
 {
   int a;
   double s;
   if (T->Tree)return evaluate_tree_group (T->Tree, G);
-  
+
   for (a=0; a<T->nseq; a++)
     {
       s=group2tree_score (G, T->seq_al[a]);
@@ -1709,7 +1710,7 @@ Alignment *evaluate_tree_group (Alignment *T, Sequence *G)
 }
 Alignment * fast_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
-    int a,b, c, m,res, s, s1, s2, r1, r2;	
+    int a,b, c, m,res, s, s1, s2, r1, r2;
     Alignment *pOUT=NULL;
     int **pos, **pos2;
 
@@ -1718,48 +1719,48 @@ Alignment * fast_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     double *max_seq, *score_seq;
     int local_m;
     int local_nseq;
-    
+
 
 
     /*NORMALIZE: with the highest scoring pair found in the multiple alignment*/
-   
-    
+
+
     if ( !CL->evaluate_residue_pair){fprintf ( stderr, "\nWARNING: CL->evaluate_residue_pair Not set\nSet to: extend_residue_pair\n");CL->evaluate_residue_pair= extend_residue_pair; }
-	
+
     pOUT=copy_aln (pIN, pOUT);
     pos=aln2pos_simple(pIN, pIN->nseq);
     pos2=aln2defined_residues (pIN, CL);
-    
+
     max_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
     score_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
-    
-    
-    
+
+
+
     /*1: Identify the highest scoring pair within the alignment*/
- 
+
     for ( m=0, a=0; a< pIN->len_aln; a++)
         {
       for ( b=0; b< pIN->nseq; b++)
 		{
     s1=pIN->order[b][0];
 		r1=pos[b][a];
-	
+
 
     for ( c=0; c< pIN->nseq; c++)
 		    {
         s2=pIN->order[c][0];
 		    r2=pos[c][a];
 		    if ( s1==s2 && !CL->do_self)continue;
-	
+
 		    if ( s1< s2)s=(CL->evaluate_residue_pair)( CL, s1, r1, s2, r2);
 		    else        s=(CL->evaluate_residue_pair)( CL, s2, r2, s1, r1);
-		    
+
 		    s=(s!=UNDEFINED)?s:0;
 		    m=MAX(m, s);
 		    }
 		}
 	}
-    
+
     local_m=m;
 
     sprintf ( pOUT->name[pIN->nseq], "cons");
@@ -1774,60 +1775,60 @@ Alignment * fast_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
       pOUT->seq_al[b][a]=NO_COLOR_RESIDUE;
       s1=pIN->order[b][0];
 	    r1=pos[b][a];
-	    
+
 	    if (r1<=0 || !pos2[b][a])
 	      {
 		continue;
 	      }
-	    
+
       for ( score_res=0,c=0; c< pIN->nseq; c++)
 	        {
         s2=pIN->order[c][0];
-		    r2=pos[c][a];		    
-		    
-		    if ((s1==s2 && !CL->do_self) || r2<=0 || !pos2[c][a]){continue;}	
+		    r2=pos[c][a];
+
+		    if ((s1==s2 && !CL->do_self) || r2<=0 || !pos2[c][a]){continue;}
 		    max_col   +=m;
 		    max_seq[b]+=m;
 		    max_aln   +=m;
-		   
+
 		    if ( s1< s2)s=(CL->evaluate_residue_pair)( CL, s1, r1, s2, r2);
 		    else        s=(CL->evaluate_residue_pair)( CL, s2, r2, s1, r1);
 		    s=(s!=UNDEFINED)?s:0;
-		    
-		    score_res+=s;	
-		    score_col+=s;		    
+
+		    score_res+=s;
+		    score_col+=s;
 		    score_seq[b]+=s;
-		    score_aln+=s;		    
+		    score_aln+=s;
 		}
-	    
+
 	    res=(local_m==0)?NO_COLOR_RESIDUE:((score_res*10)/local_m);
       (pOUT)->seq_al[b][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
-	   
-	    
+
+
 	    }
-	
-	res=(max_col==0)?NO_COLOR_RESIDUE:((score_col*10)/max_col);	
+
+	res=(max_col==0)?NO_COLOR_RESIDUE:((score_col*10)/max_col);
   pOUT->seq_al[pIN->nseq][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
-	
+
 	}
-    
+
     pIN->score_aln=pOUT->score_aln=(max_aln==0)?0:((score_aln*100)/max_aln);
     for ( a=0; a< pOUT->nseq; a++)
 	{
   pOUT->score_seq[a]=(max_seq[a]==0)?0:((score_seq[a]*100)/max_seq[a]);
 	}
-    
+
     free_int (pos , -1);
     free_int (pos2, -1);
-    
+
     vfree ( score_seq);
     vfree ( max_seq);
     return pOUT;
-    }      
-  
+    }
+
 Alignment * slow_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
-    int a,b, c,res, s, s1, s2, r1, r2;	
+    int a,b, c,res, s, s1, s2, r1, r2;
     Alignment *pOUT=NULL;
     int **pos, **pos2;
     double max_score_r, score_r, max;
@@ -1836,27 +1837,27 @@ Alignment * slow_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     double *max_score_seq, *score_seq;
     int ***res_extended_weight;
     int n_res_in_col;
-    
-    
+
+
     /*
       Residue x: sum of observed extended X.. /sum of possible X..
     */
 
-    
+
 
 
     if ( !CL->evaluate_residue_pair){fprintf ( stderr, "\nWARNING: CL->evaluate_residue_pair Not set\nSet to: extend_residue_pair\n");CL->evaluate_residue_pair= extend_residue_pair; }
-	
-    
+
+
     pOUT=copy_aln (pIN, pOUT);
     pos=aln2pos_simple(pIN, pIN->nseq);
     pos2=aln2defined_residues (pIN, CL);
-    
+
     max_score_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
     score_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
     res_extended_weight=(int***)declare_arrayN(3,sizeof(int), (CL->S)->nseq, (CL->S)->max_len+1, 2);
     max=(CL->normalise)?(100*CL->normalise)*SCORE_K:100;
-    
+
     for (a=0; a< pIN->len_aln; a++)
         {
     for ( b=0; b< pIN->nseq-1; b++)
@@ -1866,10 +1867,10 @@ Alignment * slow_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
         for ( c=b+1; c< pIN->nseq; c++)
 		{
       s2=pIN->order[c][0];
-		  r2=pos[c][a];	
+		  r2=pos[c][a];
 		  if ( s1==s2 && !CL->do_self)continue;
-		  else if ( r1<=0 || r2<=0)   continue;		    
-		  else 
+		  else if ( r1<=0 || r2<=0)   continue;
+		  else
 		    {
 		      s=(CL->evaluate_residue_pair)( CL, s1, r1, s2, r2);
 		      res_extended_weight[s1][r1][0]+=s*100;
@@ -1881,7 +1882,7 @@ Alignment * slow_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
 	    }
 	}
 
-    
+
     sprintf ( pOUT->name[pIN->nseq], "cons");
     for ( max_score_aln=0,score_aln=0,a=0; a< pIN->len_aln; a++)
       {
@@ -1901,7 +1902,7 @@ Alignment * slow_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
 		else if ( n_res_in_col==1)res=NO_COLOR_RESIDUE;
 		else res=((score_r*10)/max_score_r);
 
-		
+
     (pOUT)->seq_al[b][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res, 9));
 		max_score_col+=max_score_r;
 		    score_col+=score_r;
@@ -1923,7 +1924,7 @@ Alignment * slow_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
   pOUT->score_seq[a]=(max_score_seq[a]==0)?0:((score_seq[a]*100)/max_score_seq[a]);
       }
 
-    
+
     vfree ( score_seq);
     vfree ( max_score_seq);
     free_arrayN((void*)res_extended_weight, 3);
@@ -1943,7 +1944,7 @@ double seq_genepred2acc (Sequence *S, Sequence *PS, char *name);
 Alignment *coffee_seq_evaluate_output ( Alignment *pIN, Constraint_list *CL)
 {
   int **w, a, best_cycle, ncycle=20, min_ne;
-  char **pred_list,**weight_list; 
+  char **pred_list,**weight_list;
   float nsd, best_score,score;
   Sequence *S, *PS;
 
@@ -1953,7 +1954,7 @@ Alignment *coffee_seq_evaluate_output ( Alignment *pIN, Constraint_list *CL)
   weight_list=declare_char(ncycle,100);
   S=CL->S;
   fprintf ( stderr, "\nSCORE_MODE: %s\n", CL->genepred_score);
-  
+
   for (a=0; a<ncycle && CL->ne>min_ne; a++)
     {
       if (w);free_int (w, -1);
@@ -1963,14 +1964,14 @@ Alignment *coffee_seq_evaluate_output ( Alignment *pIN, Constraint_list *CL)
       if   ( strm (CL->genepred_score, "nsd"))score=nsd;
       else score=1-seq_genepred2acc (S, PS, CL->genepred_score);
       fprintf ( stderr, "Cycle: %2d LIB: %6d AVG LENGTH: %6.2f NSD: %8.2f SCORE: %.2f ",a+1,CL->ne,(float) genepred2avg(PS),nsd,score);
-	
+
       vfree (display_accuracy (genepred_seq2accuracy_counts (S, PS, NULL),stderr));
       pred_list[a]=vtmpnam(NULL);
       weight_list[a]=vtmpnam(NULL);
       output_fasta_seqS(pred_list[a],PS);
       output_array_int (weight_list[a],w);
       free_sequence (PS, -1);
-      
+
       if (a==0 || score<best_score)
 	{
 	  best_score=score;
@@ -1985,21 +1986,21 @@ Alignment *coffee_seq_evaluate_output ( Alignment *pIN, Constraint_list *CL)
   vfree (display_accuracy (genepred_seq2accuracy_counts ((CL->S), S, NULL),stderr));
 
   genepred_seq2accuracy_counts4all((CL->S), S);
-  
+
   pIN=seq2aln (S,NULL, 1);
   pIN->score_res=input_array_int (weight_list[best_cycle]);
   return pIN;
 }
 
 double seq_genepred2acc (Sequence *S, Sequence *PS, char *name)
-{ 
+{
   float *count;
   float *acc;
   float r;
   int ref, target;
 
   if ( strm (name, "best"))return genepred2acc (S, PS);
-  
+
   ref=name_is_in_list (name, S->name, S->nseq, 100);
   target=name_is_in_list (name, PS->name, PS->nseq, 100);
 
@@ -2009,15 +2010,15 @@ double seq_genepred2acc (Sequence *S, Sequence *PS, char *name)
     }
   count=genepred2accuracy_counts      (S->seq[ref],PS->seq[target],NULL);
   acc=counts2accuracy (count);
-  
+
   r=acc[3];
   vfree (acc);
   vfree (count);
   return r;
 }
 
-  
-    
+
+
 double genepred2acc (Sequence *S, Sequence *PS)
 {
   float *count;
@@ -2025,19 +2026,19 @@ double genepred2acc (Sequence *S, Sequence *PS)
   float r;
   count=genepred_seq2accuracy_counts (S, PS, NULL);
   acc=counts2accuracy (count);
-  
+
   r=acc[3];
   vfree (acc);
   vfree (count);
   return r;
 }
-  
+
 double genepred2sd (Sequence *S)
 {
   double sum=0, sum2=0;
   int a, *len;
   len=genepred2orf_len (S);
-  
+
   for (a=0; a<S->nseq; a++)
     {
       sum+=(double)len[a];
@@ -2063,10 +2064,10 @@ double genepred2zsum2 (Sequence *S)
 {
   double zscore=0, zsum2=0, sd, avg;
   int a, *len;
-  
+
   sd=genepred2sd(S);
   avg=genepred2avg (S);
-  
+
   len=genepred2orf_len (S);
   for (a=0; a<S->nseq; a++)
     {
@@ -2075,7 +2076,7 @@ double genepred2zsum2 (Sequence *S)
     }
   zsum2/=(float)S->nseq;
   vfree (len);
-  return zsum2; 
+  return zsum2;
 }
 int *genepred2orf_len (Sequence *S)
 {
@@ -2086,21 +2087,21 @@ int *genepred2orf_len (Sequence *S)
       len[a]+=(isupper(S->seq[a][b]));
    return len;
 }
-  
+
 Alignment *coffee_seq_evaluate_output_old2 ( Alignment *pIN, Constraint_list *CL)
 {
   int **w, a,b,c;
   int avg, min_avg, best_cycle, ncycle=100;;
-  char **pred_list; 
+  char **pred_list;
   Sequence *S, *PS;
 
   w=NULL;
   pred_list=declare_char (ncycle, 100);
   S=CL->S;
-  
+
   //CL=expand_constraint_list_4gp(CL);
   min_avg=constraint_list2avg(CL);
-  
+
   for (a=1; a<ncycle && CL->ne>0; a++)
     {
       if (w);free_int (w, -1);
@@ -2108,13 +2109,13 @@ Alignment *coffee_seq_evaluate_output_old2 ( Alignment *pIN, Constraint_list *CL
       CL=relax_constraint_list_4gp (CL);
       fprintf (stderr,"\nRELAX CYCLE: %2d AVG: %5d [%10d] ", a, avg=constraint_list2avg(CL), CL->ne);
       for (b=0; b<S->nseq; b++)for (c=0; c<S->len[b]; c++)w[b][c]-=1;
-	
+
       //rescale nuclotide coding weights
-  
+
       PS=dnaseq2geneseq (S, w);
       vfree (display_accuracy (genepred_seq2accuracy_counts (S, PS, NULL),stderr));
-     
-     
+
+
       free_sequence (PS, PS->nseq);
       if ( avg<min_avg)
 	{
@@ -2122,7 +2123,7 @@ Alignment *coffee_seq_evaluate_output_old2 ( Alignment *pIN, Constraint_list *CL
 	  best_cycle=a;
 	}
     }
-  
+
   S=get_fasta_sequence (pred_list[best_cycle], NULL);
   vfree (display_accuracy (genepred_seq2accuracy_counts ((CL->S), S, NULL),stderr));myexit (0);
   for (a=0; a<S->nseq; a++)
@@ -2135,7 +2136,7 @@ Alignment *coffee_seq_evaluate_output_old2 ( Alignment *pIN, Constraint_list *CL
 
 Alignment * non_extended_t_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
     {
-    int a,b, c,res, s1, s2, r1, r2;	
+    int a,b, c,res, s1, s2, r1, r2;
     Alignment *pOUT=NULL;
     int **pos;
     int max_score_r, score_r;
@@ -2152,17 +2153,17 @@ Alignment * non_extended_t_coffee_evaluate_output ( Alignment *pIN,Constraint_li
 
     entry=(int*)vcalloc (CL->entry_len+1, CL->el_size);
     if ( !CL->evaluate_residue_pair){fprintf ( stderr, "\nWARNING: CL->evaluate_residue_pair Not set\nSet to: extend_residue_pair\n");CL->evaluate_residue_pair= extend_residue_pair; }
-	
+
     pOUT=copy_aln (pIN, pOUT);
     pos=aln2pos_simple(pIN, pIN->nseq);
 
 
     max_score_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
     score_seq=(double*)vcalloc ( pIN->nseq, sizeof (double));
-    
+
     tot_non_extended_weight=list2residue_total_weight(CL);
     res_non_extended_weight=declare_int ((CL->S)->nseq, (CL->S)->max_len+1);
-         
+
     for (a=0; a< pIN->len_aln; a++)
         {
       for ( b=0; b< pIN->nseq-1; b++)
@@ -2172,10 +2173,10 @@ Alignment * non_extended_t_coffee_evaluate_output ( Alignment *pIN,Constraint_li
     for ( c=b+1; c< pIN->nseq; c++)
 		    {
         s2=pIN->order[c][0];
-		    r2=pos[c][a];	
+		    r2=pos[c][a];
 		    if ( s1==s2 && !CL->do_self)continue;
-		    else if ( r1<=0 || r2<=0)   continue;		    
-		    else 
+		    else if ( r1<=0 || r2<=0)   continue;
+		    else
 		      {
 			entry[SEQ1]=s1;
 			entry[SEQ2]=s2;
@@ -2197,18 +2198,18 @@ Alignment * non_extended_t_coffee_evaluate_output ( Alignment *pIN,Constraint_li
 			    }
 			max_score=MAX(max_score,res_non_extended_weight[s1][r1]);
 			max_score=MAX(max_score,res_non_extended_weight[s2][r2]);
-						
+
 		      }
 		    }
 		}
 	}
-  
+
     sprintf ( pOUT->name[pIN->nseq], "cons");
     for ( max_score_aln=0,score_aln=0,a=0; a< pIN->len_aln; a++)
 	{
   pOUT->seq_al[pIN->nseq][a]=NO_COLOR_RESIDUE;
   for ( local_nseq=0,b=0; b<pIN->nseq; b++){local_nseq+=(pos[b][a]>0)?1:0;}
-	
+
         for ( max_score_col=0, score_col=0,b=0; b< pIN->nseq; b++)
 	    {
       pOUT->seq_al[b][a]=NO_COLOR_RESIDUE;
@@ -2220,7 +2221,7 @@ Alignment * non_extended_t_coffee_evaluate_output ( Alignment *pIN,Constraint_li
 		max_score_r  =max_score;/*tot_non_extended_weight[s1][r1];*/
 		score_r=res_non_extended_weight[s1][r1];
 		res=(max_score_r==0 || local_nseq<2 )?NO_COLOR_RESIDUE:((score_r*10)/max_score_r);
-	
+
     (pOUT)->seq_al[b][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res, 9));
 		max_score_col+=max_score_r;
 		    score_col+=score_r;
@@ -2229,7 +2230,7 @@ Alignment * non_extended_t_coffee_evaluate_output ( Alignment *pIN,Constraint_li
 		max_score_aln+=max_score_r;
 		    score_aln+=score_r;
 	      }
-	    res=(max_score_col==0 || local_nseq<2)?NO_COLOR_RESIDUE:((score_col*10)/max_score_col);	
+	    res=(max_score_col==0 || local_nseq<2)?NO_COLOR_RESIDUE:((score_col*10)/max_score_col);
       pOUT->seq_al[pIN->nseq][a]=(res==NO_COLOR_RESIDUE)?res:(MIN(res,9));
 	    }
 	}
@@ -2240,10 +2241,10 @@ Alignment * non_extended_t_coffee_evaluate_output ( Alignment *pIN,Constraint_li
   pOUT->score_seq[a]=(pOUT->score_seq[a]>100)?100:pOUT->score_seq[a];
       }
     pOUT->score_aln=(pOUT->score_aln>100)?100:pOUT->score_aln;
-    
+
     vfree ( score_seq);
     vfree ( max_score_seq);
-    
+
     free_int (tot_non_extended_weight, -1);
     free_int (res_non_extended_weight, -1);
     vfree(entry);
@@ -2266,31 +2267,31 @@ Profile_cost_func get_profile_mode_function (char *name, Profile_cost_func func)
   static int nfunc;
   static Profile_cost_func *flist;
   static char **nlist;
- 
-  
- 
+
+
+
   /*The first time: initialize the list of pairwse functions*/
   /*If func==NULL:REturns a pointer to the function associated with a name*/
   /*If name is empty:Prints the name of the function  associated with name*/
-  
+
     if ( nfunc==0)
       {
 	flist=(int (**)(int*, int*, Constraint_list*) )vcalloc ( 100, sizeof (Pwfunc));
 	nlist=declare_char (100, 100);
-	
+
 	flist[nfunc]=cw_profile_profile;
 	sprintf (nlist[nfunc], "cw_profile_profile");
-	nfunc++;	
-			
+	nfunc++;
+
 	flist[nfunc]=muscle_profile_profile;
 	sprintf (nlist[nfunc], "muscle_profile_profile");
 	nfunc++;
-	
+
 	flist[nfunc]=channel_profile_profile;
 	sprintf (nlist[nfunc], "channel_profile_profile");
 	nfunc++;
       }
-  
+
    for ( a=0; a<nfunc; a++)
       {
 	if ( (name && strm (nlist[a],name)) || flist[a]==func)
@@ -2302,15 +2303,15 @@ Profile_cost_func get_profile_mode_function (char *name, Profile_cost_func func)
     fprintf ( stderr, "\n[%s] is an unknown profile_profile function[FATAL:%s]\n",name, PROGRAM);
     crash ( "\n");
     return NULL;
-  } 
+  }
 
 int generic_evaluate_profile_score     (Constraint_list *CL,Alignment *Profile1,int s1, int r1, Alignment *Profile2,int s2, int r2, Profile_cost_func prf_prf)
     {
       int *prf1, *prf2;
       static int *dummy;
       int score;
-      
-   
+
+
       /*Generic profile function*/
       if( !dummy)
 	{
@@ -2322,18 +2323,18 @@ int generic_evaluate_profile_score     (Constraint_list *CL,Alignment *Profile1,
 	 dummy[5]=100; /*Frequency in the MSA column*/
 
 	}
-      
+
       if (r1>0 && r2>0)
 	    {
 	    r1--;
 	    r2--;
-	    
+
 	    prf1=(Profile1)?(Profile1->P)->count2[r1]:NULL;
 	    prf2=(Profile2)?(Profile2->P)->count2[r2]:NULL;
-	    
+
 	    if (!prf1)     {prf1=dummy; prf1[3]=(CL->S)->seq[s1][r1];}
 	    else if (!prf2){prf2=dummy; prf2[3]=(CL->S)->seq[s2][r2];}
-	    
+
 	    score=((prf_prf==NULL)?cw_profile_profile:prf_prf) (prf1, prf2, CL);
 	    return score;
 	    }
@@ -2347,19 +2348,19 @@ int cw_profile_profile_count    (int *prf1, int *prf2, Constraint_list *CL)
       int a, b, n;
       int res1, res2;
       double score=0;
-      
+
 
       for ( n=0,a=3; a<prf1[1]; a+=3)
 	for ( b=3; b<prf2[1]; b+=3)
 	  {
-	    
+
 	    res1=prf1[a];
 	    res2=prf2[b];
-	
+
 	    score+=prf1[a+1]*prf2[b+1]*CL->M[res1-'A'][res2-'A'];
 	    n+=prf1[a+1]*prf2[b+1];
 	  }
-      
+
 
       score=(score*SCORE_K)/n;
       return score;
@@ -2378,14 +2379,14 @@ int muscle_profile_profile    (int *prf1, int *prf2, Constraint_list *CL)
 	  for ( a=-1000; a<1000; a++)
 	    exp_lu[a]=exp((double)a);
 	}
-	  
-      
+
+
 
       for (a=3; a<prf1[1]; a+=3)
 	{
 	  res1=prf1[a];
 	  fi=(double)prf1[a+2]/100;
-	  
+
 	  for ( b=3; b<prf2[1]; b+=3)
 	    {
 	      res2=prf2[b];
@@ -2395,13 +2396,13 @@ int muscle_profile_profile    (int *prf1, int *prf2, Constraint_list *CL)
 	      score+=m*fi*fj;
 	    }
 	}
-      
+
       fg1=(double)prf1[2]/100;
       fg2=(double)prf2[2]/100;
       score=(score==0)?0:log(score)*(1-fg1)*(1-fg2);
       score=(score*SCORE_K);
       /*if ( score<-100)fprintf ( stderr, "\nSCORE %d %d", (int)score, cw_profile_profile(prf1, prf2, CL));*/
-       
+
       return (int)score;
     }
 
@@ -2416,15 +2417,15 @@ int cw_profile_profile   (int *prf1, int *prf2, Constraint_list *CL)
       for ( n=0,a=3; a<prf1[1]; a+=3)
 	for ( b=3; b<prf2[1]; b+=3)
 	  {
-	    
+
 	    res1=prf1[a];
 	    res2=prf2[b];
 	    p=prf1[a+1]*prf2[b+1];
-	
+
 	    n+=p;
 	    score+=p*CL->M[res1-'A'][res2-'A'];
 	  }
-      
+
       score=(score*SCORE_K)/((double)(n==0)?1:n);
       return score;
     }
@@ -2439,11 +2440,11 @@ int cw_profile_profile_ref    (int *prf1, int *prf2, Constraint_list *CL)
       for ( n=0,a=3; a<prf1[1]; a+=3)
 	for ( b=3; b<prf2[1]; b+=3)
 	  {
-	    
+
 	    res1=prf1[a];
 	    res2=prf2[b];
 	    p=prf1[a+1]*prf2[b+1];
-	
+
 	    n+=p;
 	    score+=p*CL->M[res1-'A'][res2-'A'];
 	  }
@@ -2456,17 +2457,17 @@ int cw_profile_profile_old    (int *prf1, int *prf2, Constraint_list *CL)
       int a, b, n,p;
       int res1, res2;
       double score=0;
-      
 
-      
+
+
       for ( n=0,a=3; a<prf1[1]; a+=3)
 	for ( b=3; b<prf2[1]; b+=3)
 	  {
-	    
+
 	    res1=prf1[a];
 	    res2=prf2[b];
 	    p=prf1[a+1]*prf2[b+1];
-	
+
 	    n+=p;
 	    score+=p*CL->M[res1-'A'][res2-'A'];
 	  }
@@ -2477,11 +2478,11 @@ int channel_profile_profile ( int *prf1, int *prf2, Constraint_list *CL)
 {
 
   int score=0;
-  
+
   prf1+=prf1[1];
   prf2+=prf2[1];
 
-  
+
   if (prf1[0]!=prf1[0]){fprintf ( stderr, "\nERROR: Inconsistent number of channels [channel_profile_profile::FATAL%s]", PROGRAM);}
   else
     {
@@ -2496,13 +2497,13 @@ int channel_profile_profile ( int *prf1, int *prf2, Constraint_list *CL)
 	}
 
       if ( n==0)return 0;
-      
+
       score=(n==0)?0:(score*SCORE_K)/n;
-     
+
     }
   return score;
 }
-  
+
 /*********************************************************************************************/
 /*                                                                                           */
 /*         FUNCTIONS FOR GETING THE COST : (Sequences) ->evaluate_residue_pair               */
@@ -2520,7 +2521,7 @@ int initialize_scoring_scheme (Constraint_list *CL)
     {
       //CL->evaluate_residue_pair (CL,13,1,16,1);
       CL->evaluate_residue_pair (CL,0,1,1,1);
-      
+
     }
   return 1;
 }
@@ -2533,14 +2534,14 @@ int evaluate_blast_profile_score (Constraint_list *CL, int s1, int r1, int s2, i
 
   PRF1=(Alignment*)atop(seq2T_value (CL->S, s1, "A", "_RB_"));
   PRF2=(Alignment*)atop(seq2T_value (CL->S, s2, "A", "_RB_"));
-  
+
   return generic_evaluate_profile_score     (CL,PRF1,s1, r1, PRF2,s2, r2, CL->profile_mode);
 }
 
 int evaluate_aln_profile_score (Constraint_list *CL, int s1, int r1, int s2, int r2)
 {
-  
-  return generic_evaluate_profile_score   (CL,seq2R_template_profile((CL->S),s1),s1, r1, seq2R_template_profile(CL->S,s2),s2, r2, CL->profile_mode); 
+
+  return generic_evaluate_profile_score   (CL,seq2R_template_profile((CL->S),s1),s1, r1, seq2R_template_profile(CL->S,s2),s2, r2, CL->profile_mode);
 }
 
 
@@ -2552,17 +2553,17 @@ int evaluate_profile_score     (Constraint_list *CL,Alignment *Prf1, int s1, int
 int evaluate_cdna_matrix_score (Constraint_list *CL, int s1, int r1, int s2, int r2)
     {
       char a1, a2;
-      
-      if (r1>0 && r2>0) 
+
+      if (r1>0 && r2>0)
        {
 	 r1--;
 	 r2--;
-	 
+
 	 a1=translate_dna_codon((CL->S)->seq[s1]+r1,'x');
 	 a2=translate_dna_codon((CL->S)->seq[s2]+r2,'x');
-	 
-	 
-	 
+
+
+
 	 if (a1=='x' || a2=='x')return 0;
 	 else return CL->M[a1-'A'][a2-'A']*SCORE_K;
        }
@@ -2587,14 +2588,14 @@ int evaluate_physico_score ( Constraint_list *CL, int s1, int r1, int s2, int r2
     }
   a=tolower (( CL->S)->seq[s1][r1]);
   b=tolower (( CL->S)->seq[s2][r2]);
-  
+
   for (tot=0,p=0; p< n_prop; p++)
     {
       tot+=(double)(prop_table[p][a]-prop_table[p][b])*(prop_table[p][a]-prop_table[p][b]);
     }
- 
+
   tot=(sqrt(tot)/max)*10;
- 
+
   return (int) tot*SCORE_K;
 }
 
@@ -2605,7 +2606,7 @@ int evaluate_diaa_matrix_score ( Constraint_list *CL, int s1, int r1, int s2, in
 
       static int ****m;
       static int *alp;
-      
+
       if (m==NULL)
 	{
 	  FILE *fp;
@@ -2613,20 +2614,20 @@ int evaluate_diaa_matrix_score ( Constraint_list *CL, int s1, int r1, int s2, in
 	  int v1, v2, c;
 	  char *buf=NULL;
 	  int a;
-	  
+
 	  m=(int****)declare_arrayN(4, sizeof (int), 26, 26, 26, 26);
 	  fp=vfopen ("diaa_mat.mat", "r");
 	  while ((c=fgetc (fp))!=EOF)
 	    {
-	      
+
 	      ungetc (c, fp);
 	      buf=vfgets(buf, fp);
-	     
+
 	      if (c=='#');
-	      else 
+	      else
 		{
 		  sscanf (buf, "%s %s %d %d", k1, k2, &v1, &v2);
-		  
+
 		  m[k1[0]-'a'][k1[1]-'a'][k2[0]-'a'][k2[1]-'a']=v1;
 		  m[k2[0]-'a'][k2[1]-'a'][k1[0]-'a'][k1[1]-'a']=v1;
 		}
@@ -2641,16 +2642,16 @@ int evaluate_diaa_matrix_score ( Constraint_list *CL, int s1, int r1, int s2, in
 	  alp['x']=0;
 	  alp['z']=0;
 	}
-		    
-          
+
+
       if (r1>0 && r2>0)
 	  {
 	    int s=0, n=0;
 	    char aa1, aa2, aa3, aa4, u;
-	      
+
 	    r1--;
 	    r2--;
-	    
+
 	    if (r1>0 && r2>0)
 	      {
 		aa1=tolower((CL->S)->seq[s1][r1-1]);
@@ -2664,7 +2665,7 @@ int evaluate_diaa_matrix_score ( Constraint_list *CL, int s1, int r1, int s2, in
 		    n++;
 		  }
 	      }
-	    
+
 	    aa1=tolower((CL->S)->seq[s1][r1]);
 	    aa2=tolower((CL->S)->seq[s1][r1+1]);
 	    aa3=tolower((CL->S)->seq[s2][r2]);
@@ -2684,7 +2685,7 @@ int evaluate_monoaa_matrix_score ( Constraint_list *CL, int s1, int r1, int s2, 
 
       static int **m;
       static int *alp;
-      
+
       if (m==NULL)
 	{
 	  FILE *fp;
@@ -2692,20 +2693,20 @@ int evaluate_monoaa_matrix_score ( Constraint_list *CL, int s1, int r1, int s2, 
 	  int v1, v2, c;
 	  char *buf=NULL;
 	  int a;
-	  
+
 	  m=(int**)declare_arrayN(2, sizeof (int), 26, 26);
 	  fp=vfopen ("monoaa_mat.mat", "r");
 	  while ((c=fgetc (fp))!=EOF)
 	    {
-	      
+
 	      ungetc (c, fp);
 	      buf=vfgets(buf, fp);
-	     
+
 	      if (c=='#');
-	      else 
+	      else
 		{
 		  sscanf (buf, "%s %s %d %d", k1, k2, &v1, &v2);
-		  
+
 		  m[k1[0]-'a'][k2[0]-'a']=v1;
 		  m[k2[0]-'a'][k1[0]-'a']=v1;
 		}
@@ -2720,16 +2721,16 @@ int evaluate_monoaa_matrix_score ( Constraint_list *CL, int s1, int r1, int s2, 
 	  alp['x']=0;
 	  alp['z']=0;
 	}
-		    
-          
+
+
       if (r1>0 && r2>0)
 	  {
 	    int s=0, n=0;
 	    char aa1, aa3, u;
-	      
+
 	    r1--;
 	    r2--;
-	    
+
 	    if (r1>0 && r2>0)
 	      {
 		aa1=tolower((CL->S)->seq[s1][r1]);
@@ -2741,7 +2742,7 @@ int evaluate_monoaa_matrix_score ( Constraint_list *CL, int s1, int r1, int s2, 
 		    n++;
 		  }
 	      }
-	    
+
 	    if (n)return (s*SCORE_K)/n;
 	    else return 0;
 	    }
@@ -2753,7 +2754,7 @@ int evaluate_matrix_score ( Constraint_list *CL, int s1, int r1, int s2, int r2)
 	{
 	  return evaluate_aln_profile_score ( CL, s1,r1, s2, r2);
 	}
-      
+
       if (r1>0 && r2>0)
 	    {
 	    r1--;
@@ -2770,7 +2771,7 @@ int evaluate_curvature_score( Constraint_list *CL, int s1, int r1, int s2, int r
   int score;
   CL->gop=0;
   CL->gep=0;
-  
+
   if (!st) st=(int**)vcalloc ((CL->S)->nseq, sizeof (char*));
   if (!st[s1])
     {
@@ -2780,17 +2781,17 @@ int evaluate_curvature_score( Constraint_list *CL, int s1, int r1, int s2, int r
     {
       st[s2]=get_curvature (s2, CL);
     }
-  
+
   if (r1>0 && r2>0)
     {
       char p1, p2;
-      
+
       r1--;
       r2--;
-  
+
       p1=st[s1][r1];
       p2=st[s2][r2];
-      
+
       score=p1-p2;
       score=FABS(score);
       score=20-score;
@@ -2800,7 +2801,7 @@ int evaluate_curvature_score( Constraint_list *CL, int s1, int r1, int s2, int r
     {
       return 0;
     }
-  
+
 }
 int *get_curvature ( int s1, Constraint_list *CL)
 {
@@ -2808,7 +2809,7 @@ int *get_curvature ( int s1, Constraint_list *CL)
   char c, name [1000], b1[100];
   float f;
   FILE *fp;
-  
+
   sprintf ( name, "%s.curvature", (CL->S)->name[s1]);
   array=(int*)vcalloc (strlen ((CL->S)->seq[s1]), sizeof (int));
   fp=vfopen ( name, "r");
@@ -2824,17 +2825,17 @@ int evaluate_tm_matrix_score ( Constraint_list *CL, int s1, int r1, int s2, int 
 {
   static char **st;
   float F, RF;
-  
-  if (!st) 
+
+  if (!st)
     {
       st=(char**)vcalloc ((CL->S)->nseq, sizeof (char*));
       RF=atoigetenv ("TM_FACTOR_4_TCOFFEE");
       if ( !RF)RF=10;
     }
-  
+
   if (!st[s1])st[s1]=seq2T_template_string((CL->S),s1);
   if (!st[s2])st[s2]=seq2T_template_string((CL->S),s2);
-  
+
   if (r1<=0 || r2<=0)return 0;
   else if (st[s1] && st[s2] && (st[s1][r1-1]==st[s2][r2-1]))F=RF;
   else if (st[s1] && st[s2] && (st[s1][r1-1]!=st[s2][r2-1]))F=0;
@@ -2846,36 +2847,36 @@ int evaluate_ssp_matrix_score ( Constraint_list *CL, int s1, int r1, int s2, int
 {
   static char **st;
   float F, RF;
-  
-  if (!st) 
+
+  if (!st)
     {
       st=(char**) vcalloc ((CL->S)->nseq, sizeof (char*));
       RF=atoigetenv ("SSP_FACTOR_4_TCOFFEE");
       if ( !RF)RF=10;
     }
-  
+
   if (!st[s1])st[s1]=seq2T_template_string((CL->S),s1);
   if (!st[s2])st[s2]=seq2T_template_string((CL->S),s2);
-  
+
   if (r1<=0 || r2<=0)return 0;
   else if (st[s1] && st[s2] && (st[s1][r1-1]==st[s2][r2-1]))F=RF;
   else if (st[s1] && st[s2] && (st[s1][r1-1]!=st[s2][r2-1]))F=0;
   else F=0;
 
   return (int)(evaluate_matrix_score (CL, s1, r1, s2, r2))+F;
-}      
-      
-  
+}
+
+
 int evaluate_combined_matrix_score ( Constraint_list *CL, int s1, int r1, int s2, int r2)
     {
       /*
 	function documentation: start
-	
+
 	int evaluate_matrix_score ( Constraint_list *CL, int s1, int s2, int r1, int r2)
-	
+
 	this function evaluates the score for matching residue S1(r1) wit residue S2(r2)
 	using Matrix CL->M;
-	
+
 	function documentation: end
       */
 
@@ -2883,7 +2884,7 @@ int evaluate_combined_matrix_score ( Constraint_list *CL, int s1, int r1, int s2
 	{
 	  return evaluate_aln_profile_score ( CL, s1,r1, s2, r2);
 	}
-    
+
       if (r1>0 && r2>0)
 	    {
 	    r1--;
@@ -2893,16 +2894,16 @@ int evaluate_combined_matrix_score ( Constraint_list *CL, int s1, int r1, int s2
 	      {
 		int A1, A2, B1, B2, a2, b2;
 		int score;
-		
+
 		A1=toupper((CL->S)->seq[s1][r1-1]);
 		A2=toupper((CL->S)->seq[s1][r1]);
 		B1=toupper((CL->S)->seq[s2][r2-1]);
 		B2=toupper((CL->S)->seq[s2][r2]);
-		
+
 		a2=tolower(A2);
 		b2=tolower(B2);
 		A1-='A';A2-='A';B1-='A'; B2-='A';a2-='A';b2-='A';
-		
+
 		score=CL->M[a2][b2]-FABS((CL->M[A1][A2])-(CL->M[B1][B2]));
 		score*=SCORE_K;
 		return score;
@@ -2910,20 +2911,20 @@ int evaluate_combined_matrix_score ( Constraint_list *CL, int s1, int r1, int s2
 	    }
       else
 	return 0;
-    }	    
+    }
 
 int residue_pair_non_extended_list ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
-		
+
 	/*
 	  This is the generic Function->works with everything
-	  	  
+
 	  int residue_pair_non_extended_list ( Constraint_list *CL, int s1, int r1, int s2, int r2, int field );
-	  
+
 	  Computes the non extended score for aligning residue seq1(r1) Vs seq2(r2)
-	  
+
 	  This function can compare a sequence with itself.
-	  
+
 	  Associated functions: See util constraint list, list extention functions.
 	  function documentation: end
 	*/
@@ -2954,7 +2955,7 @@ int residue_pair_non_extended_list ( Constraint_list *CL, int s1, int r1, int s2
 	else
 	  return UNDEFINED;/*ERROR*/
 
-	
+
 	}
 
 
@@ -2962,35 +2963,35 @@ int residue_pair_non_extended_list ( Constraint_list *CL, int s1, int r1, int s2
 int residue_pair_extended_list_mixt (Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
 	  int score=0;
-	  
+
 	  score+= residue_pair_extended_list_quadruplet(CL, s1, r1, s2, r2);
 	  score+= residue_pair_extended_list (CL, s1, r1, s2, r2);
-	  
+
 	  return score*SCORE_K;
 	}
 
 int residue_pair_extended_list_quadruplet (Constraint_list *CL, int s1, int r1, int s2, int r2 )
-        {	
+        {
 	  double score=0;
 
 	  int t_s, t_r, t_w, q_s, q_r, q_w;
 	  int a, b;
 	  static int **hasch;
-	  
+
 	  int field;
 	  /* This measure the quadruplets cost on a pair of residues*/
-	  
-	  
-	  
+
+
+
 	  field=CL->weight_field;
-	  
+
 	  if ( r1<=0 || r2<=0)return 0;
 	  if ( !hasch)
 	    {
 	      hasch=(int**)vcalloc ( (CL->S)->nseq, sizeof (int*));
 	      for ( a=0; a< (CL->S)->nseq; a++)hasch[a]=(int*)vcalloc ( (CL->S)->len[a]+1, sizeof (int));
 	    }
-	  
+
 
 	  hasch[s1][r1]=100000;
 	  for (a=1; a< CL->residue_index[s1][r1][0]; a+=ICHUNK)
@@ -3002,18 +3003,18 @@ int residue_pair_extended_list_quadruplet (Constraint_list *CL, int s1, int r1, 
 		{
 		  for ( b=1; b<CL->residue_index[t_s][t_r][0]; b+=ICHUNK)
 		    {
-		      q_s=CL->residue_index[t_s][t_r][b+SEQ2];		  
+		      q_s=CL->residue_index[t_s][t_r][b+SEQ2];
 		      q_r=CL->residue_index[t_s][t_r][b+R2];
 		      q_w=CL->residue_index[t_s][t_r][b+WE];
 		      if (CL-> seq_for_quadruplet[q_s])
 			hasch[q_s][q_r]=MIN(q_w,t_w);
-		      
+
 		    }
 		}
 	    }
-	  
-	  
-	  for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK) 
+
+
+	  for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK)
 	    {
 	      t_s=CL->residue_index[s2][r2][a+SEQ2];
 	      t_r=CL->residue_index[s2][r2][a+R2];
@@ -3022,17 +3023,17 @@ int residue_pair_extended_list_quadruplet (Constraint_list *CL, int s1, int r1, 
 		{
 		  for ( b=1; b<CL->residue_index[t_s][t_r][0]; b+=ICHUNK)
 		    {
-		      q_s=CL->residue_index[t_s][t_r][b+SEQ2];		  
-		      q_r=CL->residue_index[t_s][t_r][b+R2];	
-		      q_w=CL->residue_index[t_s][t_r][b+WE];	
+		      q_s=CL->residue_index[t_s][t_r][b+SEQ2];
+		      q_r=CL->residue_index[t_s][t_r][b+R2];
+		      q_w=CL->residue_index[t_s][t_r][b+WE];
 		      if (hasch[q_s][q_r] && CL->seq_for_quadruplet[q_s])
 			score+=MIN(hasch[q_s][q_r],MIN(q_w,t_w));
 		    }
 		}
 	    }
-	  
+
 	  score=(CL->normalise)?((score*CL->normalise)/CL->max_ext_value):score;
-	  
+
 	  for (a=1; a< CL->residue_index[s1][r1][0]; a+=ICHUNK)
 	    {
 	      t_s=CL->residue_index[s1][r1][a+SEQ2];
@@ -3042,15 +3043,15 @@ int residue_pair_extended_list_quadruplet (Constraint_list *CL, int s1, int r1, 
 		{
 		  for ( b=1; b<CL->residue_index[t_s][t_r][0]; b+=ICHUNK)
 		    {
-		      q_s=CL->residue_index[t_s][t_r][b+SEQ2];		  
-		      q_r=CL->residue_index[t_s][t_r][b+R2];		 
+		      q_s=CL->residue_index[t_s][t_r][b+SEQ2];
+		      q_r=CL->residue_index[t_s][t_r][b+R2];
 		      hasch[q_s][q_r]=0;
 		    }
 		}
 	    }
-	  
+
 	  return (int)(score*SCORE_K);
-	}  
+	}
 
 
 Constraint_list * R_extension ( Constraint_list *CL, Constraint_list *R);
@@ -3093,45 +3094,45 @@ int residue_pair_extended_list4rna2 (Constraint_list *CL,int s1, int r1, int s2,
       rna_lib_extension (CL,R);
 
     }
-  
+
   return residue_pair_extended_list4rna (CL, R, s1, r1, s2, r2);
 }
 int residue_pair_extended_list4rna ( Constraint_list *CL,Constraint_list *R, int s1, int r1, int s2, int r2 )
 {
-  
+
   int a, b, n1, n2;
   int list1[100];
   int list2[100];
   int score=0, score2;
-  
-  
+
+
 
   if ( r1<0 || r2<0)return 0;
   n1=n2=0;
-  
+
   list1[n1++]=r1;
   for (a=1; a<R->residue_index[s1][r1][0]; a+=ICHUNK)
     {
       list1[n1++]=R->residue_index[s1][r1][a+R2];
     }
-  
+
 
   list2[n2++]=r2;
   for (a=1; a<R->residue_index[s2][r2][0]; a+=ICHUNK)
     {
       list2[n2++]=R->residue_index[s2][r2][a+R2];
     }
-  
-  
+
+
   score=residue_pair_extended_list ( CL, s1,list1[0], s2,list2[0]);
-  
+
   for (score2=0,a=1; a<n1; a++)
     for ( b=1; b<n2; b++)
       score2=MAX(residue_pair_extended_list ( CL, s1,list1[a], s2,list2[b]), score2);
-  
+
   if ( n1==1 || n2==1);
   else score=MAX(score,score2);
-  
+
   return score;
 }
 
@@ -3143,20 +3144,20 @@ int residue_pair_extended_list4rna_ref ( Constraint_list *CL, int s1, int r1, in
   int list1[100];
   int list2[100];
   int score=0, score2;
-  
+
   if (R==NULL)
     {
       char **list;
       int n,a;
       list=read_lib_list ( CL->rna_lib, &n);
-      
-      R=declare_constraint_list ( CL->S,NULL, NULL, 0,NULL, NULL); 
-      
+
+      R=declare_constraint_list ( CL->S,NULL, NULL, 0,NULL, NULL);
+
       for (a=0; a< n; a++)
 	{
 	  R=read_constraint_list_file (R, list[a]);
 	}
-     
+
     }
 
   if ( r1<0 || r2<0)return 0;
@@ -3167,31 +3168,31 @@ int residue_pair_extended_list4rna_ref ( Constraint_list *CL, int s1, int r1, in
     {
       list1[n1++]=R->residue_index[s1][r1][a+R2];
     }
-  
+
 
   list2[n2++]=r2;
   for (a=1; a<R->residue_index[s2][r2][0]; a+=ICHUNK)
     {
       list2[n2++]=R->residue_index[s2][r2][a+R2];
     }
-  
-  
+
+
   score=residue_pair_extended_list ( CL, s1,list1[0], s2,list2[0]);
-  
+
   for (score2=0,a=1; a<n1; a++)
     for ( b=1; b<n2; b++)
       score2=MAX(residue_pair_extended_list ( CL, s1,list1[a], s2,list2[b]), score2);
 
   if ( n1==1 || n2==1);
   else score=MAX(score,score2);
-  
+
   return score;
 }
 
 static int ** clean_residue_pair_hasch (int s1, int r1, int s2, int r2,int **hasch, Constraint_list *CL);
 int residue_pair_extended_list_raw ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
-	double score=0;  
+	double score=0;
 
 
 
@@ -3201,11 +3202,11 @@ int residue_pair_extended_list_raw ( Constraint_list *CL, int s1, int r1, int s2
 	int field;
 	double delta;
 	/*
-	  
+
 	  function documentation: start
 
 	  int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, int r2);
-	  
+
 	  Computes the extended score for aligning residue seq1(r1) Vs seq2(r2)
 	  Computes: matrix_score
 	            non extended score
@@ -3213,12 +3214,12 @@ int residue_pair_extended_list_raw ( Constraint_list *CL, int s1, int r1, int s2
 
 	  The extended score depends on the function index_res_constraint_list.
 	  This function can compare a sequence with itself.
-	  
+
 	  Associated functions: See util constraint list, list extention functions.
-	  
+
 	  function documentation: end
 	*/
-	
+
 	field=CL->weight_field;
 	field=WE;
 
@@ -3229,7 +3230,7 @@ int residue_pair_extended_list_raw ( Constraint_list *CL, int s1, int r1, int s2
 	       if ( hasch) free_int ( hasch, -1);
 	       hasch=declare_int ( (CL->S)->nseq, (CL->S)->max_len+1);
 	       }
-	
+
 
 
 	/* Check matches for R1 in the indexed lib*/
@@ -3242,19 +3243,19 @@ int residue_pair_extended_list_raw ( Constraint_list *CL, int s1, int r1, int s2
 	  }
 
 	/*Check Matches for r1 <-> r2 in the indexed lib */
-	for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK) 
+	for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s2][r2][a+SEQ2];
 	    t_r=CL->residue_index[s2][r2][a+R2];
-	    
-	    
+
+
 	    if (hasch[t_s][t_r])
 	      {
 		if (hasch[t_s][t_r]==FORBIDEN)
 		  {
 		    score+=CL->residue_index[s2][r2][a+field];
 		  }
-		else 
+		else
 		  {
 		    delta=MIN(hasch[t_s][t_r],CL->residue_index[s2][r2][a+field]);
 		    score+=delta;
@@ -3262,12 +3263,12 @@ int residue_pair_extended_list_raw ( Constraint_list *CL, int s1, int r1, int s2
 	      }
 	  }
 
-	clean_residue_pair_hasch ( s1, r1,s2, r2, hasch, CL);		
+	clean_residue_pair_hasch ( s1, r1,s2, r2, hasch, CL);
 	return score;
 	}
 int residue_pair_extended_list_4gp ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
-	  double score=0;  
+	  double score=0;
 
 
 
@@ -3276,13 +3277,13 @@ int residue_pair_extended_list_4gp ( Constraint_list *CL, int s1, int r1, int s2
 	static int max_len;
 	int field;
 	double delta;
-	
+
 	/*
-	  
+
 	  function documentation: start
 
 	  int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, int r2);
-	  
+
 	  Computes the extended score for aligning residue seq1(r1) Vs seq2(r2)
 	  Computes: matrix_score
 	            non extended score
@@ -3290,15 +3291,15 @@ int residue_pair_extended_list_4gp ( Constraint_list *CL, int s1, int r1, int s2
 
 	  The extended score depends on the function index_res_constraint_list.
 	  This function can compare a sequence with itself.
-	  
+
 	  Associated functions: See util constraint list, list extention functions.
-	  
+
 	  function documentation: end
 	*/
-	
+
 	field=CL->weight_field;
 	field=WE;
-	
+
 	if ( r1<=0 || r2<=0)return 0;
 	if ( !hasch || max_len!=(CL->S)->max_len)
 	       {
@@ -3306,7 +3307,7 @@ int residue_pair_extended_list_4gp ( Constraint_list *CL, int s1, int r1, int s2
 	       if ( hasch) free_int ( hasch, -1);
 	       hasch=declare_int ( (CL->S)->nseq, (CL->S)->max_len+1);
 	       }
-	
+
 
 
 	/* Check matches for R1 in the indexed lib*/
@@ -3319,19 +3320,19 @@ int residue_pair_extended_list_4gp ( Constraint_list *CL, int s1, int r1, int s2
 	  }
 
 	/*Check Matches for r1 <-> r2 in the indexed lib */
-	for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK) 
+	for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s2][r2][a+SEQ2];
 	    t_r=CL->residue_index[s2][r2][a+R2];
-	    
-	    
+
+
 	    if (hasch[t_s][t_r])
 	      {
 		if (hasch[t_s][t_r]==FORBIDEN)
 		  {
 		    score+=((float)CL->residue_index[s2][r2][a+2]/NORM_F);
 		  }
-		else 
+		else
 		  {
 		    delta=MAX((((float)hasch[t_s][t_r]/NORM_F)),(((float)CL->residue_index[s2][r2][a+field]/NORM_F)));
 		    score+=delta;
@@ -3339,18 +3340,18 @@ int residue_pair_extended_list_4gp ( Constraint_list *CL, int s1, int r1, int s2
 	      }
 	  }
 
-	clean_residue_pair_hasch ( s1, r1,s2, r2, hasch, CL);	
+	clean_residue_pair_hasch ( s1, r1,s2, r2, hasch, CL);
 	score/=(CL->S)->nseq;
 	score *=NORM_F;
-	
+
 	return score;
 	}
 
 int residue_pair_extended_list_pc ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
 	  //old norm does not take into account the number of effective intermediate sequences
-	  
-	  double score=0;  
+
+	  double score=0;
 	  int a, t_s, t_r;
 	  static int **hasch;
 	  static int max_len;
@@ -3358,13 +3359,13 @@ int residue_pair_extended_list_pc ( Constraint_list *CL, int s1, int r1, int s2,
 	  double delta;
 	  float norm1=0;
 	  float norm2=0;
-	  
+
 	  /*
-	    
+
 	  function documentation: start
-	  
+
 	  int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, int r2);
-	  
+
 	  Computes the extended score for aligning residue seq1(r1) Vs seq2(r2)
 	  Computes: matrix_score
 	            non extended score
@@ -3372,22 +3373,22 @@ int residue_pair_extended_list_pc ( Constraint_list *CL, int s1, int r1, int s2,
 
 	  The extended score depends on the function index_res_constraint_list.
 	  This function can compare a sequence with itself.
-	  
+
 	  Associated functions: See util constraint list, list extention functions.
-	  
+
 	  function documentation: end
 	*/
-	
+
 	field=CL->weight_field;
 	field=WE;
-	
+
 	if ( r1<=0 || r2<=0)return 0;
 	if ( !hasch || max_len!=(CL->S)->max_len)
 	       {
 	       max_len=(CL->S)->max_len;
 	       if ( hasch) free_int ( hasch, -1);
 	       hasch=declare_int ( (CL->S)->nseq, (CL->S)->max_len+1);
-	       
+
 	       }
 
 
@@ -3399,24 +3400,24 @@ int residue_pair_extended_list_pc ( Constraint_list *CL, int s1, int r1, int s2,
 	    t_r=CL->residue_index[s1][r1][a+R2];
 	    hasch[t_s][t_r]=CL->residue_index[s1][r1][a+field];
 	    norm1++;
-	    
+
 	  }
-	
-	
+
+
 	/*Check Matches for r1 <-> r2 in the indexed lib */
-	for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK) 
+	for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s2][r2][a+SEQ2];
 	    t_r=CL->residue_index[s2][r2][a+R2];
 	    norm2++;
-	    
+
 	    if (hasch[t_s][t_r])
 	      {
 		if (hasch[t_s][t_r]==FORBIDEN)
 		  {
 		    score+=((float)CL->residue_index[s2][r2][a+field]/NORM_F);
 		  }
-		else 
+		else
 		  {
 		    delta=MIN((((float)hasch[t_s][t_r]/NORM_F)),(((float)CL->residue_index[s2][r2][a+field]/NORM_F)));
 		    score+=delta;
@@ -3424,39 +3425,39 @@ int residue_pair_extended_list_pc ( Constraint_list *CL, int s1, int r1, int s2,
 	      }
 	  }
 
-	clean_residue_pair_hasch ( s1, r1,s2, r2, hasch, CL);	
-	
+	clean_residue_pair_hasch ( s1, r1,s2, r2, hasch, CL);
+
 	//New Normalization
 	norm1=MIN(norm1,norm2);
-		
+
 	//Old Normalization: on the number of sequences, useless when not doing an all against all
 	//Old NORM seems to work better after all (23/03/2011)
 	//norm2=(CL->S)->nseq;//OLD NORM (seems to work better: 23/03/2011)
 
 	score=(norm1)?score/norm1:0;
-	
+
 
 	return score*NORM_F;
 	}
 
 /**
  * Documentation inaccurate.
- * 
+ *
  * These lines of documentation are in the code:
- * 
+ *
  * Computes the extended score for aligning residue seq1(r1) Vs seq2(r2)
- * Computes: 
+ * Computes:
  *     - matrix_score
  *     - non extended score
  *     - extended score
- *     
+ *
  * The extended score depends on the function index_res_constraint_list.
- * This function can compare a sequence with itself.  
+ * This function can compare a sequence with itself.
  *
  */
 int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
-	double score=0;  
+	double score=0;
 	double max_score=0;
 	double max_val=0;
 
@@ -3464,11 +3465,11 @@ int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, in
 	static int **hasch;
 	static int max_len;
 	int field;
-	
-	
+
+
 	field=CL->weight_field;
 	field=WE;
-	
+
 	if ( r1<=0 || r2<=0)return 0;
 	if ( !hasch || max_len!=(CL->S)->max_len)
 	       {
@@ -3476,7 +3477,7 @@ int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, in
 	       if ( hasch) free_int ( hasch, -1);
 	       hasch=declare_int ( (CL->S)->nseq, (CL->S)->max_len+1);
 	       }
-	
+
 
 
 	/* Check matches for R1 in the indexed lib*/
@@ -3490,12 +3491,12 @@ int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, in
 	  }
 
 	/*Check Matches for r1 <-> r2 in the indexed lib */
-	for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK) 
+	for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s2][r2][a+SEQ2];
 	    t_r=CL->residue_index[s2][r2][a+R2];
-	    
-	    
+
+
 	    if (hasch[t_s][t_r])
 	      {
 		if (hasch[t_s][t_r]==FORBIDEN)
@@ -3503,11 +3504,11 @@ int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, in
 		    score+=CL->residue_index[s2][r2][a+field];
 		    max_score+=CL->residue_index[s2][r2][a+field];
 		  }
-		else 
+		else
 		  {
 		    double delta;
 		    delta=MIN(hasch[t_s][t_r],CL->residue_index[s2][r2][a+field]);
-		    
+
 		    score+=delta;
 		    max_score-=hasch[t_s][t_r];
 		    max_score+=delta;
@@ -3521,11 +3522,11 @@ int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, in
 	  }
 
 	max_score-=hasch[s2][r2];
-	clean_residue_pair_hasch ( s1, r1,s2, r2, hasch, CL);		
+	clean_residue_pair_hasch ( s1, r1,s2, r2, hasch, CL);
 
 
 	if ( max_score==0)score=0;
-	else if ( CL->normalise) 
+	else if ( CL->normalise)
 	  {
 	    score=((score*CL->normalise)/max_score)*SCORE_K;
 	    if (max_val> CL->normalise)
@@ -3539,12 +3540,12 @@ int ** clean_residue_pair_hasch (int s1, int r1, int s2, int r2,int **hasch, Con
   {
     int a, t_s, t_r;
     if ( !hasch) return hasch;
-    
+
     for (a=1; a< CL->residue_index[s1][r1][0]; a+=ICHUNK)
       {
 	t_s=CL->residue_index[s1][r1][a+SEQ2];
 	t_r=CL->residue_index[s1][r1][a+R2];
-	hasch[t_s][t_r]=0;	      
+	hasch[t_s][t_r]=0;
       }
     hasch[s1][r1]=hasch[s2][r2]=0;
     return hasch;
@@ -3559,13 +3560,13 @@ int residue_pair_test_function ( Constraint_list *CL, int s1, int r1, int s2, in
 	  static int max_len;
 	  int cons1;
 	  int cons2;
-	  
+
 	  int field;
 	/*
 	  function documentation: start
 
 	  int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, int r2);
-	  
+
 	  Computes the extended score for aligning residue seq1(r1) Vs seq2(r2)
 	  Computes: matrix_score
 	            non extended score
@@ -3573,9 +3574,9 @@ int residue_pair_test_function ( Constraint_list *CL, int s1, int r1, int s2, in
 
 	  The extended score depends on the function index_res_constraint_list.
 	  This function can compare a sequence with itself.
-	  
+
 	  Associated functions: See util constraint list, list extention functions.
-	  
+
 	  function documentation: end
 	*/
 
@@ -3583,7 +3584,7 @@ int residue_pair_test_function ( Constraint_list *CL, int s1, int r1, int s2, in
 	CL->weight_field=WE;
 	field=CL->weight_field;
 
-	
+
 	if ( r1<=0 || r2<=0)return 0;
 	if ( !hasch || max_len!=(CL->S)->max_len)
 	       {
@@ -3591,19 +3592,19 @@ int residue_pair_test_function ( Constraint_list *CL, int s1, int r1, int s2, in
 	       if ( hasch) free_int ( hasch, -1);
 	       hasch=declare_int ( (CL->S)->nseq, (CL->S)->max_len+1);
 	       }
-	
 
-	
+
+
 	hasch[s1][r1]=1000;
 	for (a=1; a< CL->residue_index[s1][r1][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s1][r1][a+SEQ2];
 	    t_r=CL->residue_index[s1][r1][a+R2];
-	    hasch[t_s][t_r]=CL->residue_index[s1][r1][a+field];		
+	    hasch[t_s][t_r]=CL->residue_index[s1][r1][a+field];
 	  }
-	
-	
-	for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK) 
+
+
+	for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s2][r2][a+SEQ2];
 	    t_r=CL->residue_index[s2][r2][a+R2];
@@ -3614,19 +3615,19 @@ int residue_pair_test_function ( Constraint_list *CL, int s1, int r1, int s2, in
 		score +=MIN(cons1,cons2);
 	      }
 	  }
-	
-	
+
+
 	score=(CL->normalise)?((score*CL->normalise)/CL->max_ext_value):score;
-	
+
 	for (a=1; a< CL->residue_index[s1][r1][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s1][r1][a+SEQ2];
 	    t_r=CL->residue_index[s1][r1][a+R2];
-	    hasch[t_s][t_r]=0;	      
+	    hasch[t_s][t_r]=0;
 	  }
 	hasch[s1][r1]=hasch[s2][r2]=0;
 
-	
+
 	return (int)(score*SCORE_K);
 	}
 
@@ -3642,7 +3643,7 @@ int residue_pair_relative_extended_list ( Constraint_list *CL, int s1, int r1, i
 	  function documentation: start
 
 	  int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, int r2);
-	  
+
 	  Computes the extended score for aligning residue seq1(r1) Vs seq2(r2)
 	  Computes: matrix_score
 	            non extended score
@@ -3650,9 +3651,9 @@ int residue_pair_relative_extended_list ( Constraint_list *CL, int s1, int r1, i
 
 	  The extended score depends on the function index_res_constraint_list.
 	  This function can compare a sequence with itself.
-	  
+
 	  Associated functions: See util constraint list, list extention functions.
-	  
+
 	  function documentation: end
 	*/
 
@@ -3660,7 +3661,7 @@ int residue_pair_relative_extended_list ( Constraint_list *CL, int s1, int r1, i
 
 	field=CL->weight_field;
 	field=WE;
-	
+
 	if ( r1<=0 || r2<=0)return 0;
 	if ( !hasch || max_len!=(CL->S)->max_len)
 	       {
@@ -3668,20 +3669,20 @@ int residue_pair_relative_extended_list ( Constraint_list *CL, int s1, int r1, i
 	       if ( hasch) free_int ( hasch, -1);
 	       hasch=declare_int ( (CL->S)->nseq, (CL->S)->max_len+1);
 	       }
-	
 
-	
+
+
 	hasch[s1][r1]=100000;
 	for (a=1; a< CL->residue_index[s1][r1][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s1][r1][a+SEQ2];
 	    t_r=CL->residue_index[s1][r1][a+R2];
-	    hasch[t_s][t_r]=CL->residue_index[s1][r1][a+field];		
+	    hasch[t_s][t_r]=CL->residue_index[s1][r1][a+field];
 	    total_score+=CL->residue_index[s1][r1][a+field];
 	  }
-	
-	
-	for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK) 
+
+
+	for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s2][r2][a+SEQ2];
 	    t_r=CL->residue_index[s2][r2][a+R2];
@@ -3691,15 +3692,15 @@ int residue_pair_relative_extended_list ( Constraint_list *CL, int s1, int r1, i
 		if (field==WE){score+=2*MIN(hasch[t_s][t_r],CL->residue_index[s2][r2][a+field]);}
 	      }
 	  }
-	
+
 	score=((CL->normalise*score)/total_score);
-	
-	
+
+
 	for (a=1; a< CL->residue_index[s1][r1][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s1][r1][a+SEQ2];
 	    t_r=CL->residue_index[s1][r1][a+R2];
-	    hasch[t_s][t_r]=0;	      
+	    hasch[t_s][t_r]=0;
 	  }
 	hasch[s1][r1]=hasch[s2][r2]=0;
 
@@ -3711,19 +3712,19 @@ int residue_pair_extended_list_g_coffee_quadruplet ( Constraint_list *CL, int s1
 	  int a, b;
 	  static int **hasch;
 	  int score=0, s=0;
-	  
+
 	  int field;
 	  /* This measure the quadruplets cost on a pair of residues*/
-	  
+
 	  field=CL->weight_field;
-	  
+
 	  if ( r1<=0 || r2<=0)return 0;
 	  if ( !hasch)
 	    {
 	      hasch=(int**)vcalloc ( (CL->S)->nseq, sizeof (int*));
 	      for ( a=0; a< (CL->S)->nseq; a++)hasch[a]=(int*)vcalloc ( (CL->S)->len[a]+1, sizeof (int));
 	    }
-	  
+
 
 	  hasch[s1][r1]=100000;
 	  for (a=1; a< CL->residue_index[s1][r1][0]; a+=ICHUNK)
@@ -3735,19 +3736,19 @@ int residue_pair_extended_list_g_coffee_quadruplet ( Constraint_list *CL, int s1
 		{
 		  for ( b=1; b<CL->residue_index[t_s][t_r][0]; b+=ICHUNK)
 		    {
-		      q_s=CL->residue_index[t_s][t_r][b+SEQ2];		  
-		      q_r=CL->residue_index[t_s][t_r][b+R2];		 
+		      q_s=CL->residue_index[t_s][t_r][b+SEQ2];
+		      q_r=CL->residue_index[t_s][t_r][b+R2];
 		      if (CL-> seq_for_quadruplet[q_s])
 			{
-			  
+
 			  hasch[q_s][q_r]=MIN(CL->residue_index[t_s][t_r][b+2],t_w);
 			}
 		    }
 		}
 	    }
-	  
-	  
-	  for (s=0,score=0,a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK) 
+
+
+	  for (s=0,score=0,a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK)
 	    {
 	      t_s=CL->residue_index[s2][r2][a+SEQ2];
 	      t_r=CL->residue_index[s2][r2][a+R2];
@@ -3756,16 +3757,16 @@ int residue_pair_extended_list_g_coffee_quadruplet ( Constraint_list *CL, int s1
 		{
 		  for ( b=1; b<CL->residue_index[t_s][t_r][0]; b+=ICHUNK)
 		    {
-		      q_s=CL->residue_index[t_s][t_r][b+SEQ2];		  
-		      q_r=CL->residue_index[t_s][t_r][b+R2];	
-		      q_w=CL->residue_index[t_s][t_r][b+field];	
+		      q_s=CL->residue_index[t_s][t_r][b+SEQ2];
+		      q_r=CL->residue_index[t_s][t_r][b+R2];
+		      q_w=CL->residue_index[t_s][t_r][b+field];
 		      if (hasch[q_s][q_r] && CL->seq_for_quadruplet[q_s])
 			s=MIN(hasch[q_s][q_r],MIN(CL->residue_index[t_s][t_r][b+2],q_w));
 		      score=MAX(score, s);
 		    }
 		}
 	    }
-	  
+
 	  for (a=1; a< CL->residue_index[s1][r1][0]; a+=ICHUNK)
 	    {
 	      t_s=CL->residue_index[s1][r1][a+SEQ2];
@@ -3775,15 +3776,15 @@ int residue_pair_extended_list_g_coffee_quadruplet ( Constraint_list *CL, int s1
 		{
 		  for ( b=1; b<CL->residue_index[t_s][t_r][0]; b+=ICHUNK)
 		    {
-		      q_s=CL->residue_index[t_s][t_r][b+SEQ2];		  
-		      q_r=CL->residue_index[t_s][t_r][b+R2];		 
+		      q_s=CL->residue_index[t_s][t_r][b+SEQ2];
+		      q_r=CL->residue_index[t_s][t_r][b+R2];
 		      hasch[q_s][q_r]=0;
 		    }
 		}
 	    }
 
 	  return score*SCORE_K;
-	}  
+	}
 int residue_pair_extended_list_g_coffee ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
 	int a, t_s, t_r;
@@ -3795,7 +3796,7 @@ int residue_pair_extended_list_g_coffee ( Constraint_list *CL, int s1, int r1, i
 	  function documentation: start
 
 	  int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, int r2);
-	  
+
 	  Computes the extended score for aligning residue seq1(r1) Vs seq2(r2)
 	  Computes: matrix_score
 	            non extended score
@@ -3803,9 +3804,9 @@ int residue_pair_extended_list_g_coffee ( Constraint_list *CL, int s1, int r1, i
 
 	  The extended score depends on the function index_res_constraint_list.
 	  This function can compare a sequence with itself.
-	  
+
 	  Associated functions: See util constraint list, list extention functions.
-	  
+
 	  function documentation: end
 	*/
 
@@ -3817,19 +3818,19 @@ int residue_pair_extended_list_g_coffee ( Constraint_list *CL, int s1, int r1, i
 	       hasch=(int**)vcalloc ( (CL->S)->nseq, sizeof (int*));
 	       for ( a=0; a< (CL->S)->nseq; a++)hasch[a]=(int*)vcalloc ( (CL->S)->len[a]+1, sizeof (int));
 	       }
-	
 
-	
+
+
 	hasch[s1][r1]=100000;
 	for (a=1; a< CL->residue_index[s1][r1][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s1][r1][a+SEQ2];
 	    t_r=CL->residue_index[s1][r1][a+R2];
-	    hasch[t_s][t_r]=CL->residue_index[s1][r1][a+field];		
+	    hasch[t_s][t_r]=CL->residue_index[s1][r1][a+field];
 	  }
-	
-	
-	for (s=0, score=0,a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK) 
+
+
+	for (s=0, score=0,a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s2][r2][a+SEQ2];
 	    t_r=CL->residue_index[s2][r2][a+R2];
@@ -3842,38 +3843,38 @@ int residue_pair_extended_list_g_coffee ( Constraint_list *CL, int s1, int r1, i
 		  }
 	      }
 	  }
-	
+
 	for (a=1; a< CL->residue_index[s1][r1][0]; a+=ICHUNK)
 	  {
 	    t_s=CL->residue_index[s1][r1][a+SEQ2];
 	    t_r=CL->residue_index[s1][r1][a+R2];
-	    hasch[t_s][t_r]=0;	      
+	    hasch[t_s][t_r]=0;
 	  }
 	hasch[s1][r1]=hasch[s2][r2]=0;
 
 	return score*SCORE_K;
-	} 
+	}
 
 int extend_residue_pair ( Constraint_list *CL, int s1, int r1, int s2, int r2)
         {
-	double score=0; 
-	
+	double score=0;
+
 	int a, t_s, t_r, p;
 	static int **hasch;
-	
+
 	static int *entry;
 	int *r;
 	int field;
 
 
-	
+
 	/*
 	  This is the generic Function->works with everything
 	  should be gradually phased out
 
-	  
+
 	  int extend_residue_pair ( Constraint_list *CL, int s1, int r1, int s2, int r2, int field )
-	  
+
 	  Computes the extended score for aligning residue seq1(r1) Vs seq2(r2)
 	  Computes: matrix_score
 	            non extended score
@@ -3881,7 +3882,7 @@ int extend_residue_pair ( Constraint_list *CL, int s1, int r1, int s2, int r2)
 
 	  The extended score depends on the function index_res_constraint_list.
 	  This function can compare a sequence with itself.
-	  
+
 	  Associated functions: See util constraint list, list extention functions.
 	  function documentation: end
 	*/
@@ -3892,9 +3893,9 @@ int extend_residue_pair ( Constraint_list *CL, int s1, int r1, int s2, int r2)
 	if ( r1<=0 || r2<=0)return 0;
 	else if ( !CL->residue_index && CL->M)
 	   {
-	    return evaluate_matrix_score (CL, s1,r1, s2, r2);	
+	    return evaluate_matrix_score (CL, s1,r1, s2, r2);
 	   }
-	
+
 	else if ( !CL->extend_jit)
 	   {
 	    if ( !entry) entry=(int*)vcalloc (LIST_N_FIELDS , sizeof (int));
@@ -3913,19 +3914,19 @@ int extend_residue_pair ( Constraint_list *CL, int s1, int r1, int s2, int r2)
 	       hasch=(int**)vcalloc ( (CL->S)->nseq, sizeof (int*));
 	       for ( a=0; a< (CL->S)->nseq; a++)hasch[a]=(int*)vcalloc ( (CL->S)->len[a]+1, sizeof (int));
 	       }
-	
 
-	
+
+
 	   hasch[s1][r1]=100000;
 	   for (a=1; a< CL->residue_index[s1][r1][0]; a+=ICHUNK)
 	        {
 		t_s=CL->residue_index[s1][r1][a+SEQ2];
 		t_r=CL->residue_index[s1][r1][a+R2];
-		hasch[t_s][t_r]=CL->residue_index[s1][r1][a+WE];		
+		hasch[t_s][t_r]=CL->residue_index[s1][r1][a+WE];
 		}
-	
-	
-	   for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK) 
+
+
+	   for (a=1; a< CL->residue_index[s2][r2][0]; a+=ICHUNK)
 	       {
 	       t_s=CL->residue_index[s2][r2][a+SEQ2];
 	       t_r=CL->residue_index[s2][r2][a+R2];
@@ -3940,7 +3941,7 @@ int extend_residue_pair ( Constraint_list *CL, int s1, int r1, int s2, int r2)
 	       {
 	       t_s=CL->residue_index[s1][r1][a+SEQ2];
 	       t_r=CL->residue_index[s1][r1][a+R2];
-	       hasch[t_s][t_r]=0;	      
+	       hasch[t_s][t_r]=0;
 	       }
 	   hasch[s1][r1]=hasch[s2][r2]=0;
 
@@ -3964,17 +3965,17 @@ int get_dp_cost_blosum_matrix (Alignment *A, int**pos1, int ns1, int*list1, int 
   r2=pos2[list2[0]][col2];
 
   /*dp cost function: works only with two sequences*/
-  
+
   if ( seq2R_template_profile (CL->S,s1) ||seq2R_template_profile (CL->S,s2))
     return evaluate_aln_profile_score ( CL, s1,r1, s2, r2) -CL->nomatch*SCORE_K;
   else if (r1>0 && r2>0)
 	    {
 	    r1--;
 	    r2--;
-	    
-	    
+
+
 	    return matrix [(CL->S)->seq[s1][r1]-'A'][(CL->S)->seq[s2][r2]-'A']*SCORE_K -CL->nomatch*SCORE_K;
-	    
+
 	    }
   else
     return -CL->nomatch*SCORE_K ;
@@ -3983,7 +3984,7 @@ int get_dp_cost_pam_matrix (Alignment *A, int**pos1, int ns1, int*list1, int col
 {
   int s1, r1, s2, r2;
   static int **matrix;
-  
+
   if (!matrix) matrix=read_matrice ("pam250mt");
   s1=A->order[list1[0]][0];
   s2=A->order[list2[0]][0];
@@ -3991,7 +3992,7 @@ int get_dp_cost_pam_matrix (Alignment *A, int**pos1, int ns1, int*list1, int col
   r2=pos2[list2[0]][col2];
 
   /*dp cost function: works only with two sequences*/
-  
+
 
   if ( seq2R_template_profile (CL->S,s1) ||seq2R_template_profile (CL->S,s2))
     return evaluate_aln_profile_score ( CL, s1,r1, s2, r2) -CL->nomatch*SCORE_K;
@@ -3999,10 +4000,10 @@ int get_dp_cost_pam_matrix (Alignment *A, int**pos1, int ns1, int*list1, int col
 	    {
 	    r1--;
 	    r2--;
-	    
-	    
+
+
 	    return matrix [(CL->S)->seq[s1][r1]-'A'][(CL->S)->seq[s2][r2]-'A']*SCORE_K -CL->nomatch*SCORE_K;
-	    
+
 	    }
   else
     return -CL->nomatch*SCORE_K ;
@@ -4011,7 +4012,7 @@ int get_dp_cost_pam_matrix (Alignment *A, int**pos1, int ns1, int*list1, int col
 int get_dp_cost_pw_matrix (Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
 {
   int s1, r1, s2, r2;
-   
+
   s1=A->order[list1[0]][0];
   s2=A->order[list2[0]][0];
   r1=pos1[list1[0]][col1];
@@ -4024,10 +4025,10 @@ int get_dp_cost_pw_matrix (Alignment *A, int**pos1, int ns1, int*list1, int col1
 	    {
 	    r1--;
 	    r2--;
-	    
-	    
+
+
 	    return CL->M[(CL->S)->seq[s1][r1]-'A'][(CL->S)->seq[s2][r2]-'A']*SCORE_K -CL->nomatch*SCORE_K;
-	    
+
 	    }
   else
     return -CL->nomatch*SCORE_K ;
@@ -4050,9 +4051,9 @@ int get_cdna_best_frame_dp_cost (Alignment *A, int**pos1, int ns1, int*list1, in
 	static int l1, l2;
 	static Alignment *B;
 	static int **score;
-	
+
 	if ( !score)score=declare_int(3, 2);
-	
+
 	if (!A)
 	   {
 	       free_aln(B);
@@ -4061,10 +4062,10 @@ int get_cdna_best_frame_dp_cost (Alignment *A, int**pos1, int ns1, int*list1, in
 	   }
 	if (!B)
 	   {
-	       if (ns1+ns2>2){fprintf ( stderr, "\nERROR: get_cdna_dp_cost mode is only for pair-wise ALN [FATAL]\n");crash("");} 
+	       if (ns1+ns2>2){fprintf ( stderr, "\nERROR: get_cdna_dp_cost mode is only for pair-wise ALN [FATAL]\n");crash("");}
 	       free_aln (B);
 	       B=copy_aln (A, NULL);
-	       
+
 	       l1=(int)strlen ( A->seq_al[list1[0]]);
 	       for ( b=0; b<l1; b++)
 		       B->seq_al[list1[0]][b]=translate_dna_codon (A->seq_al[list1[0]]+b, 'x');
@@ -4072,53 +4073,53 @@ int get_cdna_best_frame_dp_cost (Alignment *A, int**pos1, int ns1, int*list1, in
 	       for ( b=0; b<l2; b++)
 		       B->seq_al[list2[0]][b]=translate_dna_codon (A->seq_al[list2[0]]+b, 'x');
 	   }
-	
+
 /*Set the frame*/
 
 	for ( a=0; a< 3; a++)score[a][0]=score[a][1]=0;
 	for ( a=col1-(n*3),b=col2-(n*3); a<col1+(n*3) ; a++, b++)
 	        {
 		    if ( a<0 || b<0 || a>=l1 || b>=l2)continue;
-		    
+
 		    a1=tolower(B->seq_al[list1[0]][a]);
 		    a2=tolower(B->seq_al[list2[0]][b]);
-		    
+
 		    score[a%3][0]+=(a1=='x' || a2=='x')?0:CL->M[a1-'A'][a2-'A'];
 		    score[a%3][1]++;
 		 }
-	
+
 	for ( a=0; a< 3; a++)score[a][0]=(score[a][1]>0)?(score[a][0]/score[a][1]):0;
 	if ( score[0][0]>score[1][0] &&  score[0][0]>score[2][0])
 	    s=score[0][0];
 	else if ( score[1][0]>score[0][0] &&  score[1][0]>score[2][0])
 	    s=score[1][0];
 	else s=score[2][0];
-	
+
 	return s*SCORE_K;
-	
-	} 
+
+	}
 
 int get_dp_cost_quadruplet ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
         {
 	  int score;
-	  
-	 
+
+
 	  if ( ns1==1 || ns2==1)
 	     score=slow_get_dp_cost ( A, pos1, ns1, list1,col1, pos2, ns2, list2, col2, CL);
 	  else
 	    score=fast_get_dp_cost_quadruplet ( A, pos1, ns1, list1,col1, pos2, ns2, list2, col2, CL);
-	 
+
 	  return (score==UNDEFINED)?UNDEFINED:(score-SCORE_K*CL->nomatch);
-	}  
+	}
 int get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
         {
 	int MODE=0;
 	int score;
-	
+
 
 
 	if (A==NULL)return 0;
-	
+
 	if (MODE!=2 || MODE==0  || (!CL->residue_index && CL->M) || (!CL->residue_index && CL->T)|| ns1==1 || ns2==1)
 	  score=slow_get_dp_cost ( A, pos1, ns1, list1,col1, pos2, ns2, list2, col2, CL);
 	else if (MODE==1 || MODE==2)
@@ -4126,7 +4127,7 @@ int get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**po
 	else
 	  score=0;
 
-	
+
 
 	return (score==UNDEFINED)?UNDEFINED:(score-SCORE_K*CL->nomatch);
 	}
@@ -4135,7 +4136,7 @@ int ***make_cw_lu (int **cons, int l, Constraint_list *CL)
 {
   int ***lu;
   int p, a,r;
-  
+
   lu=(int***)declare_arrayN(3, sizeof (int),l,103, 2);
   for ( p=0; p<l ; p++)
     {
@@ -4150,7 +4151,7 @@ int ***make_cw_lu (int **cons, int l, Constraint_list *CL)
     }
   return lu;
 }
-int id2_profile_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL);    
+int id2_profile_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL);
 int cw_profile_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
 {
 	  static int last_tag;
@@ -4159,21 +4160,21 @@ int cw_profile_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int co
 	  static int *list[2], ns[2], **cons[2], ref;
 	  int  eva_col,ref_col, a, p, r;
 	  float t1, t2;
-	  
-	
-	  
-	  
-	  
+
+
+
+
+
 	  if (last_tag!=A->random_tag)
 	    {
 	      int n1, n2;
-	      
+
 	      last_tag=A->random_tag;
 	      list[0]=list1;ns[0]=ns1;
 	      list[1]=list2;ns[1]=ns2;
 	      free_int (cons[0],-1);free_int (cons[1],-1);free_arrayN((void*)lu,3);
 	      cons[0]=NULL;cons[1]=NULL;lu=NULL;
-	      
+
 	      n1=sub_aln2nseq_prf (A, ns[0], list[0]);
 	      n2=sub_aln2nseq_prf (A, ns[1], list[1]);
 	      if ( n1>1 || n2>1)
@@ -4205,13 +4206,13 @@ int cw_profile_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int co
 		{
 		  r=tolower(pr[a]);
 		  p=  pr[a+1];
-		  
+
 		  t1+=lu[ref_col][r-'a'][0]*p;
 		  t2+=lu[ref_col][r-'a'][1]*p;
 		}
-	      
-	      
-	      
+
+
+
 	      score=(t2==0)?0:(t1*SCORE_K)/t2;
 	      score -=SCORE_K*CL->nomatch;
 	      return score;
@@ -4222,7 +4223,7 @@ int cw_profile_get_dp_cost_old ( Alignment *A, int**pos1, int ns1, int*list1, in
 	  static int last_tag;
 	  static int **cons1, **cons2;
 	  int score;
-	  
+
 
 	  if (last_tag!=A->random_tag)
 	    {
@@ -4242,9 +4243,9 @@ int id2_profile_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int c
 	  int score=0;
 	  static int *aa;
 	  int a, b, r, *pr[2];
-	  
+
 	  if (!aa)aa=(int*)vcalloc (100, sizeof (int));
-	  
+
 	  if (last_tag!=A->random_tag)
 	    {
 	      last_tag=A->random_tag;
@@ -4254,7 +4255,7 @@ int id2_profile_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int c
 	    }
 	  pr[0]=cons1[col1];
 	  pr[1]=cons2[col2];
-	  
+
 	  for (a=0; a<2; a++)
 	    {
 	      for (b=3; b<pr[a][1]; b+=3)
@@ -4272,7 +4273,7 @@ int id2_profile_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int c
 		  aa[b-'a']=0;
 		}
 	    }
-	      
+
 	  return score;
 }
 
@@ -4281,7 +4282,7 @@ int cw_profile_get_dp_cost_window ( Alignment *A, int**pos1, int ns1, int*list1,
 	  static int last_tag;
 	  static int **cons1, **cons2;
 	  int a, score, window_size=5, n, p1, p2;
-	  
+
 
 	if (last_tag!=A->random_tag)
 	  {
@@ -4290,7 +4291,7 @@ int cw_profile_get_dp_cost_window ( Alignment *A, int**pos1, int ns1, int*list1,
 	    cons1=sub_aln2count_mat2 (A, ns1, list1);
 	    cons2=sub_aln2count_mat2 (A, ns2, list2);
 	  }
-	
+
 	for (n=0,score=0,a=0; a<window_size; a++)
 	  {
 	    p1=col1-a;
@@ -4301,7 +4302,7 @@ int cw_profile_get_dp_cost_window ( Alignment *A, int**pos1, int ns1, int*list1,
 	    n++;
 	  }
 	if (n>0)score/=n;
-	
+
 	return score;
 	}
 
@@ -4315,7 +4316,7 @@ int consensus_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col
 	  if (last_tag !=A->random_tag)
 	    {
 	      int ls1, ls2, lenls1, lenls2;
-	   
+
 	      last_tag=A->random_tag;
 	      vfree (seq1);vfree (seq2);
 	      seq1=sub_aln2cons_seq_mat (A, ns1, list1, "blosum62mt");
@@ -4325,31 +4326,31 @@ int consensus_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col
 	  }
 
 	return (CL->M[seq1[col1]-'A'][seq2[col2]-'A']*SCORE_K)-SCORE_K*CL->nomatch;
-	} 
+	}
 
 int fast_get_dp_cost_quadruplet ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
 	{
 	/*WARNING: WORKS ONLY WITH List to Extend*/
 	  /*That function does a quruple extension beween two columns by pooling the residues together*/
-	  
+
 	  double score=0;
-	  
+
 	  int a,b, c;
 	  int n_gap1=0;
 	  int n_gap2=0;
-	  
+
 	  int s1, rs1, r1, t_r, t_s,t_w, q_r, q_s, q_w, s2, rs2, r2;
-	  int **buf_pos, buf_ns, *buf_list, buf_col; 
+	  int **buf_pos, buf_ns, *buf_list, buf_col;
 
 	  static int **hasch1;
 	  static int **hasch2;
-	  
+
 	  static int **n_hasch1;
 	  static int **n_hasch2;
-	  
+
 	  static int **is_in_col1;
 	  static int **is_in_col2;
-	  
+
 
 	  if (ns2>ns1)
 	    {
@@ -4357,22 +4358,22 @@ int fast_get_dp_cost_quadruplet ( Alignment *A, int**pos1, int ns1, int*list1, i
 	      buf_ns=ns1;
 	      buf_list=list1;
 	      buf_col=col1;
-	      
+
 	      pos1=pos2;
 	      ns1=ns2;
 	      list1=list2;
 	      col1=col2;
-	      
+
 	      pos2=buf_pos;
 	      ns2=buf_ns;
 	      list2=buf_list;
 	      col2=buf_col;
 	    }
-	  
+
 
 	if ( !hasch1)
 	    {
-	    
+
 	    hasch1=declare_int( (CL->S)->nseq, (CL->S)->max_len+1);
             hasch2=declare_int( (CL->S)->nseq, (CL->S)->max_len+1);
 	    n_hasch1=declare_int ( (CL->S)->nseq, (CL->S)->max_len+1);
@@ -4380,16 +4381,16 @@ int fast_get_dp_cost_quadruplet ( Alignment *A, int**pos1, int ns1, int*list1, i
 	    is_in_col1=declare_int( (CL->S)->nseq, (CL->S)->max_len+1);
 	    is_in_col2=declare_int( (CL->S)->nseq, (CL->S)->max_len+1);
 	    }
-	
+
 	for ( a=0; a< ns1; a++)
 	    {
 		rs1= list1[a];
 		s1=A->order[rs1][0];
 		r1=pos1[rs1][col1];
-		
-		if (r1<0)n_gap1++;		
+
+		if (r1<0)n_gap1++;
 		else
-		   {	
+		   {
 		   is_in_col1[s1][r1]=1;
 		   for (b=1; b< CL->residue_index[s1][r1][0]; b+=ICHUNK)
 		           {
@@ -4407,13 +4408,13 @@ int fast_get_dp_cost_quadruplet ( Alignment *A, int**pos1, int ns1, int*list1, i
 			   }
 		   }
 	    }
-	
+
 	for ( a=0; a< ns2; a++)
 	    {
 		rs2=list2[a];
 		s2=A->order[rs2][0];
 		r2=pos2[rs2][col2];
-	
+
 		if (r2<0)n_gap2++;
 		else
 		   {
@@ -4434,14 +4435,14 @@ int fast_get_dp_cost_quadruplet ( Alignment *A, int**pos1, int ns1, int*list1, i
 			   }
 		   }
 	    }
-	
+
 
 	for ( a=0; a< ns2; a++)
 	  {
 	    rs2=list2[a];
 	    s2=A->order[rs2][0];
 	    r2=pos1[rs2][col2];
-	    
+
 	    if (r2<0);
 	    else
 	      {
@@ -4474,14 +4475,14 @@ int fast_get_dp_cost_quadruplet ( Alignment *A, int**pos1, int ns1, int*list1, i
 		is_in_col2[s2][r2]=0;
 	      }
 	  }
-	
-	
+
+
 	for ( a=0; a< ns1; a++)
 	  {
 	    rs1= list1[a];
 	    s1=A->order[rs1][0];
 	    r1=pos1[rs1][col1];
-	    
+
 	    if (r1<0);
 	    else
 	      {
@@ -4501,7 +4502,7 @@ int fast_get_dp_cost_quadruplet ( Alignment *A, int**pos1, int ns1, int*list1, i
 		  }
 	      }
 	  }
-	
+
 
 	score=(score*SCORE_K)/((ns1-n_gap1)*(ns2-n_gap2));
 	score=(CL->normalise)?((score*CL->normalise)/CL->max_ext_value):score;
@@ -4509,33 +4510,33 @@ int fast_get_dp_cost_quadruplet ( Alignment *A, int**pos1, int ns1, int*list1, i
 	return (int)(score-SCORE_K*CL->nomatch);
 	}
 
-	    
+
 int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
 	{
 	/*WARNING: WORKS ONLY WITH List to Extend*/
-	  
+
 	  double score=0;
-	  
+
 	  int a,b;
 	  int n_gap1=0;
 	  int n_gap2=0;
-	  
+
 	  int s1, rs1, r1, t_r, t_s, s2, rs2, r2;
 	  static int **hasch1;
 	  static int **hasch2;
-	  
+
 	  static int **n_hasch1;
 	  static int **n_hasch2;
-	  
+
 	  static int **is_in_col1;
 	  static int **is_in_col2;
 
 
-	    
+
 
 	if ( !hasch1)
 	    {
-	    
+
 	    hasch1=declare_int( (CL->S)->nseq, (CL->S)->max_len+1);
             hasch2=declare_int( (CL->S)->nseq, (CL->S)->max_len+1);
 	    n_hasch1=declare_int ( (CL->S)->nseq, (CL->S)->max_len+1);
@@ -4543,21 +4544,21 @@ int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 	    is_in_col1=declare_int( (CL->S)->nseq, (CL->S)->max_len+1);
 	    is_in_col2=declare_int( (CL->S)->nseq, (CL->S)->max_len+1);
 	    }
-	
+
 	for ( a=0; a< ns1; a++)
 	    {
 		rs1= list1[a];
 		s1=A->order[rs1][0];
 		r1=pos1[rs1][col1];
-		
-		if (r1<0)n_gap1++;		
+
+		if (r1<0)n_gap1++;
 		else
-		   {	
+		   {
 		   is_in_col1[s1][r1]=1;
 		   for (b=1; b< CL->residue_index[s1][r1][0]; b+=ICHUNK)
 		           {
 			   t_s=CL->residue_index[s1][r1][b+SEQ2];
-			   t_r=CL->residue_index[s1][r1][b+R2];			   
+			   t_r=CL->residue_index[s1][r1][b+R2];
 			   hasch1[t_s][t_r]+=CL->residue_index[s1][r1][b+WE];
 			   n_hasch1[t_s][t_r]++;
 			   }
@@ -4570,7 +4571,7 @@ int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 		rs2=list2[a];
 		s2=A->order[rs2][0];
 		r2=pos2[rs2][col2];
-	
+
 		if (r2<0)n_gap2++;
 		else
 		   {
@@ -4594,7 +4595,7 @@ int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 		    rs2=list2[a];
 		    s2=A->order[rs2][0];
 		    r2=pos1[rs2][col2];
-		    
+
 		    if (r2<0);
 		    else
 		        {
@@ -4602,7 +4603,7 @@ int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 			    {
 			    t_s=CL->residue_index[s2][r2][b+SEQ2];
 			    t_r=CL->residue_index[s2][r2][b+R2];
-			    
+
 			    if ( hasch2[t_s][t_r] && hasch1[t_s][t_r]&& !(is_in_col1[t_s][t_r] || is_in_col2[t_s][t_r]))
 			        {
 				score+=MIN(hasch2[t_s][t_r]*(n_hasch1[t_s][t_r]),hasch1[t_s][t_r]*(n_hasch2[t_s][t_r]));
@@ -4623,13 +4624,13 @@ int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 			}
 		    }
 
-	
+
 		for ( a=0; a< ns1; a++)
 		    {
 		    rs1= list1[a];
 		    s1=A->order[rs1][0];
 		    r1=pos1[rs1][col1];
-		    
+
 		    if (r1<0);
 		    else
 		        {
@@ -4639,7 +4640,7 @@ int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 			    {
 			    t_s=CL->residue_index[s1][r1][b+SEQ2];
 			    t_r=CL->residue_index[s1][r1][b+R2];
-			    
+
 			    hasch1[t_s][t_r]=0;
 			    n_hasch1[t_s][t_r]=0;
 			    }
@@ -4653,7 +4654,7 @@ int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 		    rs1=list1[a];
 		    s1=A->order[rs1][0];
 		    r1=pos1[rs1][col1];
-		    
+
 		    if (r1<0);
 		    else
 		        {
@@ -4661,7 +4662,7 @@ int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 			    {
 			    t_s=CL->residue_index[s1][r1][b+SEQ2];
 			    t_r=CL->residue_index[s1][r1][b+R2];
-			    
+
 			    if ( hasch1[t_s][t_r] && hasch2[t_s][t_r]&& !(is_in_col2[t_s][t_r] || is_in_col1[t_s][t_r]))
 			        {
 				score+=MIN(hasch1[t_s][t_r]*(n_hasch2[t_s][t_r]),hasch2[t_s][t_r]*(n_hasch1[t_s][t_r]));
@@ -4682,13 +4683,13 @@ int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 		        }
 		    }
 
-	
+
 		for ( a=0; a< ns2; a++)
 		    {
 		    rs2= list2[a];
 		    s2=A->order[rs2][0];
 		    r2=pos1[rs2][col2];
-		    
+
 		    if (r2<0);
 		    else
 		        {
@@ -4698,7 +4699,7 @@ int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 			    {
 			    t_s=CL->residue_index[s2][r2][b+SEQ2];
 			    t_r=CL->residue_index[s2][r2][b+R2];
-			    
+
 			    hasch2[t_s][t_r]=0;
 			    n_hasch2[t_s][t_r]=0;
 			    }
@@ -4714,7 +4715,7 @@ int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 int fast_get_dp_cost_2 ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
 	{
 	double score=0;
-	
+
 	int a, b, s1, s2,r1, r2;
 	static int n_pair;
 
@@ -4726,24 +4727,24 @@ int fast_get_dp_cost_2 ( Alignment *A, int**pos1, int ns1, int*list1, int col1, 
 	static int last_top1;
 	static int last_top2;
 	static int **check_list;
-	
+
 
 	/*New heuristic get dp_cost on a limited number of pairs*/
 	/*This is the current default*/
 
-	
+
 	if ( last_ns1==ns1 && last_top1==list1[0] && last_ns2==ns2 && last_top2==list2[0]);
 	else
 	  {
-	    
-	    
+
+
 	    last_ns1=ns1;
 	    last_ns2=ns2;
 	    last_top1=list1[0];
 	    last_top2=list2[0];
 	    if ( check_list) free_int (check_list, -1);
 	    check_list=declare_int ( (CL->S)->nseq*(CL->S)->nseq, 3);
-	    
+
 	    for ( n_pair=0,a=0; a< ns1; a++)
 	      {
 		s1 =list1[a];
@@ -4751,7 +4752,7 @@ int fast_get_dp_cost_2 ( Alignment *A, int**pos1, int ns1, int*list1, int col1, 
 		for ( b=0; b< ns2; b++, n_pair++)
 		  {
 		    s2 =list2[b];
-		    rs2=A->order[s2][0]; 
+		    rs2=A->order[s2][0];
 		    check_list[n_pair][0]=s1;
 		    check_list[n_pair][1]=s2;
 		    check_list[n_pair][2]=(!CL->DM)?0:(CL->DM)->similarity_matrix[rs1][rs2];
@@ -4761,30 +4762,30 @@ int fast_get_dp_cost_2 ( Alignment *A, int**pos1, int ns1, int*list1, int col1, 
 	  }
 
 	if ( !CL->evaluate_residue_pair){fprintf ( stderr, "\nWARNING: CL->evaluate_residue_pair Not set\nSet to: extend_residue_pair\n");CL->evaluate_residue_pair= extend_residue_pair;}
-	
-	
+
+
 	for ( a=n_pair-1; a>=0; a--)
 	  {
 	    s1= check_list[a][0];
 	    rs1=A->order[s1][0];
-	    r1 =pos1[s1][col1]; 
-	  
+	    r1 =pos1[s1][col1];
+
 	    s2= check_list[a][1];
 	    rs2=A->order[s2][0];
 	    r2 =pos2[s2][col2];
-	    
-	    if ( r1>0 && r2 >0) 
+
+	    if ( r1>0 && r2 >0)
 	      {res_res++;}
 	    if ( rs1>rs2)
-	      {			    
+	      {
 		SWAP (rs1, rs2);
 		SWAP (r1, r2);
 	      }
-	    
-	    if ((s=(CL->evaluate_residue_pair)(CL, rs1, r1, rs2, r2))!=UNDEFINED) score+=s;				    
-	    else 
+
+	    if ((s=(CL->evaluate_residue_pair)(CL, rs1, r1, rs2, r2))!=UNDEFINED) score+=s;
+	    else
 	      {
-		
+
 		return UNDEFINED;
 	      }
 	    if ( res_res>=CL->max_n_pair && CL->max_n_pair!=0)a=0;
@@ -4794,7 +4795,7 @@ int fast_get_dp_cost_2 ( Alignment *A, int**pos1, int ns1, int*list1, int col1, 
 	score=score-SCORE_K*CL->nomatch;
 
 	return (int)score;
-	} 
+	}
 
 
 
@@ -4811,7 +4812,7 @@ int slow_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 	int rs1, rs2;
 	static int last_tag;
 	static int *dummy;
-	
+
 	if (col1<0 || col2<0) return 0;
 	if ( last_tag !=A->random_tag)
 	  {
@@ -4826,50 +4827,50 @@ int slow_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, in
 		dummy[5]=100; /*Frequency in the MSA column*/
 	      }
 	  }
-	
+
 	if ( !CL->evaluate_residue_pair){fprintf ( stderr, "\nWARNING: CL->evaluate_residue_pair Not set\nSet to: extend_residue_pair\n");CL->evaluate_residue_pair= extend_residue_pair;}
-		
+
 	for ( a=0; a< ns1; a++)
 	  {
 	    for ( b=0; b<ns2; b++)
 	      {
-		
+
 		s1 =list1[a];
 		rs1=A->order[s1][0];
 		r1 =pos1[s1][col1];
-		
+
 		s2 =list2[b];
 		rs2=A->order[s2][0];
 		r2 =pos2[s2][col2];
-		
+
 		if ( rs1>rs2)
-		  {			    
+		  {
 		    SWAP (rs1, rs2);
 		    SWAP (r1, r2);
 		  }
-		
-		if (r1==0 && r2==0)gap_gap++;			     
-		else if ( r1<0 || r2<0) gap_res++;			
-		else 
-		  {					
+
+		if (r1==0 && r2==0)gap_gap++;
+		else if ( r1<0 || r2<0) gap_res++;
+		else
+		  {
 		    res_res++;
 
-		    if ((s=(CL->evaluate_residue_pair)(CL, rs1, r1, rs2, r2))!=UNDEFINED) score+=s;				    
-		    else 
+		    if ((s=(CL->evaluate_residue_pair)(CL, rs1, r1, rs2, r2))!=UNDEFINED) score+=s;
+		    else
 		      {
-			
+
 			return UNDEFINED;
 		      }
 		  }
-		
+
 	      }
 	  }
-	
-	
+
+
 	score=(res_res==0)?0:( (score)/res_res);
-	
-	return score-SCORE_K*CL->nomatch;	
-	
+
+	return score-SCORE_K*CL->nomatch;
+
 	}
 int slow_get_dp_cost_pc ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
 	{
@@ -4883,7 +4884,7 @@ int slow_get_dp_cost_pc ( Alignment *A, int**pos1, int ns1, int*list1, int col1,
 	int rs1, rs2;
 	static int last_tag;
 	static int *dummy;
-	
+
 	if (col1<0 || col2<0) return 0;
 	if ( last_tag !=A->random_tag)
 	  {
@@ -4898,54 +4899,54 @@ int slow_get_dp_cost_pc ( Alignment *A, int**pos1, int ns1, int*list1, int col1,
 		dummy[5]=100; /*Frequency in the MSA column*/
 	      }
 	  }
-	
+
 	if ( !CL->evaluate_residue_pair){fprintf ( stderr, "\nWARNING: CL->evaluate_residue_pair Not set\nSet to: extend_residue_pair\n");CL->evaluate_residue_pair= extend_residue_pair;}
-		
+
 	for ( a=0; a< ns1; a++)
 	  {
 	    for ( b=0; b<ns2; b++)
 	      {
-		
+
 		s1 =list1[a];
 		rs1=A->order[s1][0];
 		r1 =pos1[s1][col1];
-		
+
 		s2 =list2[b];
 		rs2=A->order[s2][0];
 		r2 =pos2[s2][col2];
-		
+
 		if ( rs1>rs2)
-		  {			    
+		  {
 		    SWAP (rs1, rs2);
 		    SWAP (r1, r2);
 		  }
-		
-		if (r1==0 && r2==0)gap_gap++;			     
-		else if ( r1<0 || r2<0) gap_res++;			
-		else 
-		  {					
+
+		if (r1==0 && r2==0)gap_gap++;
+		else if ( r1<0 || r2<0) gap_res++;
+		else
+		  {
 		    res_res++;
-		    if ((s=residue_pair_extended_list_pc(CL, rs1, r1, rs2, r2))!=UNDEFINED) score+=s;				    
-		    else 
+		    if ((s=residue_pair_extended_list_pc(CL, rs1, r1, rs2, r2))!=UNDEFINED) score+=s;
+		    else
 		      {
-			
+
 			return UNDEFINED;
 		      }
 		  }
-		
+
 	      }
 	  }
-	
-	
+
+
 	score=(res_res==0)?0:( (score)/res_res);
-	
+
 	return score;
-	
+
 	}
 int slow_get_dp_cost_test ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
 	{
 	double score=0;
-	
+
 	int a, b, s1, s2,r1, r2;
 	int gap_gap=0, gap_res=0, res_res=0, rs1, rs2;
 
@@ -4953,32 +4954,32 @@ int slow_get_dp_cost_test ( Alignment *A, int**pos1, int ns1, int*list1, int col
 		{
 		for ( b=0; b<ns2; b++)
 			{
-			
+
 			s1 =list1[a];
 			rs1=A->order[s1][0];
 			r1 =pos1[s1][col1];
-			
+
 			s2 =list2[b];
 			rs2=A->order[s2][0];
 			r2 =pos2[s2][col2];
-				
+
 	        	if ( rs1>rs2)
-			   {			    
+			   {
 			   SWAP (rs1, rs2);
 			   SWAP (r1, r2);
 			   }
-			
-			if (r1==0 && r2==0)gap_gap++;			     
-			else if ( r1<0 || r2<0) gap_res++;			
-			else 
-			    {					
+
+			if (r1==0 && r2==0)gap_gap++;
+			else if ( r1<0 || r2<0) gap_res++;
+			else
+			    {
 			    res_res++;
 			    score+=residue_pair_extended_list_raw (CL, rs1, r1, rs2, r2);
 			    }
 			}
 		}
 
-	return (int)(score*10)/(ns1*ns2);	
+	return (int)(score*10)/(ns1*ns2);
 	}
 
 int sw_get_dp_cost     ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
@@ -4986,40 +4987,40 @@ int sw_get_dp_cost     ( Alignment *A, int**pos1, int ns1, int*list1, int col1, 
 	  int a, b;
 	  int s1,r1,rs1;
 	  int s2,r2,rs2;
-	  
-	  
-	  
+
+
+
 
 	  for ( a=0; a< ns1; a++)
-	    {	
+	    {
 	      s1 =list1[a];
 	      rs1=A->order[s1][0];
 	      r1 =pos1[s1][col1];
 	      if ( r1<=0)continue;
 	      for ( b=0; b< ns2; b++)
 		{
-		  
-		  
+
+
 		  s2 =list2[b];
 		  rs2=A->order[s2][0];
 		  r2 =pos2[s2][col2];
-		  
+
 		  if (r2<=0)continue;
-		  
-		  
-		  if (sw_pair_is_defined (CL, rs1, r1, rs2, r2)==UNDEFINED)return UNDEFINED;	       
+
+
+		  if (sw_pair_is_defined (CL, rs1, r1, rs2, r2)==UNDEFINED)return UNDEFINED;
 		}
-	    }	  
-			
+	    }
+
 	  return slow_get_dp_cost ( A, pos1, ns1, list1, col1, pos2, ns2, list2,col2, CL);
-	  	  
+
 	}
 
 
 
 
 
-  
+
 
 
 int get_domain_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2,Constraint_list *CL , int scale , int gop, int gep)
@@ -5037,11 +5038,11 @@ int get_domain_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, 
 	int p;
 
 /*Needs to be cleanned After Usage*/
-	
+
 
 
 	if ( entry==NULL) entry=(int*)vcalloc (LIST_N_FIELDS , sizeof (int));
-	
+
 	for (a=0; a< ns1; a++)
 		{
 		s1=list1[a];
@@ -5050,46 +5051,46 @@ int get_domain_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, 
 			{
 			s2 =list2[b];
 			rs2=A->order[s2][0];
-			
+
 			entry[SEQ1]=rs1;
 			entry[SEQ2]=rs2;
 			r1=entry[R1]=pos1[s1][col1];
 			r2=entry[R2]=pos2[s2][col2];
-			
+
 			if ( !flag_list_is_aa_sub_mat)
 			    {
 			    if ( r1==r2 && rs1==rs2)
 			       {
-				 
+
 				 return UNDEFINED;
 			       }
 			    else if (r1==0 && r2==0)
-			       {			    
-			       gap_gap++;		
+			       {
+			       gap_gap++;
 			       }
 			    else if ( r1<=0 || r2<=0)
 			       {
 			       gap_res++;
 			       }
 			    else if ((r=main_search_in_list_constraint ( entry,&p,4,CL))!=NULL)
-				{				
-				res_res++; 
-				
-				if (r[WE]!=UNDEFINED) 
+				{
+				res_res++;
+
+				if (r[WE]!=UNDEFINED)
 				    {
 				    score+=(r[WE]*SCORE_K)+scale;
 				    }
-				else 
+				else
 				  {
 				    fprintf ( stderr, "**");
 				    return UNDEFINED;
 				  }
 				}
-			    }			    			  
+			    }
 			}
 		}
 	return score;
-	} 
+	}
 
 /*********************************************************************************************/
 /*                                                                                           */
@@ -5118,7 +5119,7 @@ float get_avg_matrix_mm ( int **matrix, char *alphabet)
 	float gop;
 	int l;
 
-	
+
 	l=MIN(20,(int)strlen (alphabet));
 	for (naa=0, gop=0,a=0; a<l; a++)
 	    for ( b=0; b<l; b++)
@@ -5129,7 +5130,7 @@ float get_avg_matrix_mm ( int **matrix, char *alphabet)
 			naa++;
 			}
 		}
-	
+
 	gop=gop/naa;
 	return gop;
     }
@@ -5139,17 +5140,17 @@ float get_avg_matrix_match ( int **matrix, char *alphabet)
 	float gop;
 	int l;
 
-	
 
-	
+
+
 	l=MIN(20,(int)strlen (alphabet));
 	for (gop=0,a=0; a<l; a++)
 	  gop+=matrix[alphabet[a]-'A'][alphabet[a]-'A'];
-	
+
 	gop=gop/l;
 	return gop;
-    }	
-		      
+    }
+
 float get_avg_matrix_diff ( int **matrix1,int **matrix2, char *alphabet)
     {
 	int a, b;
@@ -5157,9 +5158,9 @@ float get_avg_matrix_diff ( int **matrix1,int **matrix2, char *alphabet)
 	float gop;
 	int l,v1;
 
-	
 
-	
+
+
 	l=MIN(20,(int)strlen (alphabet));
 	for (naa=0, gop=0,a=0; a<l; a++)
 	  for (b=0; b<l; b++)
@@ -5168,17 +5169,17 @@ float get_avg_matrix_diff ( int **matrix1,int **matrix2, char *alphabet)
 	      gop+=v1*v1;
 	      naa++;
 	    }
-	
+
 	gop=gop/l;
 	return gop;
-    }	
+    }
 
 float* set_aa_frequencies ()
    {
-     
+
      float *frequency;
      /*frequencies tqken from psw*/
-     
+
      frequency=(float*)vcalloc (100, sizeof (float));
      frequency ['x'-'A']=0.0013;
      frequency ['a'-'A']=0.0076;
@@ -5200,7 +5201,7 @@ float* set_aa_frequencies ()
      frequency ['t'-'A']=0.0581;
      frequency ['v'-'A']=0.0652;
      frequency ['w'-'A']=0.0128;
-     frequency ['y'-'A']=0.0321; 
+     frequency ['y'-'A']=0.0321;
      frequency ['X'-'A']=0.0013;
      frequency ['A'-'A']=0.0076;
      frequency ['C'-'A']=0.0176;
@@ -5221,7 +5222,7 @@ float* set_aa_frequencies ()
      frequency ['T'-'A']=0.0581;
      frequency ['V'-'A']=0.0652;
      frequency ['W'-'A']=0.0128;
-     frequency ['Y'-'A']=0.0321; 
+     frequency ['Y'-'A']=0.0321;
      return frequency;
    }
 
@@ -5229,8 +5230,8 @@ float measure_matrix_pos_avg (int **matrix,char *alphabet)
 {
 	float naa=0, tot=0;
 	int a, b;
-	
-	
+
+
 	for ( tot=0,a=0; a< 20; a++)
 	   for ( b=0; b<20; b++)
 	     {
@@ -5239,50 +5240,50 @@ float measure_matrix_pos_avg (int **matrix,char *alphabet)
 	     }
 	return tot/naa;
 }
-  
+
 float measure_matrix_enthropy (int **matrix,char *alphabet)
    {
-     
+
      int a, b;
      double s, p, q, h=0, tq=0;
      float lambda;
      float *frequency;
      /*frequencies tqken from psw*/
-     
+
      frequency=set_aa_frequencies ();
 
-     
+
      lambda=compute_lambda(matrix,alphabet);
      fprintf ( stderr, "\nLambda=%f", (float)lambda);
-	   
+
      for ( a=0; a< 20; a++)
        for ( b=0; b<=a; b++)
 	 {
 	   s=matrix[alphabet[a]-'A'][alphabet[b]-'A'];
-	   
-	   
+
+
 	   p=frequency[alphabet[a]-'A']*frequency[alphabet[b]-'A'];
-	   
+
 	   if ( p==0)continue;
-	   
+
 	   q=exp(lambda*s+log(p));
-	   
+
 	   tq+=q;
 	   h+=q*log(q/p)*log(2);
-	  
+
 	 }
-	   
+
      fprintf ( stderr,"\ntq=%f\n", (float)tq);
-   
+
      return (float) h;
-    }	
+    }
 float compute_lambda (int **matrix,char *alphabet)
 {
 
   int a, b;
   double lambda, best_lambda=0, delta, best_delta=0, p, tq,s;
   static float *frequency;
-  
+
   if ( !frequency)frequency=set_aa_frequencies ();
 
   for ( lambda=0.001; lambda<1; lambda+=0.005)
@@ -5290,7 +5291,7 @@ float compute_lambda (int **matrix,char *alphabet)
        tq=0;
        for ( a=0; a< 20; a++)
 	 for ( b=0; b<20; b++)
-	   {	     
+	   {
 	     p=frequency[alphabet[a]-'A']*frequency[alphabet[b]-'A'];
 	     s=matrix[alphabet[a]-'A'][alphabet[b]-'A'];
 	     tq+=exp(lambda*s+log(p));
@@ -5308,8 +5309,8 @@ float compute_lambda (int **matrix,char *alphabet)
 	       best_delta=delta;
 	       best_lambda=lambda;
 	     }
-	 }   
-       
+	 }
+
        fprintf ( stderr, "\n%f %f ", lambda, tq);
        if ( tq>1)break;
      }
@@ -5322,10 +5323,10 @@ float compute_lambda (int **matrix,char *alphabet)
 float evaluate_random_match (char  *mat, int n, int len,char *alp)
 {
   int **matrix;
-  matrix=read_matrice ( mat); 
+  matrix=read_matrice ( mat);
   fprintf ( stderr, "Matrix=%15s ", mat);
   return evaluate_random_match2 (matrix, n,len,alp);
-  
+
 }
 
 float evaluate_random_match2 (int **matrix, int n, int len,char *alp)
@@ -5346,7 +5347,7 @@ float evaluate_random_match2 (int **matrix, int n, int len,char *alp)
       freq=set_aa_frequencies ();
       list=(int*)vcalloc ( 10000, sizeof (char));
     }
-  
+
   for (tot=0,c=0,a=0;a<20; a++)
     {
       b=freq[alp[a]-'A']*1000;
@@ -5356,8 +5357,8 @@ float evaluate_random_match2 (int **matrix, int n, int len,char *alp)
 	  list[c]=alp[a];
 	}
     }
-  
-  
+
+
   for (a=0; a< len*n; a++)
     {
       c1=rand()%tot;
@@ -5372,20 +5373,20 @@ float evaluate_random_match2 (int **matrix, int n, int len,char *alp)
       c2=rand()%tot;
       if ( matrix[list[c1]-'A'][list[c2]-'A']>=0){score_good+=matrix[list[c1]-'A'][list[c2]-'A']; tot_len++;}
     }
-      
+
 
   score_random=score_random/tot_len;
   score_id=score_id/tot_len;
   score_good=score_good/tot_len;
-  
+
   fprintf ( stderr, "Random=%8.3f Id=%8.3f Good=%8.3f [%7.2f]\n",score_random, score_id, score_good, tot_len/tot_try);
-  
+
   return score_random;
 }
 float compare_two_mat (char  *mat1,char*mat2, int n, int len,char *alp)
 {
   int **matrix1, **matrix2;
-  
+
  evaluate_random_match (mat1, n, len,alp);
  evaluate_random_match (mat2, n, len,alp);
  matrix1=read_matrice ( mat1);
@@ -5394,7 +5395,7 @@ float compare_two_mat (char  *mat1,char*mat2, int n, int len,char *alp)
  matrix2=rescale_matrix(matrix2, 10, alp);
  compare_two_mat_array(matrix1,matrix2, n, len,alp);
  return 0;
-} 
+}
 
 
 int ** rescale_two_mat (char  *mat1,char*mat2, int n, int len,char *alp)
@@ -5408,19 +5409,19 @@ int ** rescale_two_mat (char  *mat1,char*mat2, int n, int len,char *alp)
   matrix2=read_matrice(mat2);
   matrix2=neg_matrix2pos_matrix(matrix2);
   matrix2=rescale_matrix( matrix2, lambda,"abcdefghiklmnpqrstvwxyz");
-  
+
   matrix1=read_matrice(mat1);
   matrix1=neg_matrix2pos_matrix(matrix1);
   matrix1=rescale_matrix( matrix1,10,"abcdefghiklmnpqrstvwxyz");
-  
+
   output_matrix_header ( "stdout", matrix2, alp);
   evaluate_random_match2(matrix1, 1000, 100, alp);
   evaluate_random_match2(matrix2, 1000, 100, alp);
   compare_two_mat_array(matrix1,matrix2, n, len,alp);
 
   return matrix2;
-}  
-float measure_lambda2(char  *mat1,char*mat2, int n, int len,char *alp) 
+}
+float measure_lambda2(char  *mat1,char*mat2, int n, int len,char *alp)
 {
   int **m1, **m2;
   float f1, f2;
@@ -5430,21 +5431,21 @@ float measure_lambda2(char  *mat1,char*mat2, int n, int len,char *alp)
 
   m1=neg_matrix2pos_matrix(m1);
   m2=neg_matrix2pos_matrix(m2);
-  
+
   f1=measure_matrix_pos_avg( m1, alp);
   f2=measure_matrix_pos_avg( m2, alp);
-  
+
   return f1/f2;
 }
-  
 
-float measure_lambda (char  *mat1,char*mat2, int n, int len,char *alp) 
+
+float measure_lambda (char  *mat1,char*mat2, int n, int len,char *alp)
 {
   int c;
   int **matrix1, **matrix2, **mat;
   float a;
   float best_quality=0, quality=0, best_lambda=0;
-  
+
   matrix1=read_matrice ( mat1);
   matrix2=read_matrice ( mat2);
   matrix1=rescale_matrix(matrix1, 10, alp);
@@ -5456,8 +5457,8 @@ float measure_lambda (char  *mat1,char*mat2, int n, int len,char *alp)
       mat=duplicate_int (matrix2,-1,-1);
       mat=rescale_matrix(mat, a, alp);
       quality=compare_two_mat_array(matrix1,mat, n, len,alp);
-      quality=MAX((-quality),quality); 
-      
+      quality=MAX((-quality),quality);
+
       if (c==0 || (best_quality>quality))
 	{
 	  c=1;
@@ -5465,15 +5466,15 @@ float measure_lambda (char  *mat1,char*mat2, int n, int len,char *alp)
 	  best_quality=quality;
 	  best_lambda=a;
 	}
-      
-      
+
+
       evaluate_random_match2(mat, 1000, 100, alp);
-      evaluate_random_match2(matrix1, 1000, 100, alp); 
+      evaluate_random_match2(matrix1, 1000, 100, alp);
       free_int (mat, -1);
     }
-  
+
   return best_lambda;
-  
+
 }
 
 float compare_two_mat_array (int  **matrix1,int **matrix2, int n, int len,char *alp)
@@ -5495,7 +5496,7 @@ float compare_two_mat_array (int  **matrix1,int **matrix2, int n, int len,char *
   float tot_len=0;
   float tot_try=0;
 
- 
+
 
   if ( !list)
     {
@@ -5503,7 +5504,7 @@ float compare_two_mat_array (int  **matrix1,int **matrix2, int n, int len,char *
       freq=set_aa_frequencies ();
       list=(int*)vcalloc ( 10000, sizeof (char));
     }
-  
+
   for (tot=0,c=0,a=0;a<20; a++)
     {
       b=freq[alp[a]-'A']*1000;
@@ -5513,8 +5514,8 @@ float compare_two_mat_array (int  **matrix1,int **matrix2, int n, int len,char *
 	  list[c]=alp[a];
 	}
     }
-  
-  
+
+
   for (a=0; a< len*n; a++)
     {
       c1=rand()%tot;
@@ -5522,7 +5523,7 @@ float compare_two_mat_array (int  **matrix1,int **matrix2, int n, int len,char *
       delta=matrix1[list[c1]-'A'][list[c2]-'A']-matrix2[list[c1]-'A'][list[c2]-'A'];
       delta_random+=delta;
       delta2_random+=MAX(delta,(-delta));
-      
+
       delta=matrix1[list[c1]-'A'][list[c1]-'A']-matrix2[list[c1]-'A'][list[c1]-'A'];
       delta_id+=delta;
       delta2_id+=MAX(delta,(-delta));
@@ -5534,27 +5535,27 @@ float compare_two_mat_array (int  **matrix1,int **matrix2, int n, int len,char *
       c2=rand()%tot;
       if ( matrix1[list[c1]-'A'][list[c2]-'A']>=0 || matrix2[list[c1]-'A'][list[c2]-'A'] )
 	{
-	  delta=matrix1[list[c1]-'A'][list[c2]-'A']-matrix2[list[c1]-'A'][list[c2]-'A']; 
+	  delta=matrix1[list[c1]-'A'][list[c2]-'A']-matrix2[list[c1]-'A'][list[c2]-'A'];
 	  delta_good+=delta;
 	  delta2_good+=MAX(delta,(-delta));
 	  tot_len++;
 	}
     }
-      
+
 
   delta_random=delta_random/tot_len;
   delta2_random=delta2_random/tot_len;
 
-  
+
   delta_id=delta_id/tot_len;
   delta2_id=delta2_id/tot_len;
 
   delta_good=delta_good/tot_len;
   delta2_good=delta2_good/tot_len;
-  
-    
+
+
   fprintf ( stderr, "\tRand=%8.3f %8.3f\n\tId  =%8.3f %8.3f\n\tGood=%8.3f %8.3f\n",delta_random, delta2_random, delta_id,delta2_id, delta_good,delta2_good);
-  
+
   return delta_good;
 }
 
@@ -5576,7 +5577,7 @@ int **mat2inverted_mat (int **matrix, char *alp)
 {
   int a, b, min, max, v,l;
   int c1,c2, C1, C2;
-  
+
   l=(int)strlen (alp);
   min=max=matrix[alp[0]-'A'][alp[0]-'A'];
   for ( a=0; a<l; a++)
@@ -5591,10 +5592,10 @@ int **mat2inverted_mat (int **matrix, char *alp)
       {
 	v=matrix[alp[a]-'A'][alp[b]-'A'];
 	v=max-v;
-	
+
 	c1=tolower(alp[a])-'A';
 	c2=tolower(alp[b])-'A';
-	
+
 	C1=toupper(alp[a])-'A';
 	C2=toupper(alp[b])-'A';
 	matrix[C1][C2]=matrix[c1][c2]=matrix[C1][c2]=matrix[c1][C2]=v;
@@ -5608,15 +5609,15 @@ void output_matrix_header ( char *name, int **matrix, char *alp)
   char *nalp;
   int l;
   nalp=(char*)vcalloc ( 1000, sizeof (char));
-  
 
-  
+
+
   sprintf ( nalp, "ABCDEFGHIKLMNPQRSTVWXYZ");
   l=(int)strlen (nalp);
 
   fp=vfopen ( name, "w");
   fprintf (fp, "\nint []={\n");
-  
+
   for (a=0; a<l; a++)
     {
       for ( b=0; b<=a; b++)
@@ -5624,10 +5625,10 @@ void output_matrix_header ( char *name, int **matrix, char *alp)
       fprintf ( fp, "\n");
     }
   fprintf (fp, "};\n");
-  
+
   vfclose (fp);
 }
-  
+
 
 float ** initialise_aa_physico_chemical_property_table (int *n)
 {
@@ -5642,9 +5643,9 @@ float ** initialise_aa_physico_chemical_property_table (int *n)
   fp=vfopen ("properties.txt", "r");
   while ((c=fgetc(fp))!=EOF)n[0]+=(c=='#');
   vfclose (fp);
-  
-  
-   
+
+
+
   p=declare_float ( n[0], 'z'+1);
   fp=vfopen ("properties.txt", "r");
   n[0]=0;
@@ -5660,7 +5661,7 @@ float ** initialise_aa_physico_chemical_property_table (int *n)
 	     }
 	 }
   vfclose (fp);
- 
+
   /*rescale so that Delta max=10*/
   for (a=0; a<n[0]; a++)
     {
@@ -5673,7 +5674,7 @@ float ** initialise_aa_physico_chemical_property_table (int *n)
       for (b='a'; b<='z'; b++)
 	{
 	  p[a][b]=((p[a][b]-min)/(max-min))*10;
-	 
+
 	}
     }
 
@@ -5696,7 +5697,7 @@ float ** initialise_aa_physico_chemical_property_table (int *n)
 Constraint_list * choose_extension_mode ( char *extend_mode, Constraint_list *CL)
 {
   //evaluation_functions: residues start at 1, sequences at 0;
-  
+
   if ( !CL)
     {
       fprintf ( stderr, "\nWarning: CL was not set");
@@ -5757,7 +5758,7 @@ Constraint_list * choose_extension_mode ( char *extend_mode, Constraint_list *CL
       CL->evaluate_residue_pair=residue_pair_extended_list;
       CL->get_dp_cost      =fast_get_dp_cost;
     }
- 
+
   else if ( strm ( extend_mode, "very_fast_triplet") && !CL->M)
     {
       CL->evaluate_residue_pair=residue_pair_extended_list;
@@ -5785,7 +5786,7 @@ Constraint_list * choose_extension_mode ( char *extend_mode, Constraint_list *CL
     }
   else if (  strm ( extend_mode, "ssp"))
     {
-      
+
       CL->evaluate_residue_pair=evaluate_ssp_matrix_score;
       CL->get_dp_cost=slow_get_dp_cost;
       CL->normalise=1;
@@ -5799,7 +5800,7 @@ Constraint_list * choose_extension_mode ( char *extend_mode, Constraint_list *CL
     }
   else if (  strm ( extend_mode, "matrix"))
     {
-      
+
       CL->evaluate_residue_pair=evaluate_matrix_score;
       CL->get_dp_cost=cw_profile_get_dp_cost;
       CL->normalise=1;
@@ -5815,13 +5816,13 @@ Constraint_list * choose_extension_mode ( char *extend_mode, Constraint_list *CL
       CL->evaluate_residue_pair=evaluate_matrix_score;
       CL->get_dp_cost=cw_profile_get_dp_cost;
       CL->normalise=1;
-    } 
-  else 
+    }
+  else
     {
       fprintf ( stderr, "\nERROR: %s is an unknown extend_mode[FATAL:%s]\n", extend_mode, PROGRAM);
       myexit (EXIT_FAILURE);
     }
-  
+
   return CL;
 }
 int ** combine_two_matrices ( int **mat1, int **mat2)
@@ -5840,7 +5841,7 @@ int ** combine_two_matrices ( int **mat1, int **mat2)
 
 	    Re1=toupper(re1);Re2=toupper(re2);
 	    re1-='A';re2-='A';Re1-='A';Re2-='A';
-	    
+
 	    l=mat1[re1][re2];
 	    u=mat2[re1][re2];
 	    mat1[re1][re2]=mat2[re1][re2]=l;
@@ -5862,9 +5863,9 @@ int lat_sum_pair (Alignment *A, char *mat)
 {
   int a,b,c, tot=0, v1, v2, score=0;
   int **matrix;
-  
+
   matrix=read_matrice (mat);
-  
+
   for (a=0; a<A->nseq; a++)
     for ( b=0; b<A->nseq; b++)
       {
@@ -5890,8 +5891,8 @@ int lat_sum_pair (Alignment *A, char *mat)
   return (float)score;
 }
 
-	    
-     
+
+
 /* Off the shelves evaluations */
 /*********************************************************************************************/
 /*                                                                                           */
@@ -5919,37 +5920,37 @@ float  sum_pair ( Alignment*A,char *mat_name, int gap_op, int gap_ex)
 
 	matrix=read_matrice (mat_name);
 	matrix=mat2inverted_mat (matrix, "acdefghiklmnpqrstvwy");
-	
+
 	start=0;
 	end=A->len_aln-1;
-	
+
 	if ( tgp==NULL)
-	    tgp= declare_int (A->nseq,2); 
-	
+	    tgp= declare_int (A->nseq,2);
+
 	evaluate_tgp_decoded_chromosome ( A,tgp,start, end,MODE);
-	
+
 	for ( a=0; a< A->nseq-1; a++)
 		 for (b=a+1; b<A->nseq; b++)
 			{
-			  pscore= comp_pair (A->len_aln,A->seq_al[a], A->seq_al[b],a, b,tgp[a], tgp[b],gap_op,gap_ex, start, end,matrix, MODE);	
+			  pscore= comp_pair (A->len_aln,A->seq_al[a], A->seq_al[b],a, b,tgp[a], tgp[b],gap_op,gap_ex, start, end,matrix, MODE);
 			  score+=pscore*100;
 			  /*score+=(double)pscore*(int)(PARAM->OFP)->weight[A->order[a][0]][A->order[b][0]];*//*NO WEIGHTS*/
 			}
-	
+
 	score=score/(A->nseq*A->nseq);
-	
+
 	return (float)score;
 	}
-	
+
 int comp_pair ( int len,char *sa, char *sb, int seqA, int seqB,int *tgp_a, int *tgp_b,int gap_op,int gap_ex, int start, int end,int **matrix,int MODE)
 	{
 	  int score=0, a, ex;
-	
-	
+
+
 
 	if ( end-start>=0)
 	    score+= score_gap (len, sa,sb, seqA, seqB,tgp_a, tgp_b, gap_op,gap_ex, start, end,MODE);
-	
+
 	ex=gap_ex;
 
 
@@ -5960,14 +5961,14 @@ int comp_pair ( int len,char *sa, char *sb, int seqA, int seqB,int *tgp_a, int *
 		      if (is_gap(sa[a]) && is_gap(sb[a]));
 		      else
 			{
-			  
+
 			  score +=ex;
 			}
 		    }
 		  else
 			{
-			score += matrix [sa[a]-'A'][sb[a]-'A'];	
-				
+			score += matrix [sa[a]-'A'][sb[a]-'A'];
+
 			}
 		}
 	return score;
@@ -5989,20 +5990,20 @@ int score_gap ( int len, char *sa, char *sb,int seqA, int seqB,int *tgp_a, int *
 	int flag1=0;
 	int flag2=0;
 	int continue_loop;
-	int sequence_pattern[2][3];	    
+	int sequence_pattern[2][3];
 	int null_gap;
 	int natural_gap=1;
-	
+
 	/*op= gor_gap_op ( 0,seqA, seqB, PARAM);
 	ex= gor_gap_ext ( 0, seqA, seqB, PARAM);*/
 
-	
 
-	for (a=start; a<=end; ++a)			
+
+	for (a=start; a<=end; ++a)
 		{
-		  
+
 		type= gap_type ( sa[a], sb[a]);
-	
+
 		if ( type==2 && ga<=gb)
 			{++ga;
 			 gb=0;
@@ -6019,11 +6020,11 @@ int score_gap ( int len, char *sa, char *sb,int seqA, int seqB,int *tgp_a, int *
 			ga++;
 			gb++;
 			}
-			
+
 		else if (type== -1)
 			ga=gb=0;
-		
-			
+
+
 		if (natural_gap==0)
 		    {
 		    if ( type== -1)
@@ -6042,7 +6043,7 @@ int score_gap ( int len, char *sa, char *sb,int seqA, int seqB,int *tgp_a, int *
 			}
 		    else if ( flag2==0)
 			flag1=type;
-		    }   
+		    }
 		 }
 	  /*gap_type -/-:0, X/X:-1 X/-:1, -/X:2*/
 /*evaluate the pattern of gaps*/
@@ -6056,16 +6057,16 @@ int score_gap ( int len, char *sa, char *sb,int seqA, int seqB,int *tgp_a, int *
 		{
 		if ( left_gap==-1)
 		    {
-		    sequence_pattern[0][0]=sequence_pattern[1][0]=0;		
+		    sequence_pattern[0][0]=sequence_pattern[1][0]=0;
 		    continue_loop=0;
 		    }
-		else 
+		else
 		    {
 		    null_gap=0;
 		    for (b=a; b<=end && continue_loop==1; b++)
 			{type=gap_type( sa[b], sb[b]);
 			if (type==0)
-			    null_gap++;    
+			    null_gap++;
 			if ( type!=left_gap && type !=0)
 			    {
 			    continue_loop=0;
@@ -6079,10 +6080,10 @@ int score_gap ( int len, char *sa, char *sb,int seqA, int seqB,int *tgp_a, int *
 			sequence_pattern[2-left_gap][0]= b-a-null_gap;
 			sequence_pattern [1-(2-left_gap)][0]=0;
 			}
-		     }    
+		     }
 		  }
-	       }	
-	
+	       }
+
 	   sequence_pattern[0][2]=sequence_pattern[1][2]=1;
 	   for ( a=start; a<=end; a++)
 		{
@@ -6093,7 +6094,7 @@ int score_gap ( int len, char *sa, char *sb,int seqA, int seqB,int *tgp_a, int *
 
 		}
 	   continue_loop=1;
-	   sequence_pattern[0][1]=sequence_pattern[1][1]=0;		
+	   sequence_pattern[0][1]=sequence_pattern[1][1]=0;
 	   for ( a=end; a>=start && continue_loop==1; a--)
 	    {
 	    right_gap= gap_type ( sa[a], sb[a]);
@@ -6101,10 +6102,10 @@ int score_gap ( int len, char *sa, char *sb,int seqA, int seqB,int *tgp_a, int *
 		{
 		if ( right_gap==-1)
 		    {
-		    sequence_pattern[0][1]=sequence_pattern[1][1]=0;		
+		    sequence_pattern[0][1]=sequence_pattern[1][1]=0;
 		    continue_loop=0;
 		    }
-		else 
+		else
 		    {
 		    null_gap=0;
 		    for (b=a; b>=start && continue_loop==1; b--)
@@ -6126,7 +6127,7 @@ int score_gap ( int len, char *sa, char *sb,int seqA, int seqB,int *tgp_a, int *
 			}
 		     }
 		  }
-	       }	      		
+	       }
 
 /*
 printf ( "\n*****************************************************");
@@ -6140,37 +6141,37 @@ printf ( "\n*****************************************************");
 
 
 	if ( MODE==0)
-	    {  
+	    {
 	    if ( FABS(tgp_a[0])>1 && (FABS(tgp_a[0])>FABS( tgp_b[0])))
-		score-= (sequence_pattern[0][0]>0)?op:0;	 
+		score-= (sequence_pattern[0][0]>0)?op:0;
 	    if ( FABS(tgp_b[0])>1 && (FABS(tgp_b[0])> FABS(tgp_a[0])))
 		score-= (sequence_pattern[1][0]>0)?op:0;
 	    }
 	else if ( MODE ==1 || MODE ==2)
 	    {
 	    if ( FABS(tgp_a[0])>1 && (FABS(tgp_a[0])>FABS( tgp_b[0])) && (tgp_a[1]!=1 || sequence_pattern[0][2]==0))
-		score-= (sequence_pattern[0][0]>0)?op:0;	 
+		score-= (sequence_pattern[0][0]>0)?op:0;
 	    if ( FABS(tgp_b[0])>1 && (FABS(tgp_b[0])> FABS(tgp_a[0])) && (tgp_b[1]!=1 || sequence_pattern[1][2]==0))
 		score-= (sequence_pattern[1][0]>0)?op:0;
-	
+
 
 	    if ( tgp_a[0]>=1 && tgp_a[0]==tgp_b[0])
-		score -=(sequence_pattern[0][0]>0)?op:0;		
+		score -=(sequence_pattern[0][0]>0)?op:0;
 	    if ( tgp_b[0]>=1 && tgp_a[0]==tgp_b[0])
-		score-= (sequence_pattern[1][0]>0)?op:0; 
-		
+		score-= (sequence_pattern[1][0]>0)?op:0;
+
 
 	    if ( tgp_a[1]==1 && sequence_pattern[0][2]==0)
-		score -= ( sequence_pattern[0][1]>0)?op:0;	
+		score -= ( sequence_pattern[0][1]>0)?op:0;
 	    else if ( tgp_a[1]==1 && sequence_pattern[0][2]==1 && tgp_a[0]<=0)
 		score -= ( sequence_pattern[0][1]>0)?op:0;
-		
+
 
 	    if ( tgp_b[1]==1 && sequence_pattern[1][2]==0)
-		score -= ( sequence_pattern[1][1]>0)?op:0;		
+		score -= ( sequence_pattern[1][1]>0)?op:0;
 	    else if ( tgp_b[1]==1 && sequence_pattern[1][2]==1 && tgp_b[0]<=0)
-		score -= ( sequence_pattern[1][1]>0)?op:0;		
-	    
+		score -= ( sequence_pattern[1][1]>0)?op:0;
+
 	    if ( MODE==2)
 		{
 		if ( tgp_a[0]>0)
@@ -6182,32 +6183,32 @@ printf ( "\n*****************************************************");
 		if ( tgp_b[1]>0)
 		    score-=sequence_pattern[1][1]*ex;
 		}
-	    }	 
-
-																		 		        			
-	return score;	    
+	    }
 
 
+	return score;
 
-	}	
+
+
+	}
 void evaluate_tgp_decoded_chromosome ( Alignment *A,int **TGP,int start, int end,int MODE)
     {
-    int a,b;    
+    int a,b;
     int continue_loop;
-    
-    
-    
+
+
+
     if (MODE==11 || MODE==13|| MODE==14)
     	{
     	if ( start==0)for ( a=0; a<A->nseq; a++)TGP[a][0]=-1;
     	else for ( a=0; a<A->nseq; a++)TGP[a][0]=(is_gap(A->seq_al[a][start-1])==1)?0:1;
-    	
+
     	if ( end==A->len_aln-1)for ( a=0; a<A->nseq; a++)TGP[a][1]=-1;
     	else for ( a=0; a<A->nseq; a++)TGP[a][1]=(is_gap(A->seq_al[a][start-1])==1)?0:1;
     	}
     else
     	{
-    	/* 0: in the middle of the alignement 
+    	/* 0: in the middle of the alignement
        	1: natural end
        	2: q left gap is the continuation of another gap that was open outside the bloc ( don't open it)
     	*/
@@ -6238,13 +6239,13 @@ void evaluate_tgp_decoded_chromosome ( Alignment *A,int **TGP,int start, int end
 		    {TGP[a][0]+= ( is_gap(A->seq_al[a][b])==1)?1:0;
 		      continue_loop= (is_gap(A->seq_al[a][b])==1)?continue_loop:0;
 		    }
-		} 
+		}
 	    for ( b=(A->len_aln-1); b>end; b--)
 	      if ( !is_gap(A->seq_al[a][b]))
 		TGP[a][1]=0;
 	  }
-    	}	
-    }	
+    	}
+    }
 int gap_type ( char a, char b)
     {
     /*gap_type -/-:0, X/X:-1 X/-:1, -/STAR:2*/
@@ -6260,4 +6261,4 @@ int gap_type ( char a, char b)
       else
 	return -1;
     }
- 
+
