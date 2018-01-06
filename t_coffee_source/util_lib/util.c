@@ -64,8 +64,12 @@
 #endif
 #include "dp_lib_header.h"
 
-#include <thread>
+#include <atomic>
 #include <iostream>
+#include <list>
+#include <mutex>
+#include <thread>
+#include <vector>
 
 //defined this way because all compilers cannot pas ap
 //safe printf: it declares buf to the proper size
@@ -4225,9 +4229,6 @@ pid_t set_pid (pid_t p)
   return p;
 }
 
-#include <list>
-#include <vector>
-#include <mutex>
 static std::vector<std::thread*> g_threads;
 static std::mutex g_threads_mutex;
 
