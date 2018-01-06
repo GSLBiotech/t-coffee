@@ -30,7 +30,9 @@
 #include<string>
 #include "km_coffee_header.h"
 
-
+#ifdef _MSC_VER
+  #define strtok_r strtok_s
+#endif
 
 
 //char *groups[]={"LlVvIiMmCc","AaGgSsTtPp","FfYyWw","EeDdNnQqKkRrHh"};
