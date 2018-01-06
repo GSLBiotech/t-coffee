@@ -866,7 +866,7 @@ print_vecs(VectorSet *set, char *out_f)
 	for (i=0; i<n_vecs; ++i)
 	{
 		data=set->vecs[i]->data;
-		fprintf(out_F, "%i ", i);
+        fprintf(out_F, "%i ", (int)i);
 		for (j=0; j<dim; ++j)
 			fprintf(out_F, "%f ", data[j]);
 		fprintf(out_F, "\n");
@@ -883,11 +883,12 @@ read_vecs(VectorSet *set, char *in_f)
 	size_t i=0, j=0;
 	double *data;
 	char *value;
+  char *saveptr;
 	while (fgets(line, LINE_LENGTH, in_F)!=NULL)
 	{
 		data = set->vecs[i++]->data;
-		data[0] = atof(strtok(line, " \t\n"));
-		while ((value=strtok(NULL, " \t\n"))!=NULL)
+		data[0] = atof(strtok_r(line, " \t\n",&saveptr));
+		while ((value=strtok_r(NULL, " \t\n",&saveptr))!=NULL)
 			data[++j] = atof(value);
 	}
 	set->dim=j+1;

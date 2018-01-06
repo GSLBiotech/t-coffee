@@ -61,7 +61,7 @@ print_fastal_tree(Tree_fastal *tree,
 		print_fastal_tree(tree, tree[pos].left-num_seq, tree_file, num_seq);
 	if (tree[pos].right >= num_seq)
 		print_fastal_tree(tree, tree[pos].right-num_seq, tree_file, num_seq);
-	
+
 	fprintf(tree_file, "%i %i %i\n", tree[pos].left, tree[pos].right, tree[pos].name);
 }
 
@@ -131,7 +131,7 @@ read_sequence_from_position(FILE *file, long position1, char *seq)
 // char*
 // read_sequence_from_position(FILE *file, long position1, long position2)
 // {
-// 	
+//
 // }
 
 /**
@@ -200,7 +200,7 @@ tree_process(NT_node tree,
 
 /**
 * \brief Calculates tree out of distance matrix.
-* 
+*
 * Calculates the upgma tree using a given distance matrix.
 * \param mat The distance matrix.
 * \param nseq Number of sequences.
@@ -274,7 +274,7 @@ make_partTree(char *sequence_f,
 	param_set->subgroup = subgroup;
 	Tree_fastal *tree;
 
-	
+
 	if (!retree)
 	{
 		//make index
@@ -287,14 +287,14 @@ make_partTree(char *sequence_f,
 		param_set->threshold = 0.01;
 		param_set->ktup_table_f = fopen(ktup_table,"r");
 
-	
+
 		partTree_r(param_set);
 	}
 	else
 	{
 
 		//make index
-		param_set->num_sequences = number_of_sequences =  make_pos_len_index_of_file_retree(sequence_f, tmp1, tmp2); 
+		param_set->num_sequences = number_of_sequences =  make_pos_len_index_of_file_retree(sequence_f, tmp1, tmp2);
 		tree =(Tree_fastal*) vcalloc(number_of_sequences-1,sizeof(Tree_fastal));
 		param_set->tree = tree;
 		param_set->ktup_positions = file_positions;
@@ -305,7 +305,7 @@ make_partTree(char *sequence_f,
 		partTree_retree(param_set);
 
 	}
-	
+
 	FILE * tree_file = fopen(tree_f,"w");
 	print_fastal_tree(tree, 0, tree_file, number_of_sequences);
 	fclose(tree_file);
@@ -392,24 +392,24 @@ filter(int *sequence_group,
 
 /*!
 *	\brief Function to create a tree using the PartTree algorithm.
-*	
+*
 *	\param param_set A \a PartTree_param object containing all necessary parameters and the data.
 *	\return The node_number.
 */
 void
 partTree_r(PartTree_param *param_set)
 {
-	
+
 	int num_of_tree_nodes = param_set->num_sequences-1;
 	int loop_tree_node;
 
 	Tree_fastal *tree = param_set->tree;
 // 	int this_node = param_set->pos_tree;
-	
+
 	int i;
 	int tsize = param_set->tsize;
-	
-	
+
+
 	//get some memory
 	short *table1 = (short int*)vcalloc(tsize, sizeof(short));
 	short *table2 = (short int*)vcalloc(tsize, sizeof(short));
@@ -426,23 +426,23 @@ partTree_r(PartTree_param *param_set)
 	int *clusters =(int*) vcalloc(param_set->subgroup+1, sizeof(int));
 	int *min_dist = (int*)vcalloc(param_set->num_sequences, sizeof(int));
 	int *belongs_to = (int*)vcalloc(param_set->num_sequences, sizeof(int));
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
 	//Prepare first node
-	
+
 	tree[0].index = (int*)vcalloc(param_set->num_sequences,sizeof(int));
 	int *index = tree[0].index;
 	for (i = 0; i< param_set->num_sequences; ++i)
 		index[i] = i;
 	tree[0].name = param_set->pos_tree +param_set->num_sequences;
-	
+
 	tree[0].num_leafs = param_set->num_sequences;
 	int *sequence_group2 = (int*)vcalloc(param_set->num_sequences,sizeof(int));
-	
+
 	Tree_fastal *current_node;
 	for (loop_tree_node = 0; loop_tree_node < num_of_tree_nodes; ++loop_tree_node)
 	{
@@ -468,17 +468,17 @@ partTree_r(PartTree_param *param_set)
 			continue;
 		}
 
-		
+
 		for (i = 0; i < num_in_subgroup; ++i)
 		{
 			seed_set_cleaned[i] = 1;
 		}
-		
+
 		//finde longest sequence and put into the first field
-		
+
 		int index_longest = 0;
 		int length_of_longest = 0;
-		
+
 		for(i = 0; i < num_sequences; ++i)
 		{
 			if (seq_lengths[index[i]] > length_of_longest)
@@ -511,7 +511,7 @@ partTree_r(PartTree_param *param_set)
 		int r,j;
 		num_in_subgroup = param_set->subgroup;
 
-		
+
 		for (i = 2; i < num_in_subgroup; ++i)
 		{
 			r = i + rand() / ( RAND_MAX / ( num_sequences-i) + 1 );
@@ -523,15 +523,15 @@ partTree_r(PartTree_param *param_set)
 
 		//Calculate matrix
 		dist_mat = make_distance_matrix(table_f, file_positions, index, param_set->subgroup, dist_mat);
-	
+
 		//Filter out sequences that are to similar & reorder
-		
+
 		NT_node **upgma_tree;
-		
-		
+
+
 		int num_in_clean = filter(index, dist_mat, seed_set_cleaned, param_set);
 
-		
+
 		if (num_in_clean ==1)
 		{
 			num_in_clean = 2;
@@ -561,7 +561,7 @@ partTree_r(PartTree_param *param_set)
 			sprintf(names[i],"%i",i);
 		}
 		upgma_tree= (int_dist2upgma_tree_fastal (dist_mat2, num_in_clean, file_name_tmp , names));
- 
+
 
 		//cluster
 		//calculate distances from n' to N
@@ -616,7 +616,7 @@ partTree_r(PartTree_param *param_set)
 			index[i] = sequence_group2[i];
 		}
 
-		
+
 		for (i = 0; i < num_in_clean; ++i)
 		{
 			sprintf(names[i],"%i",i);
@@ -710,8 +710,8 @@ make_distance_matrix_sim(FILE *aln_f,
 	{
 
 		fseek(aln_f, file_positions[sequence_group[i]], SEEK_SET);
-  		
-		
+
+
 		pos = -1;
 		while ((fgets(line, 500, aln_f) != NULL) && (line[0] != '>'))
 		{
@@ -767,7 +767,7 @@ makepointtable_fast(int *coded_seq,	//sequence
 	}
 	p = coded_seq;
 
-  
+
 	for (point=0,a=0; a<ktup; a++)
 	{
 		point+= *coded_seq++ *prod[a];
@@ -818,12 +818,12 @@ makecompositiontable_fastal(FILE* tables_f,	//File to save the tables in
 
 
 /** JUST FOR TEST */
-void 
+void
 make_fast_tree(char *file_name,
 			   int n,
 			   int ktup)
 {
-	
+
 	make_partTree(file_name, "TREE_OUT", ktup, n, 1, 0);
 
 }
@@ -846,16 +846,16 @@ get_table(short *table,		//Table to save the readings in
 	const int LINE_LENGTH = 101;
 	char line[LINE_LENGTH];
 	fgets(line, LINE_LENGTH, tables_f);
-	
+
 	char delims[] = " ";
 	char *result = NULL;
 	int code;
-
+  char *saveptr;
 	while (line[0] != '*')
 	{
-		result = strtok( line, delims );
+		result = strtok_r( line, delims,&saveptr );
 		code = atoi(result);
-		table[code] = atoi(strtok( NULL, delims));
+		table[code] = atoi(strtok_r( NULL, delims,&saveptr));
 		fgets(line, LINE_LENGTH, tables_f);
 	}
 }
@@ -871,18 +871,18 @@ get_table(short *table,		//Table to save the readings in
 * @param table1 Saves the number of occurences for each ktup in sequence 1
 * @param table2 Saves the number of occurences for each ktup in sequence 2
 */
-int 
+int
 euclidean_dist(FILE* ktup_f,	//ktup_file
 				 long pos1,		//position of table1
 				 long pos2,		//position of table2
 				 short *table1,	//table to save ktups in
 				 short *table2,	//table to save ktups in
-				 int length)	
+				 int length)
 {
 	const int LINE_LENGTH = 101;
 	char line[LINE_LENGTH];
-	
-	
+
+
 	char delims[] = " ";
 	char *result = NULL;
 	int code;
@@ -895,20 +895,21 @@ euclidean_dist(FILE* ktup_f,	//ktup_file
 		table1[i] = 0;
 		table2[i] = 0;
 	}
+  char *saveptr;
 	while (line[0] != '*')
 	{
-		result = strtok( line, delims );
+		result = strtok_r( line, delims,&saveptr );
 		code = atoi(result);
-		table1[code] = atoi(strtok( NULL, delims));
+		table1[code] = atoi(strtok_r( NULL, delims,&saveptr));
 		fgets(line, LINE_LENGTH, ktup_f);
 	}
 	fseek(ktup_f, pos2, SEEK_SET);
 	fgets(line, LINE_LENGTH, ktup_f);
 	while (line[0] != '*')
 	{
-		result = strtok( line, delims );
+		result = strtok_r( line, delims,&saveptr );
 		code = atoi(result);
-		table2[code] = atoi(strtok( NULL, delims));
+		table2[code] = atoi(strtok_r( NULL, delims,&saveptr));
 		fgets(line, LINE_LENGTH, ktup_f);
 	}
 
@@ -932,7 +933,7 @@ euclidean_dist(FILE* ktup_f,	//ktup_file
  * @param table2 Saves the number of occurences for each ktup in sequence 2
  * \see euclidean_dist
  */
-int 
+int
 euclidean_dist_half(FILE* ktup_f,	//ktup_file
 					long pos2,		//position of table1
 					short *table1,	//table to save ktups in
@@ -941,8 +942,8 @@ euclidean_dist_half(FILE* ktup_f,	//ktup_file
 {
 	const int LINE_LENGTH = 101;
 	char line[LINE_LENGTH];
-	
-	
+
+
 	char delims[] = " ";
 	char *result = NULL;
 	int code;
@@ -954,11 +955,12 @@ euclidean_dist_half(FILE* ktup_f,	//ktup_file
 	{
 		table2[i] = 0;
 	}
+  char *saveptr;
 	while (line[0] != '*')
 	{
-		result = strtok( line, delims );
+		result = strtok_r( line, delims,&saveptr );
 		code = atoi(result);
-		table2[code] = atoi(strtok( NULL, delims));
+		table2[code] = atoi(strtok_r( NULL, delims,&saveptr));
 		fgets(line, LINE_LENGTH, ktup_f);
 	}
 
@@ -982,12 +984,12 @@ make_pos_len_index_of_file(char *file_name,			//file with sequences
 						   long **file_positions,	//array to save the positions
 						   int **seq_lengths,		//array to save the sequence length
 						   int ktup,				//length of ktup
-						   int is_dna)				//type of the seuqence	
+						   int is_dna)				//type of the seuqence
 {
 	//preparations for recoding sequence
 	int *aa;
 	int a, b;
-	
+
 	int ng = 0;
 	char **gl;
 	if (is_dna)
@@ -1006,18 +1008,18 @@ make_pos_len_index_of_file(char *file_name,			//file with sequences
 	aa=(int*)vcalloc ( 256, sizeof (int));
 	for ( a=0; a<ng; a++)
 	{
-		for ( b=0; b< strlen (gl[a]); b++) 
+		for ( b=0; b< strlen (gl[a]); b++)
 		{
 			aa[(int)gl[a][b]]=a;
 		}
 	}
 	free_char (gl, -1);
 
-	
+
 	int tsize=(int)pow(ng, ktup);
 	param_set->tsize = tsize;
 	param_set->ng = ng;
-	
+
 	int *table=(int*)vcalloc ( tsize,sizeof (int));
 
 
@@ -1025,7 +1027,7 @@ make_pos_len_index_of_file(char *file_name,			//file with sequences
 	const int LINE_LENGTH = 501;
 	int *coded_seq = (int*)vcalloc(2*LINE_LENGTH, sizeof(int));
 	int allocated_mem = 2*LINE_LENGTH;
-			
+
 	(*file_positions) = (long int*)vcalloc(ENLARGEMENT_PER_STEP,  sizeof(long));
 	(*seq_lengths) =(int*) vcalloc(ENLARGEMENT_PER_STEP,  sizeof(int));
 
@@ -1059,9 +1061,9 @@ make_pos_len_index_of_file(char *file_name,			//file with sequences
 				allocated_mem += LINE_LENGTH;
 				coded_seq = (int*)vrealloc(coded_seq, allocated_mem*sizeof(int));
 			}
-			
+
 			int i;
-			
+
 			if (line[0] == '>')
 			{
 				if (num_of_sequences >0)
@@ -1070,7 +1072,7 @@ make_pos_len_index_of_file(char *file_name,			//file with sequences
 // 					printf("len: %i\n", str_len);
 					c_seq = coded_seq;
 					makepointtable_fast(coded_seq,ktup,ng, str_len);
-					
+
 					(*file_positions)[num_of_sequences-1] = ftell(tables_f );
 					for (i=0; i < tsize; ++i)
 						table[i] = 0;
@@ -1137,8 +1139,8 @@ make_pos_len_index_of_file_retree(char *file_name,			//file with sequences
 	int mem_for_pos = ENLARGEMENT_PER_STEP;
 // 	fgets(line, LINE_LENGTH , file)
 	 int seq_len = 0;
-			
-			
+
+
 	if (file == NULL)
 	{
 		printf("FILE NOT FOUND\n");
@@ -1193,13 +1195,13 @@ make_pos_len_index_of_file_retree(char *file_name,			//file with sequences
 int logid_score2 ( int sim, int len)
 {
 	float score;
-  
+
 	if ( len==0)return (int)(0.33*(float)MAXID);
-  
+
 	score=(float)sim/(float)len;
 	if (score>0.9) score=1.0;
 	else score=-log10 (1.0-score);
-  
+
 	score=(score*MAXID);
 	return score;
 }
@@ -1231,7 +1233,7 @@ int fast_aln2sim_mat2 (char *seq1, char *seq2)
 
 /*!
  *	\brief Function to create a tree using the PartTree algorithm.
- *	
+ *
  *	\param param_set A \a PartTree_param object containing all necessary parameters and the data.
  *	\return The node_number.
  */
@@ -1243,11 +1245,11 @@ partTree_retree(PartTree_param *param_set)
 
 	Tree_fastal *tree = param_set->tree;
 // 	int this_node = param_set->pos_tree;
-	
+
 	int i;
 // 	int tsize = param_set->tsize;
-	
-	
+
+
 	//get some memory
 // 	short *table1 = vcalloc(tsize, sizeof(short));
 // 	short *table2 = vcalloc(tsize, sizeof(short));
@@ -1276,18 +1278,18 @@ partTree_retree(PartTree_param *param_set)
 	}
 	char *seq1 = (char*)vcalloc(aln_length, sizeof(char));
 	char *seq2 = (char*)vcalloc(aln_length, sizeof(char));
-	
+
 	//Prepare first node
-	
+
 	tree[0].index = (int*)vcalloc(param_set->num_sequences,sizeof(int));
 	int *index = tree[0].index;
 	for (i = 0; i< param_set->num_sequences; ++i)
 		index[i] = i;
 	tree[0].name = param_set->pos_tree +param_set->num_sequences;
-	
+
 	tree[0].num_leafs = param_set->num_sequences;
 	int *sequence_group2 = (int*)vcalloc(param_set->num_sequences,sizeof(int));
-// 	
+//
 	Tree_fastal *current_node;
 	for (loop_tree_node = 0; loop_tree_node < num_of_tree_nodes; ++loop_tree_node)
 	{
@@ -1318,12 +1320,12 @@ partTree_retree(PartTree_param *param_set)
 		{
 			seed_set_cleaned[i] = 1;
 		}
-		
+
 		//finde longest sequence and put into the first field
-		
+
 		int index_longest = 0;
 		int length_of_longest = 0;
-		
+
 		for(i = 0; i < num_sequences; ++i)
 		{
 			if (seq_lengths[index[i]] > length_of_longest)
@@ -1340,12 +1342,12 @@ partTree_retree(PartTree_param *param_set)
 		int seq_index = 1;
 		read_sequence_from_position(aln_f, file_positions[index[0]], seq1);
 		int min = -1;
-		
-		
+
+
 		for (i = 1; i < num_sequences; ++i)
 		{
 			read_sequence_from_position(aln_f, file_positions[index[1]], seq2);
-			tmp = 100 - fast_aln2sim_mat2(seq1, seq2);	
+			tmp = 100 - fast_aln2sim_mat2(seq1, seq2);
 			if (tmp < min)
 			{
 				min = tmp;
@@ -1360,7 +1362,7 @@ partTree_retree(PartTree_param *param_set)
 		int r,j;
 		num_in_subgroup = param_set->subgroup;
 
-		
+
 		for (i = 2; i < num_in_subgroup; ++i)
 		{
 			r = i + rand() / ( RAND_MAX / ( num_sequences-i) + 1 );
@@ -1371,15 +1373,15 @@ partTree_retree(PartTree_param *param_set)
 
 		//Calculate matrix
 		dist_mat = make_distance_matrix_sim(aln_f, file_positions, index, param_set->subgroup, dist_mat);
-// 	
+//
 // 		//Filter out sequences that are to similar & reorder
-// 		
+//
 		NT_node **upgma_tree;
-		
-		
+
+
 		int num_in_clean = filter(index, dist_mat, seed_set_cleaned, param_set);
 
-		
+
 		if (num_in_clean ==1)
 		{
 			num_in_clean = 2;
@@ -1409,7 +1411,7 @@ partTree_retree(PartTree_param *param_set)
 			sprintf(names[i],"%i",i);
 		}
 		upgma_tree= (int_dist2upgma_tree_fastal (dist_mat2, num_in_clean, file_name_tmp , names));
- 
+
 
 // 		//cluster
 // 		//calculate distances from n' to N
@@ -1418,7 +1420,7 @@ partTree_retree(PartTree_param *param_set)
 		for (j = num_in_clean; j < num_sequences; ++j)
 		{
 			read_sequence_from_position(aln_f, file_positions[index[j]], seq2);
-			min_dist[j] = 100 - fast_aln2sim_mat2(seq1, seq2);	
+			min_dist[j] = 100 - fast_aln2sim_mat2(seq1, seq2);
 // 			min_dist[j] = euclidean_dist_half(table_f, file_positions[index[j]], table1, table2, param_set->tsize);
 			belongs_to[j] = 0;
 		}
@@ -1439,7 +1441,7 @@ partTree_retree(PartTree_param *param_set)
 				}
 			}
 		}
-// 
+//
 		//how_many sequences has each cluster
 		for (j = 0; j <= num_in_subgroup; ++j)
 		{
@@ -1470,7 +1472,7 @@ partTree_retree(PartTree_param *param_set)
 			index[i] = sequence_group2[i];
 		}
 
-		
+
 		for (i = 0; i < num_in_clean; ++i)
 		{
 			sprintf(names[i],"%i",i);

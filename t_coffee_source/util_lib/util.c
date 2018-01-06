@@ -2811,28 +2811,28 @@ int *  string2num_list_old ( char *string)
 
   char *buf, *s;
   int  *list, n;
-
+  char *saveptr;
 
   buf=(char*)vcalloc ( strlen (string)+1, sizeof (char));
 
   n=0;
   sprintf ( buf, "%s", string);
-  s=strtok (buf, SEPARATORS);
+  s=strtok_r (buf, SEPARATORS,&saveptr);
   while (s!=NULL)
-	  {
-	    n++;
-	    s=strtok (NULL, SEPARATORS);
-	  }
+  {
+    n++;
+    s=strtok_r (NULL, SEPARATORS,&saveptr);
+  }
   list=(int*)vcalloc (n+1, sizeof (int));
 
   n=0;
   sprintf ( buf, "%s", string);
-  s=strtok (buf, SEPARATORS);
+  s=strtok_r (buf, SEPARATORS,&saveptr);
   while (s!=NULL)
-	  {
-	    if (is_number(s))list[n++]=atoi(s);
-	    s=strtok (NULL, SEPARATORS);
-	  }
+  {
+    if (is_number(s))list[n++]=atoi(s);
+    s=strtok_r (NULL, SEPARATORS,&saveptr);
+  }
   vfree (buf);
 
   return list;
@@ -2861,7 +2861,7 @@ int * string2num_list ( char *string)
 }
 int * string2num_list2 ( char *string, char *separators)
 {
-   /*Breaks down a list of numbers separated by any legal separator and put them in an array of the right size*/
+  /*Breaks down a list of numbers separated by any legal separator and put them in an array of the right size*/
   /*Returns list a list of integer*/
   /*Skips non numbers*/
 
@@ -2877,17 +2877,17 @@ int * string2num_list2 ( char *string, char *separators)
   list=(int*)vcalloc ( n, sizeof (int));
 
   for (m=1, a=1; a< n; a++)
-    {
-      if (is_number(nlist[a]))list[m++]=atoi(nlist[a]);
-    }
+  {
+    if (is_number(nlist[a]))list[m++]=atoi(nlist[a]);
+  }
 
   list[0]=m;
   free_char (nlist, -1);
   if ( m==0){vfree(list); return NULL;}
   else
-    {
-      return list;
-    }
+  {
+    return list;
+  }
 
   return NULL;
 
@@ -2916,7 +2916,7 @@ char **  string2list ( char *string)
     return string2list2(string, SEPARATORS);
   }
 char **  string2list2 ( char *string, char *separators)
-  {
+{
   /*Breaks down a list of words separated by any legal separator and put them in an array of the right size*/
   /*Returns list a list of char with the size written in list[0]*/
 
@@ -2924,22 +2924,22 @@ char **  string2list2 ( char *string, char *separators)
   char *buf, *s;
   char  **list;
   int n, max_len;
-
   if ( string==NULL)return NULL;
   buf=(char*)vcalloc ( strlen (string)+2, sizeof (char));
 
 
   n=max_len=0;
   sprintf ( buf, "%s", string);
-  s=strtok (buf, separators);
+  char *saveptr;
+  s=strtok_r (buf, separators,&saveptr);
 
   while (s!=NULL)
-	  {
-	    n++;
-	    max_len=MAX(max_len,(strlen (s)));
-	    s=strtok (NULL, separators);
+  {
+    n++;
+    max_len=MAX(max_len,(strlen (s)));
+    s=strtok_r (NULL, separators,&saveptr);
 
-	  }
+  }
 
   if ( n==0){vfree(buf); return NULL;}
 
@@ -2947,12 +2947,12 @@ char **  string2list2 ( char *string, char *separators)
 
   n=1;
   sprintf ( buf, "%s", string);
-  s=strtok (buf, separators);
+  s=strtok_r (buf, separators,&saveptr);
   while (s!=NULL)
-	  {
-	    sprintf (list[n++], "%s",s);
-	    s=strtok (NULL, separators);
-	  }
+  {
+    sprintf (list[n++], "%s",s);
+    s=strtok_r (NULL, separators,&saveptr);
+  }
 
   sprintf (list[0], "%d", n);
 
@@ -3051,8 +3051,8 @@ char ** get_list_of_tokens ( char *in_string, char *separators, int *n_tokens)
     list=declare_char (strlen ( in_string)+1, 1);
     string=(char*)vcalloc ( strlen(in_string)+1, sizeof (char));
     sprintf ( string, "%s", in_string);
-
-    while ( (p=strtok ((p==NULL)?string:NULL, ((separators==NULL)?SEPARATORS:separators)))!=NULL)
+    char *saveptr;
+    while ( (p=strtok_r ((p==NULL)?string:NULL, ((separators==NULL)?SEPARATORS:separators),&saveptr))!=NULL)
     {
       list[n_tokens[0]]=(char*)vrealloc ( list[n_tokens[0]], sizeof (char) *strlen (p)+1);
       sprintf ( list[n_tokens[0]], "%s", p);
@@ -4228,7 +4228,7 @@ pid_t set_pid (pid_t p)
 #include <list>
 #include <vector>
 #include <mutex>
-static std::vector<std::thread> g_threads;
+static std::vector<std::thread*> g_threads;
 static std::mutex g_threads_mutex;
 
 //Main thread will return -1 because not in list.
@@ -4236,13 +4236,12 @@ static std::mutex g_threads_mutex;
 int get_thread_index()
 {
   auto id = std::this_thread::get_id();
-  int index = 0;
-  for( auto & t: g_threads )
+  const int n = g_threads.size();
+  for( int i=0; i < n; ++i )
   {
-    if( t.get_id() == id )
-      return index;
-
-    ++index;
+    if( g_threads[i] &&
+        g_threads[i]->get_id() == id )
+    return i;
   }
 
   return -1;
@@ -4252,7 +4251,7 @@ int start_thread(std::function<void(void)> fn)
 {
   std::lock_guard<std::mutex> guard( g_threads_mutex );
   int index = g_threads.size();
-  g_threads.push_back( std::thread( fn ) );
+  g_threads.push_back( new std::thread( fn ) );
 
   return index;
 }
@@ -4285,19 +4284,20 @@ void join()
 void join(int index)
 {
   if( index < 0 ||
-      index >= g_threads.size() )
+    index >= g_threads.size() ||
+    !g_threads[index] )
     return;
 
-  auto & t = g_threads[index];
-  if( !t.joinable() )
+  if( !g_threads[index]->joinable() )
     return;
 
-  t.join();
+  g_threads[index]->join();
+  g_threads[index] = nullptr;
 }
 
 void join(const std::vector<int> & indexes)
 {
-  for( auto i: indexes )
+  for( int i: indexes )
   {
     join( i );
   }
@@ -4589,7 +4589,6 @@ char *get_home_4_tcoffee ()
       printf_exit (EXIT_FAILURE, stderr, "ERROR: Could not set a HOME directory.\nSet any of the following environement variables to some suitable location: HOME, HOME_4_TCOFFEE, TMP or TEMP [FATAL:%s]\n", PROGRAM);
     }
 
-
   return home_4_tcoffee;
 }
 char *get_dir_4_tcoffee()
@@ -4627,13 +4626,34 @@ char *get_tmp_4_tcoffee ()
       printf("UNIQUE_DIR_4_TCOFFEE\n");
       sprintf (tmp_4_tcoffee, "%s", getenv("UNIQUE_DIR_4_TCOFFEE"));
     }
-    if (v && strm (v, "TMP"))sprintf (tmp_4_tcoffee, "%s", getenv("TMP"));
-    else if (v && strm (v, "LOCAL"))sprintf (tmp_4_tcoffee, "%s", getcwd(NULL,0));
-    else if (v && strm (v, "."))sprintf (tmp_4_tcoffee, "%s", getcwd(NULL,0));
-    else if (v)sprintf (tmp_4_tcoffee, "%s", v);
-    else if (isdir("/var/tmp"))sprintf (tmp_4_tcoffee, "/var/tmp");
-    else if (isdir(get_dir_4_tcoffee ()))sprintf (tmp_4_tcoffee, "%s", get_dir_4_tcoffee());
-    else sprintf (tmp_4_tcoffee, "%s", getcwd(NULL,0));
+    if (v && strm (v, "TMP"))
+    {
+      sprintf (tmp_4_tcoffee, "%s", getenv("TMP"));
+    }
+    else if (v && strm (v, "LOCAL"))
+    {
+      sprintf (tmp_4_tcoffee, "%s", getcwd(NULL,0));
+    }
+    else if (v && strm (v, "."))
+    {
+      sprintf (tmp_4_tcoffee, "%s", getcwd(NULL,0));
+    }
+    else if (v && strlen(v) > 0)
+    {
+      sprintf (tmp_4_tcoffee, "%s", v);
+    }
+    else if (isdir("/var/tmp"))
+    {
+      sprintf (tmp_4_tcoffee, "/var/tmp");
+    }
+    else if (isdir(get_dir_4_tcoffee ()))
+    {
+      sprintf (tmp_4_tcoffee, "%s", get_dir_4_tcoffee());
+    }
+    else
+    {
+      sprintf (tmp_4_tcoffee, "%s", getcwd(NULL,0));
+    }
 
     //now that rough location is decided, create the subdir structure
 
@@ -5723,11 +5743,10 @@ char *chomp (char *name)
   name[a]='\0';
   return name;
 }
-static thread_local Tmpname *tmpname;
-static thread_local Tmpname *ntmpname;
+static thread_local Tmpname *tmpname=NULL;
+static thread_local Tmpname *ntmpname=NULL;
 
-static int n_tmpname=0;
-static int file2remove_flag;
+static int file2remove_flag=0;
 
 static std::mutex g_extension_mutex;
 char *set_file2remove_extension (char *extension, int mode)
@@ -5777,8 +5796,6 @@ char *vtmpnam ( char *s1)
 {
   char *s,*s2;
 
-  n_tmpname++;
-
   standard_initialisation(NULL, NULL);
 
   s=(char*)vcalloc ( VERY_LONG_STRING, sizeof (char));
@@ -5795,7 +5812,7 @@ char *vtmpnam ( char *s1)
 
 int vtmpnam_size()
 {
-  static int size;
+  static int size=0;
 
   if (!size)
     {
@@ -5819,25 +5836,41 @@ int get_vtmpnam2_root()
 }
 char *tmpnam_2 (char *s)
 {
-  static thread_local int root=0;
-  static thread_local int file=0;
-  static thread_local char root2[VERY_LONG_STRING]={0};
+  //Defined by main thread.
+  static int root=0;
+  static char root2[VERY_LONG_STRING]={0};
+  //Shared.
+  static std::atomic<int> file(0);
+  //Override locally as needed.
+  static thread_local int localRoot=0;
+  static thread_local char localRoot2[VERY_LONG_STRING]={0};
 
-	if ( !root || !s)
+  //Define once.
+	if( !root )
 	{
 		root=get_vtmpnam2_root();
-    sprintf ( root2, "%d_%d_%d_", root, (int)getpid(), get_thread_index());
+    sprintf ( root2, "%d_%d_", root, get_thread_index());
 	}
+
+  if( !s )
+  {
+    localRoot = get_vtmpnam2_root();
+    sprintf( localRoot2, "%d_%d_", localRoot, get_thread_index() );
+  }
+  else if( !localRoot )
+  {
+    localRoot = root;
+    strncpy( (char*) localRoot2, root2, VERY_LONG_STRING );
+  }
 
 	if (!s) return NULL;
 
   static char *tmpdir=get_tmp_4_tcoffee();
   char buf[VERY_LONG_STRING];
 
-	sprintf (buf, "%s/%s%d_TCtmp%s",tmpdir,root2, file++,set_file2remove_extension (NULL, GET));
+	sprintf (buf, "%s/%s%d_TCtmp%s", tmpdir, localRoot2, ++file, set_file2remove_extension (NULL, GET) );
 	if ( strlen(buf) > strlen(s) ) s = (char*) vrealloc (s, (strlen(buf)+1)*sizeof (char));
 	sprintf (s, "%s", buf);
-
 	return s;
 }
 
@@ -6029,7 +6062,7 @@ FILE * vfopen  ( char *name_in, char *mode)
   /*Use the cached version from CACHE_4_TCOFFEE*/
   else if ( mode[0]=='c'){cache_used=1;mode++;}
 
-  if (name==NULL ||strm5 ( name, "no","NO","No","NULL","/dev/null") || strm2 (name, "no_file", "NO_FILE"))
+  if (!name[0] ||strm5 ( name, "no","NO","No","NULL","/dev/null") || strm2 (name, "no_file", "NO_FILE"))
   {
     if ( NFP==NULL)NFP=fopen (NULL_DEVICE, mode);
     return NFP;
@@ -6104,31 +6137,31 @@ FILE *fopenN   ( char *fname, char *mode, int max_n_tries, int delay)
   int a;
 
   for (a=0; a< max_n_tries; a++)
-    {
-      if ((fp=fopen (fname, mode))) return fp;
-      else
-      #ifdef _MSC_VER
-        Sleep( delay );
-      #else
-        sleep (delay);
-      #endif
-      HERE ("---- failed opening: %s", fname);
-    }
+  {
+    if ((fp=fopen (fname, mode))) return fp;
+    else
+#ifdef _MSC_VER
+      Sleep( delay );
+#else
+      sleep (delay);
+#endif
+    HERE ("---- failed opening: %s", fname);
+  }
   return NULL;
 }
 
 FILE * vfclose ( FILE *fp)
-       {
-       if ( fp==NFP)return NULL;
-       if ( fp==stdout)return stdout;
-       if ( fp==stderr)return stderr;
-       if ( fp==stdin) return stdin;
-       if ( fp==NULL)return NULL;
-       else
-	 if (fclose (fp)!=0)HERE ("***** ERROR****");
+{
+  if ( fp==NFP)return NULL;
+  if ( fp==stdout)return stdout;
+  if ( fp==stderr)return stderr;
+  if ( fp==stdin) return stdin;
+  if ( fp==NULL)return NULL;
+  else
+    if (fclose (fp)!=0)HERE ("***** ERROR****");
 
-       return NULL;
-       }
+  return NULL;
+}
 
 
 int echo ( char *string, char *fname)
@@ -7321,25 +7354,25 @@ char *pg2path (char *pg)
   p=(char*)vcalloc  ( strlen (p1)+strlen (pg) +1, sizeof (char));
   buf=(char*)vcalloc( strlen (p1)+strlen (pg) +1, sizeof (char));
   sprintf ( p, "%s", p1);
-
-  dir=strtok (p, ":");
+  char *saveptr;
+  dir=strtok_r (p, ":",&saveptr);
 
   while( dir)
+  {
+    sprintf ( buf, "%s/%s", dir,pg);
+    if ( file_exists (NULL,buf))
     {
-      sprintf ( buf, "%s/%s", dir,pg);
-      if ( file_exists (NULL,buf))
-	{
-	  vfree (p);
-	  return resize_string(buf);
-	}
-      sprintf ( buf, "%s/%s.exe", dir,pg);
-      if (file_exists (NULL, buf))
-	{
-	  vfree (p);
-	  return resize_string(buf);
-	}
-      dir=strtok(NULL, ":");
+      vfree (p);
+      return resize_string(buf);
     }
+    sprintf ( buf, "%s/%s.exe", dir,pg);
+    if (file_exists (NULL, buf))
+    {
+      vfree (p);
+      return resize_string(buf);
+    }
+    dir=strtok_r(NULL, ":",&saveptr);
+  }
   return NULL;
 }
 
@@ -9176,37 +9209,38 @@ int   km_file2dim   ( char *file, int *n,int *dim, int *len)
 
   fp=vfopen (file, "r");
   while ((c=fgetc(fp)!=EOF))
-    {
-      clen=0;
-      while ( (c=fgetc(fp))!='\n' && c!=EOF)clen++;
-      mlen=(clen>mlen)?clen:mlen;
-    }
+  {
+    clen=0;
+    while ( (c=fgetc(fp))!='\n' && c!=EOF)clen++;
+    mlen=(clen>mlen)?clen:mlen;
+  }
   len[0]=mlen+10;
   vfclose (fp);
 
   n[0]=0;
   fp=vfopen (file, "r");
   buf=(char*)calloc(len[0]+1, sizeof (char));
+  char *saveptr;
   while ((fgets (buf,len[0], fp)))
+  {
+    if ( buf[0]=='#')
     {
-      if ( buf[0]=='#')
-	{
-	  n[0]++;
-	  cdim=0;
-	  strtok(buf, ";");//pass #d;
-	  strtok(NULL, ";"); //pass exp;
-	  strtok(NULL, ";"); //pass recid;
-	  while ((s1=strtok(NULL, ";")))
-	    {
-	      s2=strtok(NULL, ";");
-	      if (strstr (s1, "value::"))
-		{
-		  cdim++;
-		}
-	    }
-	  mdim=(cdim>mdim)?cdim:mdim;
-	}
+      n[0]++;
+      cdim=0;
+      strtok_r(buf, ";",&saveptr);//pass #d;
+      strtok_r(NULL, ";",&saveptr); //pass exp;
+      strtok_r(NULL, ";",&saveptr); //pass recid;
+      while ((s1=strtok_r(NULL, ";",&saveptr)))
+      {
+        s2=strtok_r(NULL, ";",&saveptr);
+        if (strstr (s1, "value::"))
+        {
+          cdim++;
+        }
+      }
+      mdim=(cdim>mdim)?cdim:mdim;
     }
+  }
   free (buf);
   dim[0]=mdim;
   vfclose (fp);
@@ -9231,30 +9265,31 @@ double ** km_read_data ( char *file, int n, int dim, int mlen, char **fl)
 
   fp=vfopen (file, "r");
   cn=0;
+  char *saveptr;
   while ((fgets (buf,mlen, fp)))
+  {
+
+    if ( buf[0]=='#')
     {
 
-      if ( buf[0]=='#')
-	{
-
-	  p=cdim=0;
-	  strtok(buf, ";"); p++;//pass #d;
-	  strtok(NULL, ";");p++; //pass exp;
-	  strtok(NULL, ";");p++; //pass recid;
-	  while ((s1=strtok(NULL, ";")))
-	    {
-	      s2=strtok(NULL, ";");
-	      p++;
-	      if (fi[p]==-1)
-		{
-		  b=fi[p]=0;
-		  while (fl[b]){if (strcmp(s1,fl[b])==0){fi[p]=1;}b++;}
-		}
-	      if (fi[p]){data[cn][cdim++]=atof(s2);}
-	    }
-	  cn++;
-	}
+      p=cdim=0;
+      strtok_r(buf, ";",&saveptr); p++;//pass #d;
+      strtok_r(NULL, ";",&saveptr);p++; //pass exp;
+      strtok_r(NULL, ";",&saveptr);p++; //pass recid;
+      while ((s1=strtok_r(NULL, ";",&saveptr)))
+      {
+        s2=strtok_r(NULL, ";",&saveptr);
+        p++;
+        if (fi[p]==-1)
+        {
+          b=fi[p]=0;
+          while (fl[b]){if (strcmp(s1,fl[b])==0){fi[p]=1;}b++;}
+        }
+        if (fi[p]){data[cn][cdim++]=atof(s2);}
+      }
+      cn++;
     }
+  }
   free (buf);
   vfclose (fp);
   return data;
@@ -9273,26 +9308,27 @@ void km_output_data ( double **data,int n, int dim, int mlen, char *infile, char
 
   buf =(char*)calloc (mlen+1,sizeof (char));
   cn=0;
+  char *saveptr;
   while ((fgets (buf,mlen,in)))
+  {
+    if (buf[0]=='#')
     {
-      if (buf[0]=='#')
-	{
 
-	  fprintf (out,"%s;",strtok(buf , ";"));//pass #d;
-	  fprintf (out,"%s;",strtok(NULL, ";"));//pass exp
-	  fprintf (out,"%s;",strtok(NULL, ";"));//pass #rec_id;
-	  while ((s1=strtok(NULL, ";")) && s1[0]!='\n')
-	    {
-	      s2=strtok(NULL, ";");
-	      if (strcmp (s1, "bin")!=0)
-		{
-		  fprintf (out, "%s;%s;", s1, s2);
-		}
-	    }
-	  fprintf (out, "bin;%d;", (int)data[cn++][dim]);
-	  fprintf ( out, "\n");
-	}
+      fprintf (out,"%s;",strtok_r(buf , ";",&saveptr));//pass #d;
+      fprintf (out,"%s;",strtok_r(NULL, ";",&saveptr));//pass exp
+      fprintf (out,"%s;",strtok_r(NULL, ";",&saveptr));//pass #rec_id;
+      while ((s1=strtok_r(NULL, ";",&saveptr)) && s1[0]!='\n')
+      {
+        s2=strtok_r(NULL, ";",&saveptr);
+        if (strcmp (s1, "bin")!=0)
+        {
+          fprintf (out, "%s;%s;", s1, s2);
+        }
+      }
+      fprintf (out, "bin;%d;", (int)data[cn++][dim]);
+      fprintf ( out, "\n");
     }
+  }
   free (buf);
   vfclose (in);
   if (out!=stdout)vfclose (out);

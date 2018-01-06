@@ -440,9 +440,10 @@ void make_ref_alignment(char *seq_file_name, char *tree_file_name, char *ref_aln
 	fseek (tree_f, 0, SEEK_SET);
 	int node;
 	int dist = every_x;
+  char *saveptr;
 	while(fgets(line, LINE_LENGTH, tree_f)!=NULL)
 	{
-		node = atoi(strtok(line,delims));
+		node = atoi(strtok_r(line,delims,&saveptr));
 		if (node < num_sequences)
 		{
 			if (dist == every_x)
@@ -457,7 +458,7 @@ void make_ref_alignment(char *seq_file_name, char *tree_file_name, char *ref_aln
 			}
 		}
 
-		node = atoi(strtok(NULL,delims));
+		node = atoi(strtok_r(NULL,delims,&saveptr));
 		if (node < num_sequences)
 		{
 			if (dist == every_x)
@@ -588,10 +589,11 @@ double agreement_score(char *ref_file_name, char *aln_file_name)
 
 	char delims[] = " ";
 	char *tmp_str;
-	strtok(line, delims);
+  char *saveptr;
+	strtok_r(line, delims,&saveptr);
 	for (i = 0; i < 3; ++i)
 	{
-		while((tmp_str = strtok(NULL, delims))==NULL);
+		while((tmp_str = strtok_r(NULL, delims,&saveptr))==NULL);
 	}
 	return(atof(tmp_str));
 }
@@ -660,6 +662,6 @@ int complete_agreement_score(char *aln_file_name, const char *ref_directory)
 // 	while(fgets(line, LINE_LENGTH, tree_file)!=NULL)
 // {
 // 		//read profiles
-// 	node[0] = atoi(strtok(line,delims));
-// 	node[1] = atoi(strtok(NULL,delims));
-// 	node[2] = atoi(strtok(NULL,delims));
+// 	node[0] = atoi(strtok_r(line,delims));
+// 	node[1] = atoi(strtok_r(NULL,delims));
+// 	node[2] = atoi(strtok_r(NULL,delims));

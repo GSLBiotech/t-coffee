@@ -194,7 +194,7 @@ int seq_reformat ( int argc, char **in_argv)
 
 		fprintf ( stdout, "\n     +rm_gap n ...........Removes col with n%% gap [n=100]");
 		fprintf ( stdout, "\n     +rm_lower c..........Removes lower case positions and replaces them with c [-]");
-		
+
 		fprintf ( stdout, "\n     +rmgap_col SEQ1:SEQ2.Removes column with a gap in SEQ [#] ");
 
 		fprintf ( stdout, "\n     +backtranslate.......Random Backtranslation");
@@ -327,7 +327,7 @@ int seq_reformat ( int argc, char **in_argv)
 		fprintf ( stdout, "\n     .....................MaxLen of the deletions, Ncycle: number of cycles");
 		fprintf ( stdout, "\n     .....................Random_len: 0 sets the len to maxlen, 1 to a random value");
 		fprintf ( stdout, "\n     +tree..gap <F|def=0.5> replicates<D|column|def=1> mode <nj|upgma|def=nj>");
-		
+
 		fprintf ( stdout, "\n     +remove_nuc.x........Remove Position 1, 2 or 3 of every codon");
 		fprintf ( stdout, "\n     +evaluate3D..........strike|distances|contacts|Def=strike");
 		fprintf ( stdout, "\n     .....................Uses the -in2 contact_lib or the +pdb2contacts +seq2contacts ");
@@ -339,7 +339,7 @@ int seq_reformat ( int argc, char **in_argv)
 		fprintf ( stdout, "\n     .....................contacts|distances provided via -in2=contact_lib");
 		fprintf ( stdout, "\n     .....................contacts|distances estimated via pdb2contacts");
 		fprintf ( stdout, "\n     +evaluateTree.<group>.Group is a fasta sequence file");
-		
+
 		fprintf ( stdout, "\n     +evaluate matrix..gop..gep");
 		fprintf ( stdout, "\n     .....................Make a similarity evaluation with matrix");
 		fprintf ( stdout, "\n     .....................use -output=score_ascii, or score_html.");
@@ -412,7 +412,7 @@ int seq_reformat ( int argc, char **in_argv)
 		fprintf ( stdout, "\n     .....replicates <N>..+evaluate makes N replicates");
 		fprintf ( stdout, "\n     .....mode <nj|upgma>.+evaluate makes N replicates");
 		fprintf ( stdout, "\n     .....gap <N float>...+evaluate ignores colum with N float gap");
-		
+
 		fprintf ( stdout, "\n     +tree_prune..........Prune the tree -in using the sequences provided via -in2");
 		fprintf ( stdout, "\n     +tree_cmp............Compares the tree -in and the tree -in2");
 		fprintf ( stdout, "\n     +tree_cmp_list......Compares the tree -in and the tree_list -in2");
@@ -468,16 +468,16 @@ int seq_reformat ( int argc, char **in_argv)
 		fprintf ( stdout, "\n     +treelist2bs.........Turns a list of tree into a tree with BS support");
 		fprintf ( stdout, "\n     .............cons....Runs consense majoprity rule. Distances are the BS values");
 		fprintf ( stdout, "\n     .............best....identifies the tree with the best support");
-		fprintf ( stdout, "\n     .............first...Reports support for the first tree in the list");  			
+		fprintf ( stdout, "\n     .............first...Reports support for the first tree in the list");
 		fprintf ( stdout, "\nMatrix Analysis___________________________________________________");
 		fprintf ( stdout, "\n     +aln2proba_mat.......Computes the proba of all mutations on MSA provided in fasta format (i.e. each name is a valid MSA file");
-		
+
 		fprintf ( stdout, "\n     +aln2mat_diaa........computes a dinucleotide matrix on a list of aln");
 		fprintf ( stdout, "\n     +aln2mat.............computes a log odd matrix. Input is a list of MSA provided in fasta format (i.e. each name is a valid MSA file");
 		fprintf ( stdout, "\n     +seq2lat_mat.........computes a transition matrix on seq provided via -in");
 
 		fprintf ( stdout, "\nStructure Analysis___________________________________________________");
-		
+
 		fprintf ( stdout, "\n     +seq2contacts.mode....Reports contacts or distances in library format");
 		fprintf ( stdout, "\n     ......................mode: RNAplfold");
 		fprintf ( stdout, "\n     ......................Sequences with a structure are ignored");
@@ -488,7 +488,7 @@ int seq_reformat ( int argc, char **in_argv)
 		fprintf ( stdout, "\n     ......................If mode is set, sequences without a PDB ignored");
 		fprintf ( stdout, "\n     ......................mode [find_pair-p for RNA/PDB-RNAplfold for RNA]");
 		fprintf ( stdout, "\n     ......................D: [1.2 | 20 for mode=distances] for proteins");
-		
+
 		fprintf ( stdout, "\n     ......................D: probe size for contacts 1.2A by def");
 		fprintf ( stdout, "\n     ......................D: MaxDistance for distance 30 A by default");
 		fprintf ( stdout, "\n     ......................INPUT: provide template via -in2");
@@ -560,10 +560,10 @@ int seq_reformat ( int argc, char **in_argv)
 		fprintf ( stdout, "\n     sim_sim2(defualt)..Fraction of identical columns over  shortest seq\n");
 		fprintf ( stdout, "\n     sim_sim3(defualt)..Fraction of identical columns over  longuest seq\n");
 		fprintf ( stdout, "\n     sim_gap1(defualt)..Fraction of ungapped columns\n");
- 
-		
-			  
-		
+
+
+
+
 
 		fprintf ( stdout, "\n     code_name......Outputs a compact list of names for code/decode");
 
@@ -819,12 +819,12 @@ int seq_reformat ( int argc, char **in_argv)
 
 /*STRUCTURE INPUT*/
 
-	
+
 	if ((D_ST=read_data_structure (struc_in_format, struc_in_file,RAD)))
 	    {
-	     
-	   
-	      
+
+
+
 	      if ( D_ST->CL)
 		{
 		  Constraint_list *CL;
@@ -841,7 +841,7 @@ int seq_reformat ( int argc, char **in_argv)
 	      else if ( name_is_in_list ("cons", ((D_ST)->A)->name, ((D_ST)->A)->nseq, 100)!=-1);
 	      else
 		{
-		  
+
 		  D_ST->A=copy_aln ( D1->A,NULL);
 		  thread_seq_struc2aln (D_ST->A, D_ST->S);
 		}
@@ -956,13 +956,13 @@ Sequence_data_struc *read_data_structure ( char *in_format, char *in_file,	Actio
 	    D->S=get_file_list(in_file);
 	    D->A=seq2aln(D->S, D->A,KEEP_GAP);
 	  }
-	
+
 	else if ( strm (in_format, "fasta_tree"))
 	  {
 
 	    D->S=get_fasta_tree (in_file, NULL);
 	    D->A=seq2aln(D->S, D->A,NO_PAD);
-	    
+
 	  }
 	else if ( strm (in_format, "tree_list") || strm (in_format, "treelist"))
 	  {
@@ -974,10 +974,10 @@ Sequence_data_struc *read_data_structure ( char *in_format, char *in_file,	Actio
 	  {
 	    D->M=read_matrice (in_file);
 	  }
-	
+
 	else if (strm4 (in_format, "newick_tree", "newick", "nh", "new_hampshire"))
 	  {
-	   
+
 	    D->T=main_read_tree (in_file);
 	    D->S=tree2seq(D->T, NULL);
 	    D->A=seq2aln (D->S,D->A, 0);
@@ -1008,7 +1008,7 @@ Sequence_data_struc *read_data_structure ( char *in_format, char *in_file,	Actio
 	    read_gotoh_aln (in_file, D->A);
 	    D->S=aln2seq(D->A);
 	  }
-	
+
 	else if ( strm ( in_format, "msf_aln"))
 		{
 		read_msf_aln (in_file, D->A);
@@ -1115,7 +1115,7 @@ Sequence_data_struc *read_data_structure ( char *in_format, char *in_file,	Actio
 		}
 	else if ( strm( in_format, "tc_lib") ||  strm( in_format, "mocca_lib") ||  strm( in_format, "lib"))
 	        {
-		 
+
 		  read_seq_in_list (in_file,&nseq,&sequences,&seq_name, &genome_co);
 		  D->S=fill_sequence_struc ( nseq, sequences, seq_name, genome_co);
 		  D->CL=declare_constraint_list ( D->S,NULL, NULL, 0,NULL, NULL);
@@ -1123,7 +1123,7 @@ Sequence_data_struc *read_data_structure ( char *in_format, char *in_file,	Actio
 		  seq2aln (D->S, D->A, RAD->rm_gap);
 		  free_char (sequences,-1);
 		  free_char (seq_name, -1);
-		
+
 		}
 	else if ( strm( in_format,"swissprot_seq"))
 	        {
@@ -1345,8 +1345,8 @@ char * identify_seq_format ( char *file)
 	   myexit (EXIT_FAILURE);
 	 }
        else
-	 
-	 
+
+
 	 // 	if ( format_is_fasta_seq(file))sprintf ( format, "fasta_seq");
 	 // 	else if ( format_is_fasta_aln(file,1))
 	 // 	sprintf ( format, "fasta_aln");
@@ -1379,8 +1379,8 @@ char * identify_seq_format ( char *file)
 	 else if ( is_treelist (file))sprintf ( format, "treelist");
 	 else if ( is_newick(file))sprintf ( format, "newick_tree");
          else if ( is_nexus (file))sprintf ( format, "nexus");
-       
-       
+
+
 	 else
 	   {
 	     //add_warning ( stderr, "\nThe Format of File: %s was not recognized [SERIOUS:%s]",file, PROGRAM);
@@ -1425,7 +1425,7 @@ char * name2type_name ( char *name)
 	/*turns <file> into <Sfile>, <Afile>...*/
 	char *new_name;
 	char mode;
-	
+
 
 	new_name=(char*)vcalloc ( strlen (name)+2, sizeof (char));
 	sprintf ( new_name, "%s", name);
@@ -1438,7 +1438,7 @@ char * name2type_name ( char *name)
 	  {
 	    mode=identify_format (&new_name);
 	    sprintf ( new_name, "%c%s", mode,name);
-	    
+
 	  }
 	return new_name;
 }
@@ -1865,7 +1865,7 @@ int is_aln ( char *name)
        {
        char *format;
        if ( !check_file_exists       (name))return 0;
-       
+
        format= identify_seq_format(name);
        if ( !format || format[0]=='\0'){vfree (format);return 0;}
        else if (strstr(format, "aln")){vfree (format); return 1;}
@@ -2412,8 +2412,8 @@ int output_format_aln ( char *format, Alignment *inA, Alignment *inEA,char *name
 	A =expand_aln(A);
 	EA=expand_number_aln(inA,EA);
 
-	
-	
+
+
 
 	if (A && A->expanded_order  )A=reorder_aln ( A, A->expanded_order,A->nseq);
 	if (EA && EA->expanded_order)EA=reorder_aln ( EA, EA->expanded_order,EA->nseq);
@@ -2510,7 +2510,7 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 	      }
 	     vfclose (save_list_footer (fp, CL));
 	  }
-	
+
 	else if (strm (out_format, "score") || strm (out_format, "score_aln") || strm (out_format, "score_seq") || strm (out_format, "score_pw"))
 	  {
 	    int i, x, y;
@@ -2518,8 +2518,8 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 	    FILE *fp;
 
 	    fp=vfopen (out_file, "w");
-	    fprintf ( fp,"#SCORE_FORMAT_01\n"); 
-	    
+	    fprintf ( fp,"#SCORE_FORMAT_01\n");
+
 	    if ( strm (out_format, "score_aln") || strm (out_format, "score"))
 	      fprintf (fp, "%d [SCORE_ALN]\n", (D1->A)->score_aln);
 	    if ( strm (out_format, "score_seq") || strm (out_format, "score"))
@@ -2545,29 +2545,29 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 	  {
 	    int a,l,n;
 	    Alignment *BUF;
-	    
+
 	    if (!D1)return 1;
 
-	    
+
 	    if ( !DST)
 	      {
 		fprintf ( stderr,"\n[You Need an evaluation File: Change the output format or use +evaluate][FATAL:%s]\n", PROGRAM);
 		myexit(EXIT_FAILURE);
 	      }
 	    if ( !strm ("html", out_format))while ( out_format[0]!='_' && out_format[0]!='\0' )out_format++;
-	    
+
 	    //l=(DST->A)->len_aln;
 	    //n=(DST->A)->nseq;
 	    //for (a=0; a<l; a++)HERE ("%s %s %d", out_format,(DST->A)->name[n],(DST->A)->seq_al[(DST->A)->nseq][a]);
-	    
+
 	    D1->S=aln2seq(D1->A);
 	    BUF=copy_aln (DST->A, NULL);
-	    
-	   
-	    
+
+
+
 	    DST->A=aln2number (DST->A);
-	    
-	    
+
+
 	    if     ( strstr ( out_format, "html" ))output_reliability_html  ( D1->A,  DST->A, out_file);
 	    else if( strm ( out_format, "_ps"    ))output_reliability_ps    ( D1->A,  DST->A, out_file);
 	    else if( strm ( out_format, "_pdf"   ))output_reliability_pdf   ( D1->A,  DST->A, out_file);
@@ -2841,19 +2841,19 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 
 	else if ( strnm (out_format, "upper", 5))
 	  {
-	    
+
 	    if (!D1)return 1;
 	    if ( !DST)
 	      {
 		fprintf ( stderr,"\n[You Need an evaluation File: Change the output format][FATAL:%s]\n", PROGRAM);
 		myexit(EXIT_FAILURE);
 	      }
-	    
-	    
+
+
 	    (DST->A)=aln2number (DST->A);
-	    
+
 	    value=atoi(out_format+5);
-	    
+
 	    D1->A=filter_aln_lower_upper (D1->A, DST->A,0, value);
 	    output_clustal_aln ( out_file, D1->A);
 	  }
@@ -2872,19 +2872,19 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 		fprintf ( stderr,"\n[You Need an evaluation File: Change the output format][FATAL:%s]\n", PROGRAM);
 		myexit(EXIT_FAILURE);
 	      }
-	    
+
 	    if (D2 && D2->S)
 	      {
 		//must be DNA file
 		D1->A =thread_dnaseq_on_prot_aln (D2->S, D1->A);
 		DST->A=aln2X(DST->A,3);
 	      }
-	    
+
 	    EA=(DST->A)=aln2number (DST->A);
 	    A=D1->A;
-	    
-	   
-	    
+
+
+
 	    if (strstr (out_format, "residue"))target=0;
 	    else target=1;
 
@@ -2897,21 +2897,21 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 	    while (p && p[0] && p[0]=='_')p++;
 	    if (p && p[0])sscanf (p, "%d", &filter);
 	    else filter=3;
-	    
+
 	    if (action==2 || action ==3)
 	      {
 		Alignment *B;
 		if ( check_file_exists (out_file))remove (out_file);
-		
-		
+
+
 		B=copy_aln (A, NULL);
 		B=realloc_aln (B, B->len_aln*10+1);
 		B->len_aln=0;
-		for (c=0; c<A->len_aln; c++) 
+		for (c=0; c<A->len_aln; c++)
 		  {
 		    int vc=EA->seq_al[A->nseq][c];
 		    int n;
-		    
+
 		    for (n=0; n<=vc; n++, B->len_aln++)
 		      {
 			for (s=0; s<A->nseq; s++)
@@ -2926,8 +2926,8 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 		  {
 		    Alignment *C;
 		    int a, b, pos, c;
-		    
-		    
+
+
 		    C=copy_aln (A, NULL);
 		    if (filter==3)filter=100;
 		    for (a=0; a<filter; a++)
@@ -2938,7 +2938,7 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 			    for (c=0; c<A->nseq; c++)
 			      C->seq_al[c][b]=B->seq_al[c][pos];
 			  }
-			
+
 			if (strstr (out_format, "fasta"))output_mfasta_aln ( out_file,C);
 			else if (strstr (out_format, "rphylip"))output_rphylip_aln ( out_file, C);
 			else output_phylip_aln ( out_file,C);
@@ -2949,14 +2949,14 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 	      }
 	    else
 	      {
-		    
+
 		for (c=0; c<A->len_aln; c++)
 		  for (s=0;s<A->nseq; s++)
 		    {
 		      int vr=EA->seq_al[s][c];
 		      int vc=EA->seq_al[A->nseq][c];
 		      int res=A->seq_al[s][c];
-		      
+
 		      if (is_gap(res))continue;
 		      else if (target==0)
 			{
@@ -2981,7 +2981,7 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 		else if (strstr (out_format, "rphylip"))output_rphylip_aln ( out_file, D1->A);
 		else output_phylip_aln ( out_file, D1->A);
 	      }
-	    
+
 	  }
 	else if ( strm4 ( out_format, "filter0", "filter1", "filter2", "filter3"))
 	  {
@@ -2991,9 +2991,9 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 		fprintf ( stderr,"\n[You Need an evaluation File: Change the output format][FATAL:%s]\n", PROGRAM);
 		myexit(EXIT_FAILURE);
 	      }
-	    
+
 	    (DST->A)=aln2number (DST->A);
-	    
+
 	    D1->A=filter_aln (D1->A, DST->A, atoi(out_format+6));
 	    output_clustal_aln ( out_file, D1->A);
 	  }
@@ -3159,7 +3159,7 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 	    if (!D1)return 1;
 	    output_fasta_tree (out_file,D1->A);
 	  }
-	
+
 	else if ( strm ( out_format, "gotoh_seq"))
 	  {
 	    if (!D1)return 1;
@@ -3218,7 +3218,7 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 	else if ( strm  (out_format, "vienna2template"))
 	  {
 	    vienna2template_file (out_file, D1->S,D2->S);
-	    
+
 	  }
 	else if ( strm2 (out_format, "contact_lib","c_lib"))
 	  {
@@ -3226,7 +3226,7 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 	  }
 	else if ( strm2 (out_format, "constraint_list","tc_lib"))
 	  {
-	    
+
 	    if (!D1)return 1;
 	    else if (!D1->CL)output_constraints (out_file,"sim", D1->A);
 	    else if (D1->CL) vfclose ( save_constraint_list ( D1->CL, 0, (D1->CL)->ne, out_file, NULL, "ascii",(D1->CL)->S));
@@ -3253,7 +3253,7 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 	    compress_aln (D1->A);
 	    output_saga_aln (out_file, D1->A);
 	  }
-	
+
 	else if (strm (out_format, "n_seq") ||strm (out_format, "nseq") )
 		{
 		  if (!D1)return 1;
@@ -3262,7 +3262,7 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
                 vfclose (fp);
 		}
 
-	
+
 	else if ( strm ( out_format, "tdna_fasta_seq1"))
 	        {if (!D1)return 1;
 		D1->A=translate_dna_aln (D1->A,0);
@@ -3426,7 +3426,7 @@ int main_output  (Sequence_data_struc *D1, Sequence_data_struc *D2, Sequence_dat
 
 	else if ( strm4 (out_format, "newick_tree","newick","binary","nh"))
 	        {
-		 
+
 		  if (!D1)return 1;
 		  if (!D1->T && (D1->A))
 		    {
@@ -4855,7 +4855,7 @@ Sequence* get_fasta_sequence (char *fname, char *comment_out)
 		char allowed[100] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-.#*~()[]<>{},_";
 		int *al_test =(int*)calloc(256, sizeof(int));
 		int i;
-		
+
 		lal=strlen (allowed);
 		for (i = 0; i <lal; ++i)
 			al_test[allowed[i]] = 1;
@@ -4912,9 +4912,9 @@ Sequence* get_fasta_sequence (char *fname, char *comment_out)
 		free(al_test);
 		max_len_seq=(clen> max_len_seq)?clen: max_len_seq;
 		min_len_seq=(clen< min_len_seq)?clen: min_len_seq;
-		
+
 		vfclose (fp);
-		
+
 		if ( nseq==0)
 		{
 			return NULL;
@@ -4932,7 +4932,7 @@ Sequence* get_fasta_sequence (char *fname, char *comment_out)
 		fp=vfopen (fname,"r");
 		current=0;
 		c=fgetc(fp);coor++;
-	
+
 
 		while (c!=EOF)
 		{
@@ -4997,7 +4997,7 @@ Sequence* get_fasta_sequence (char *fname, char *comment_out)
 		}
 
 		vfclose (fp);
-	
+
 		//LS=clean_sequence (LS);
 
 		return LS;
@@ -6604,7 +6604,7 @@ void output_fasta_seq2 (char *fname, Alignment*A )
 		  fp=vfopen (seq_name, "w");
 		  fprintf (fp, ">%s\n%s\n>%s\n%s\n", A->name[a], A->seq_al[a], A->name[b],A->seq_al[b]);
 		  vfclose (fp);
-		  fprintf (stdout,">%s\n",seq_name); 
+		  fprintf (stdout,">%s\n",seq_name);
 		}
 	exit (0);
 	}
@@ -6972,59 +6972,59 @@ FILE * output_Alignment_with_res_number ( Alignment *B, FILE *fp)
     }
 
 void output_constraints ( char *fname, char *mode,Alignment *A)
-	{
-	FILE *fp;
-	Constraint_list *CL;
-	char *buf;
-	char **name_list;
+{
+  FILE *fp;
+  Constraint_list *CL;
+  char *buf;
+  char **name_list;
 
-	if ( !A->CL || strm ( mode, "pdb"))
-	   {
-	       if (!A->S)
-	          {
-		      A->S=aln2seq(A);
-		  }
+  if ( !A->CL || strm ( mode, "pdb"))
+  {
+    if (!A->S)
+    {
+      A->S=aln2seq(A);
+    }
 
-	       CL=declare_constraint_list ( A->S, NULL, NULL, 0, NULL, NULL);
-	       CL=aln2constraint_list (A,CL, mode);
-	       fp=save_constraint_list ( CL, 0, CL->ne,fname, NULL, "lib",A->S);
-	       vfclose (fp);
-	       free_constraint_list (CL);
-	       return;
-	   }
-	else if ( strncmp ( mode, "extended_pair", 13)==0)
-	  {
-	    buf=duplicate_string (mode+14);
+    CL=declare_constraint_list ( A->S, NULL, NULL, 0, NULL, NULL);
+    CL=aln2constraint_list (A,CL, mode);
+    fp=save_constraint_list ( CL, 0, CL->ne,fname, NULL, "lib",A->S);
+    vfclose (fp);
+    free_constraint_list (CL);
+    return;
+  }
+  else if ( strncmp ( mode, "extended_pair", 13)==0)
+  {
+    buf=duplicate_string (mode+14);
+    char *saveptr;
+    name_list=(char**)vcalloc(2, sizeof(char*));
+    name_list[0]=strtok_r (buf,"_",&saveptr);
+    name_list[1]=strtok_r (NULL,"_",&saveptr);
+    mode[13]='\0';
 
-	    name_list=(char**)vcalloc(2, sizeof(char*));
-	    name_list[0]=strtok (buf,"_");
-	    name_list[1]=strtok (NULL,"_");
-	    mode[13]='\0';
 
+    CL=A->CL;
+    fp=save_sub_list_header (vfopen(fname, "w"),2, name_list,CL);
+    fp=save_extended_constraint_list_pair (CL, "pair",name_list[0],name_list[1],fp);
+    fp=save_list_footer (fp, CL);
+    vfree (buf);
+  }
+  else if ( strm2 (mode, "extended_lib","extended_cosmetic"))
+  {
+    CL=A->CL;
+    fp=save_extended_constraint_list ( CL,mode+9, vfopen(fname, "w"));
+  }
+  else
+  {
+    CL=(Constraint_list *)A->CL;
+    fp=save_constraint_list ( CL, 0, CL->ne,fname, NULL, "lib",A->S);
+  }
+  vfclose ( fp);
 
-	    CL=A->CL;
-	    fp=save_sub_list_header (vfopen(fname, "w"),2, name_list,CL);
-	    fp=save_extended_constraint_list_pair (CL, "pair",name_list[0],name_list[1],fp);
-	    fp=save_list_footer (fp, CL);
-	    vfree (buf);
-	  }
-	else if ( strm2 (mode, "extended_lib","extended_cosmetic"))
-	  {
-	    CL=A->CL;
-	    fp=save_extended_constraint_list ( CL,mode+9, vfopen(fname, "w"));
-	  }
-	else
-	   {
-	       CL=(Constraint_list *)A->CL;
-	       fp=save_constraint_list ( CL, 0, CL->ne,fname, NULL, "lib",A->S);
-	   }
-	vfclose ( fp);
+  if ( (Constraint_list *)A->CL !=CL)free_constraint_list (CL);
 
-	if ( (Constraint_list *)A->CL !=CL)free_constraint_list (CL);
+  return;
 
-	return;
-
-	}
+}
 void output_model_aln (char *fname, Alignment*A )
         {
 	  FILE *fp;
@@ -7131,9 +7131,9 @@ void output_mfasta_aln (char *fname, Alignment *A )
 	int a,b,c,l;
 	int line=0;
 	static int rep;
-	
+
 	line=get_msa_line_length (line, A->len_aln+1);
-	if (check_file_exists(fname)) 
+	if (check_file_exists(fname))
 	  {
 	    fp= vfopen ( fname, "a");//make it possible to output replicates
 	    fprintf (fp, "#Replicate %d\n", rep);
@@ -7688,23 +7688,23 @@ void output_rphylip_aln ( char *name, Alignment *B)
 {
   mnl=-1;
   output_phylip_aln (name, B);
-  
+
 }
 
 void output_phylip_aln ( char *name, Alignment *B)
     {
       int a, b, c, d;
       FILE *fp;
-      
+
       int *print_name;
       static int line=0;
-      
+
       if (!line)
 	{
 	  if (!getenv("ALN_LINE_LENGTH"))cputenv ("ALN_LINE_LENGTH=60");
 	  line=get_msa_line_length(0, 0);
 	}
-      
+
       if (mnl==-1)
 	{
 	  for (a=0; a<B->nseq; a++)
@@ -7713,14 +7713,14 @@ void output_phylip_aln ( char *name, Alignment *B)
 	      if (nl>mnl)mnl=nl;
 	    }
 	}
-      
-      
+
+
 
 
       print_name=(int*)vcalloc ( B->nseq, sizeof (int));
       if (check_file_exists(name)) fp= vfopen ( name, "a");//make it possible to output replicates
       else fp= vfopen ( name, "w");
-      
+
       fprintf (fp, "%5d  %d\n", B->nseq, B->len_aln);
       for (a=0; a<B->len_aln; a+=line)
 	{for (b=0; b<B->nseq; b++)
@@ -7729,7 +7729,7 @@ void output_phylip_aln ( char *name, Alignment *B)
 		{
 		  if ( print_name[b]==0)
 		    {
-		      
+
 		      fprintf (fp,"%-10.10s ",B->name[b]);
 		      print_name[b]=1;
 		    }
@@ -7742,7 +7742,7 @@ void output_phylip_aln ( char *name, Alignment *B)
 		{
 		   if ( print_name[b]==0)
 		    {
-		      
+
 		      fprintf (fp,"%-*.*s ",mnl,mnl,B->name[b]);
 		      print_name[b]=1;
 		    }
@@ -7751,7 +7751,7 @@ void output_phylip_aln ( char *name, Alignment *B)
 		      fprintf (fp, "%*.*s ", mnl, mnl," ");
 		    }
 		}
-	      
+
 	      for (d=0,c=a;c<a+line && c<B->len_aln;c++, d++)
 		{
 		  if ( d==10)
@@ -7767,7 +7767,7 @@ void output_phylip_aln ( char *name, Alignment *B)
 	  fprintf (fp,"\n");
 	}
       fprintf (fp,"\n\n");
-      
+
       vfclose ( fp);
       mnl=0;
     }
@@ -7951,45 +7951,45 @@ Alignment *input_conc_aln ( char *name, Alignment *pIN)
   FILE *fp;
   char *string, *p, *file;
   Alignment *F=NULL,*A=NULL, *B=NULL;
-
+  char *saveptr;
   file=vtmpnam (NULL);
 
   string=file2string(name);
   string=substitute ( string, "@", "!Protected!");
   string=substitute ( string, TC_REC_SEPARATOR, "@");
-  strtok (string,"@");
+  strtok_r (string,"@",&saveptr);
 
 
-  while ( (p=strtok (NULL,"@"))!=NULL)
+  while ( (p=strtok_r (NULL,"@",&saveptr))!=NULL)
+  {
+    char *buf;
+    HERE ("--- %s", p);
+    if ( p[0]=='#')continue;
+    buf=(char*)vcalloc ( strlen (p)+1, sizeof (char));
+    sprintf (buf,"%s", p);
+    buf=substitute (buf,"!protected!", "@");
+
+    fp=vfopen (file, "w");
+    fprintf ( fp, "%s",buf);
+    vfclose (fp);
+    vfree (buf);
+
+    if ( is_aln (file))
     {
-      char *buf;
-      HERE ("--- %s", p);
-      if ( p[0]=='#')continue;
-      buf=(char*)vcalloc ( strlen (p)+1, sizeof (char));
-      sprintf (buf,"%s", p);
-      buf=substitute (buf,"!protected!", "@");
+      B=main_read_aln (file,NULL);
 
-      fp=vfopen (file, "w");
-      fprintf ( fp, "%s",buf);
-      vfclose (fp);
-      vfree (buf);
-
-      if ( is_aln (file))
-	{
-	  B=main_read_aln (file,NULL);
-
-	  if ( !A)
-	    {
-	      if (pIN){copy_aln (B, pIN);F=A=pIN;}
-	      else F=A=B;
-	    }
-	  else
-	    {
-	      A->A=B;
-	      A=A->A;
-	    }
-	}
+      if ( !A)
+      {
+        if (pIN){copy_aln (B, pIN);F=A=pIN;}
+        else F=A=B;
+      }
+      else
+      {
+        A->A=B;
+        A=A->A;
+      }
     }
+  }
 
   vfree (string);
   return F;
@@ -8189,7 +8189,7 @@ Alignment *thread_dnaseq_on_prot_aln (Sequence *S, Alignment *A)
 				   for (c=0; c< 3; c++)B->seq_al[a][ls++]='-';
 				 else if (isupper(A->seq_al[a][la]))
 				   for (c=0; c< 3; c++)B->seq_al[a][ls++]=toupper((S->seq[b][ln++]));
-				 else 
+				 else
 				   for (c=0; c< 3; c++)B->seq_al[a][ls++]=tolower((S->seq[b][ln++]));
 			       }
 			   if (ln!=S->len[b])
@@ -8232,7 +8232,7 @@ void thread_seq_struc2aln ( Alignment *A, Sequence *ST)
 					}
 				}
 			}
-	
+
 	cons=name_is_in_list ("Cons", ST->name, ST->nseq, 100);
 	if ( cons!=-1 && A->len_aln==strlen ( ST->seq[cons]))
 	  {
@@ -10600,7 +10600,7 @@ int translate_dna_codon ( char *sequence, char stop)
 	    else if ( strm (seq, "tgg"))ret='w';
 	    else if ( strm2(seq, "tac","tat"))ret='y';
 	    else if ( strm3(seq, "tag","taa","tga"))ret=stop;
-	    else 
+	    else
 	      {
 		ret='x';
 	      }
@@ -12753,8 +12753,9 @@ void modify_data  (Sequence_data_struc *D1in, Sequence_data_struc *D2in, Sequenc
     else if (n_actions>1 && action_list[b] && action_list[b][0]=='[')
 
     {
-      lower_value=atoi(strtok (action_list[b]+1, "-[]"));
-      upper_value=atoi(strtok (NULL, "-[]"));
+      char *saveptr;
+      lower_value=atoi(strtok_r (action_list[b]+1, "-[]",&saveptr));
+      upper_value=atoi(strtok_r (NULL, "-[]",&saveptr));
 
       b++;
     }
@@ -12832,8 +12833,9 @@ void modify_data  (Sequence_data_struc *D1in, Sequence_data_struc *D2in, Sequenc
     else if (n_actions>1 && action_list[b] && action_list[b] && action_list[b][0]=='[')
 
     {
-      lower_value=atoi(strtok (action_list[b]+1, "-[]"));
-      upper_value=atoi(strtok (NULL, "-[]"));
+      char *saveptr;
+      lower_value=atoi(strtok_r (action_list[b]+1, "-[]",&saveptr));
+      upper_value=atoi(strtok_r (NULL, "-[]",&saveptr));
 
       b++;
     }
@@ -13287,7 +13289,7 @@ void aln2proba_mat (Sequence *S)
 
   m=(int**)declare_arrayN (2,sizeof (int),26,26);
   c=(int*)declare_arrayN  (1,sizeof (int),26);
-  
+
   for ( a=0; a< S->nseq; a++)
     {
       fprintf ( stderr, "%s\n", S->name[a]);
@@ -13318,15 +13320,15 @@ void aln2proba_mat (Sequence *S)
     }
   fprintf ( stdout, "# PROBABILITY_MATRIX_01\n");
   naa=26;
-  
+
   for (aa1=0; aa1<naa; aa1++)
       for (aa3=0; aa3<naa; aa3++)
 	  {
 	    u =alp[aa1+'a'];
 	    u+=alp[aa3+'a'];
-	    fprintf (stdout,"%c %c %.5f\n",aa1+'a', aa3+'a', (float)(m[aa1][aa3]+m[aa3][aa1])/(float)count); 
+	    fprintf (stdout,"%c %c %.5f\n",aa1+'a', aa3+'a', (float)(m[aa1][aa3]+m[aa3][aa1])/(float)count);
 	  }
- 
+
   myexit (EXIT_SUCCESS);
 }
 
@@ -13550,15 +13552,15 @@ int ** read_blast_matrix ( char *mat_name)
 	fp=vfopen (mat_name, "r");
 	while ((c=fgetc(fp))=='#')buf=vfgets(buf, fp);
 	buf=vfgets(buf,fp);
-	
+
 	a=n_aa=0;
 	while ((c=buf[a++])!='\0')if (!isspace(c))alp[n_aa++]=c;
 	alp[n_aa]='\0';
-	
+
 	matrix=declare_int (256,256);
 	vfree ( matrix[30]);
 	matrix[30]=(int*)vcalloc(10000, sizeof (int));
-	
+
 	for ( a=0; a< n_aa; a++)
 	    {
 	    fscanf ( fp, "%s ", buf);
@@ -13628,12 +13630,12 @@ int ** read_blast_matrix_old ( char *mat_name)
 	    if ( (p=strstr (sbuf, "ALPHABET")))
 	      sscanf (p, "ALPHABET=%s", alp);
 	  }
-	
+
 	ungetc(c, fp);
 	lower_string (alp);
 	n_aa=strlen (alp);
 
-	
+
 
 
 

@@ -307,15 +307,15 @@ Job_TC* submit_job ( Job_TC *job)
 {
 
   if (!(job->control)->mode ||!(job->control)->mode[0] || 1==1)
-    {
-      return (job->control)->submitF (job);
-    }
+  {
+    return (job->control)->submitF (job);
+  }
   else
-    {
-      fprintf ( stderr, "\n%s is an unkown mode for posting jobs [FATAL:%s]",(job->control)->mode, PROGRAM);
-      myexit (EXIT_FAILURE);
-      return NULL;
-    }
+  {
+    fprintf ( stderr, "\n%s is an unkown mode for posting jobs [FATAL:%s]",(job->control)->mode, PROGRAM);
+    myexit (EXIT_FAILURE);
+    return NULL;
+  }
 
 }
 

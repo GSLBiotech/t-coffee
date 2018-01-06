@@ -64,7 +64,7 @@ Constraint_list *profile2list     (Job_TC *job, int nprf)
 
   int *seqlist;
   int **cache;
-  static int *entry;
+  static thread_local int *entry=NULL;
 
 
   if (!entry)entry=(int*)vcalloc ( ICHUNK+3, sizeof (int));
@@ -151,636 +151,636 @@ Constraint_list *profile2list     (Job_TC *job, int nprf)
 }
 
 Constraint_list *seq2list     ( Job_TC *job)
-    {
-      char *mode;
-      Alignment *A=NULL;
-      Constraint_list *PW_CL;
-      Constraint_list *RCL=NULL;
+{
+  char *mode;
+  Alignment *A=NULL;
+  Constraint_list *PW_CL;
+  Constraint_list *RCL=NULL;
 
-      int full_prf, nprf;
-      int *seqlist;
-
-
-      Sequence *S, *STL;
-      Constraint_list *CL;
+  int full_prf, nprf;
+  int *seqlist;
 
 
-      char *seq;
-      char *weight;
-      TC_method *M;
+  Sequence *S, *STL;
+  Constraint_list *CL;
 
 
-      M=(job->param)->TCM;
-      mode=M->executable;
-      weight=M->weight;
-
-      PW_CL=M->PW_CL;
-
-      CL=(job->io)->CL;
-      seq=(job->param)->seq_c;
+  char *seq;
+  char *weight;
+  TC_method *M;
 
 
+  M=(job->param)->TCM;
+  mode=M->executable;
+  weight=M->weight;
 
-      S=(CL)?CL->S:NULL;
-      STL=(CL)?CL->STRUC_LIST:NULL;
+  PW_CL=M->PW_CL;
 
-      seqlist=string2num_list (seq)+1;
+  CL=(job->io)->CL;
+  seq=(job->param)->seq_c;
 
 
 
-/*Proteins*/
+  S=(CL)?CL->S:NULL;
+  STL=(CL)?CL->STRUC_LIST:NULL;
+
+  seqlist=string2num_list (seq)+1;
 
 
-      if ( strncmp (CL->profile_comparison, "full", 4)==0)
-	     {
-	       full_prf=1;
-	       if ( CL->profile_comparison[4])nprf=atoi ( CL->profile_comparison+4);
-	       else
-		 nprf=0;
-	     }
-      else
-	     {
-	       full_prf=0;
-	     }
 
-      if ((method_uses_structure (M)) && profile2P_template_file (CL->S, seqlist[1]) && profile2P_template_file (CL->S, seqlist[2]))
-	{
-	  RCL=profile2list     (job, nprf);
-	}
-      else if ( strm (mode, "ktup_msa"))
-	{
-	  RCL=hasch2constraint_list (CL->S, CL);
-	}
-      else if (     strm (mode, "test_pair") || strm ( mode,"fast_pair")         || strm (mode, "ifast_pair") \
-		   || strm ( mode, "diag_fast_pair")|| strm (mode, "idiag_fast_pair")\
-		   || strm ( mode, "blast_pair")    || strm (mode, "lalign_blast_pair") \
-		   || strm ( mode, "viterbi_pair")  || strm (mode, "slow_pair")      || strm(mode, "glocal_pair") || strm (mode, "biphasic_pair") \
-		   || strm ( mode, "islow_pair")    || strm (mode, "tm_slow_pair") || strm (mode, "r_slow_pair") \
-		   || strm ( mode, "lalign_id_pair")|| strm (mode, "tm_lalign_id_pair") || strm (mode , "lalign_len_pair") \
-		   || strm (mode, "prrp_aln")       || strm ( mode, "test_pair") \
-		   || strm (mode, "cdna_fast_pair") || strm (mode, "diaa_slow_pair") || strm (mode, "monoaa_slow_pair")\
-		   || strncmp (mode,"cdna_fast_pair",14)==0	\
-		   )
-	{
-
-	  A=fast_pair (job);
-	  RCL=aln2constraint_list ((A->A)?A->A:A, CL,weight);
-	}
-
-      else if ( strm ( mode, "subop1_pair") || strm ( mode, "subop2_pair") )
-	{
-	  A=fast_pair (job);
-	  RCL=A->CL;
-	}
-      else if ( strm ( mode, "proba_pair") )
-	{
-	  A=fast_pair (job);
-	  RCL=A->CL;
-	}
-      else if ( strm ( mode, "best_pair4prot"))
-	{
-	  RCL=best_pair4prot (job);
-	}
-      else if ( strm ( mode, "best_pair4rna"))
-	{
-	  RCL=best_pair4rna (job);
-	}
-      else if ( strm ( mode, "exon2_pair"))
-	{
-	  char weight2[1000];
-
-	  A=fast_pair (job);
-	  sprintf ( weight2, "%s_subset_objOBJ-",weight);
-	  RCL=aln2constraint_list (A, CL,weight2);
-	}
-      else if ( strm ( mode, "exon_pair"))
-	{
-	  A=fast_pair (job);
-	  RCL=aln2constraint_list (A, CL,weight);
-
-	}
-      else if ( strm ( mode, "exon3_pair"))
-	{
-	  char weight2[1000];
-
-	  A=fast_pair (job);
-	  sprintf ( weight2, "%s_subset_objOBJ-",weight);
-	  RCL=aln2constraint_list (A, CL,weight2);
-	}
-
-/*STRUCTURAL METHODS*/
-
-       else if ( strm (mode, "seq_msa"))
-	{
-	  RCL=seq_msa(M, seq, CL);
-	}
-       else if (strm (mode, "plib_msa"))
-	{
-	  RCL=plib_msa (CL);
-	}
-/*STRUCTURAL METHODS*/
-      else if (strm (mode, "profile_pair") || strm (mode, "hh_pair"))
-	{
-	  RCL=profile_pair (M, seq, CL);
-	}
-
-      else if ( strm (mode, "sap_pair"))
-	{
-	  RCL=sap_pair (seq, weight, CL);
-	}
-      else if ( strm (mode, "thread_pair"))
-	{
-	  RCL=thread_pair (M,seq, CL);
-	}
-      else if ( strm (mode, "pdb_pair"))
-	{
-	  RCL=pdb_pair (M,seq, CL);
-	}
-	else if (strm (mode, "rnapdb_pair"))
-	{
-	  RCL=rnapdb_pair(M, seq, CL);
-	}
-      else if ( strm (mode, "pdbid_pair"))
-	{
-	  RCL=pdbid_pair (M,seq, CL);
-	}
-      else if ( strm (mode, "fugue_pair"))
-	{
-	  RCL=thread_pair (M,seq, CL);
-	}
-      else if ( strm (mode, "lsqman_pair"))
-	{
-	  RCL=lsqman_pair(seq, CL);
-	}
-      else if ( strm ( mode, "align_pdb_pair"))
-	{
-	  RCL=align_pdb_pair ( seq,"gotoh_pair_wise", CL->align_pdb_hasch_mode,CL->align_pdb_param_file,CL, job);
-	}
-      else if ( strm ( mode, "lalign_pdb_pair"))
-	{
-	  RCL=align_pdb_pair ( seq,"sim_pair_wise_lalign", CL->align_pdb_hasch_mode,CL->align_pdb_param_file,CL, job);
-	}
-      else if ( strm ( mode, "align_pdb_pair_2"))
-	{
-	  RCL=align_pdb_pair_2 ( seq, CL);
-	}
-      else
-	{
-	  fprintf ( CL->local_stderr, "\nERROR: THE FUNCTION %s DOES NOT EXIST [FATAL:%s]\n", mode, PROGRAM);crash("");
-	}
-      add_method_output2method_log (NULL,NULL, (A&&A->len_aln)?A:NULL,RCL, NULL);
-      RCL=(RCL==NULL)?CL:RCL;
+  /*Proteins*/
 
 
-      vfree ( seqlist-1);
-      free_aln (A);
-      return RCL;
-    }
+  if ( strncmp (CL->profile_comparison, "full", 4)==0)
+  {
+    full_prf=1;
+    if ( CL->profile_comparison[4])nprf=atoi ( CL->profile_comparison+4);
+    else
+      nprf=0;
+  }
+  else
+  {
+    full_prf=0;
+  }
+
+  if ((method_uses_structure (M)) && profile2P_template_file (CL->S, seqlist[1]) && profile2P_template_file (CL->S, seqlist[2]))
+  {
+    RCL=profile2list     (job, nprf);
+  }
+  else if ( strm (mode, "ktup_msa"))
+  {
+    RCL=hasch2constraint_list (CL->S, CL);
+  }
+  else if (     strm (mode, "test_pair") || strm ( mode,"fast_pair")         || strm (mode, "ifast_pair") \
+                || strm ( mode, "diag_fast_pair")|| strm (mode, "idiag_fast_pair")\
+                || strm ( mode, "blast_pair")    || strm (mode, "lalign_blast_pair") \
+                || strm ( mode, "viterbi_pair")  || strm (mode, "slow_pair")      || strm(mode, "glocal_pair") || strm (mode, "biphasic_pair") \
+                || strm ( mode, "islow_pair")    || strm (mode, "tm_slow_pair") || strm (mode, "r_slow_pair") \
+                || strm ( mode, "lalign_id_pair")|| strm (mode, "tm_lalign_id_pair") || strm (mode , "lalign_len_pair") \
+                || strm (mode, "prrp_aln")       || strm ( mode, "test_pair") \
+                || strm (mode, "cdna_fast_pair") || strm (mode, "diaa_slow_pair") || strm (mode, "monoaa_slow_pair")\
+                || strncmp (mode,"cdna_fast_pair",14)==0	\
+                )
+  {
+
+    A=fast_pair (job);
+    RCL=aln2constraint_list ((A->A)?A->A:A, CL,weight);
+  }
+
+  else if ( strm ( mode, "subop1_pair") || strm ( mode, "subop2_pair") )
+  {
+    A=fast_pair (job);
+    RCL=A->CL;
+  }
+  else if ( strm ( mode, "proba_pair") )
+  {
+    A=fast_pair (job);
+    RCL=A->CL;
+  }
+  else if ( strm ( mode, "best_pair4prot"))
+  {
+    RCL=best_pair4prot (job);
+  }
+  else if ( strm ( mode, "best_pair4rna"))
+  {
+    RCL=best_pair4rna (job);
+  }
+  else if ( strm ( mode, "exon2_pair"))
+  {
+    char weight2[1000];
+
+    A=fast_pair (job);
+    sprintf ( weight2, "%s_subset_objOBJ-",weight);
+    RCL=aln2constraint_list (A, CL,weight2);
+  }
+  else if ( strm ( mode, "exon_pair"))
+  {
+    A=fast_pair (job);
+    RCL=aln2constraint_list (A, CL,weight);
+
+  }
+  else if ( strm ( mode, "exon3_pair"))
+  {
+    char weight2[1000];
+
+    A=fast_pair (job);
+    sprintf ( weight2, "%s_subset_objOBJ-",weight);
+    RCL=aln2constraint_list (A, CL,weight2);
+  }
+
+  /*STRUCTURAL METHODS*/
+
+  else if ( strm (mode, "seq_msa"))
+  {
+    RCL=seq_msa(M, seq, CL);
+  }
+  else if (strm (mode, "plib_msa"))
+  {
+    RCL=plib_msa (CL);
+  }
+  /*STRUCTURAL METHODS*/
+  else if (strm (mode, "profile_pair") || strm (mode, "hh_pair"))
+  {
+    RCL=profile_pair (M, seq, CL);
+  }
+
+  else if ( strm (mode, "sap_pair"))
+  {
+    RCL=sap_pair (seq, weight, CL);
+  }
+  else if ( strm (mode, "thread_pair"))
+  {
+    RCL=thread_pair (M,seq, CL);
+  }
+  else if ( strm (mode, "pdb_pair"))
+  {
+    RCL=pdb_pair (M,seq, CL);
+  }
+  else if (strm (mode, "rnapdb_pair"))
+  {
+    RCL=rnapdb_pair(M, seq, CL);
+  }
+  else if ( strm (mode, "pdbid_pair"))
+  {
+    RCL=pdbid_pair (M,seq, CL);
+  }
+  else if ( strm (mode, "fugue_pair"))
+  {
+    RCL=thread_pair (M,seq, CL);
+  }
+  else if ( strm (mode, "lsqman_pair"))
+  {
+    RCL=lsqman_pair(seq, CL);
+  }
+  else if ( strm ( mode, "align_pdb_pair"))
+  {
+    RCL=align_pdb_pair ( seq,"gotoh_pair_wise", CL->align_pdb_hasch_mode,CL->align_pdb_param_file,CL, job);
+  }
+  else if ( strm ( mode, "lalign_pdb_pair"))
+  {
+    RCL=align_pdb_pair ( seq,"sim_pair_wise_lalign", CL->align_pdb_hasch_mode,CL->align_pdb_param_file,CL, job);
+  }
+  else if ( strm ( mode, "align_pdb_pair_2"))
+  {
+    RCL=align_pdb_pair_2 ( seq, CL);
+  }
+  else
+  {
+    fprintf ( CL->local_stderr, "\nERROR: THE FUNCTION %s DOES NOT EXIST [FATAL:%s]\n", mode, PROGRAM);crash("");
+  }
+  add_method_output2method_log (NULL,NULL, (A&&A->len_aln)?A:NULL,RCL, NULL);
+  RCL=(RCL==NULL)?CL:RCL;
+
+
+  vfree ( seqlist-1);
+  free_aln (A);
+  return RCL;
+}
 
 Constraint_list *method2pw_cl (TC_method *M, Constraint_list *CL)
+{
+  char *mode;
+  Constraint_list *PW_CL=NULL;
+  Sequence *S;
+  char mat[100], *m;
+  char group_mat[100];
+
+
+
+  mode=M->executable;
+  PW_CL=copy_constraint_list ( CL, SOFT_COPY);
+  PW_CL->pw_parameters_set=1;
+
+
+
+  S=(PW_CL)?PW_CL->S:NULL;
+
+  /*DNA or Protein*/
+  m=PW_CL->method_matrix;
+  if (  strm ((PW_CL->S)->type, "PROTEIN"))
+  {
+
+    sprintf ( mat, "%s", (strm(m, "default"))?"blosum62mt":m);
+    sprintf (group_mat, "vasiliky");
+    PW_CL->ktup=2;
+
+  }
+  else if (  strm ((PW_CL->S)->type, "DNA") || strm ((PW_CL->S)->type, "RNA") )
+  {
+
+    sprintf(group_mat, "idmat");
+    sprintf ( mat, "%s", (strm(m, "default"))?"dna_idmat":m);
+    PW_CL->ktup=5;
+
+  }
+  if ( M->matrix[0])sprintf ( mat, "%s", M->matrix);
+
+  PW_CL->M=read_matrice (mat);
+
+
+  if ( M->gop!=UNDEFINED) {PW_CL->gop=M->gop;}
+  else
+  {
+    PW_CL->gop= get_avg_matrix_mm (PW_CL->M, AA_ALPHABET)*10;
+  }
+
+  if ( M->gep!=UNDEFINED)PW_CL->gep=M->gep;
+  else PW_CL->gep=-1;
+
+  if (M->extend_seq ==1) PW_CL->extend_seq=1;
+  if (M->reverse_seq==1)PW_CL->reverse_seq=1;
+
+
+  if ( strm2 ( mode,"fast_pair", "ifast_pair"))
+  {
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    if ( !PW_CL->use_fragments)PW_CL->diagonal_threshold=0;
+    else PW_CL->diagonal_threshold=6;
+
+    sprintf (PW_CL->dp_mode, "fasta_pair_wise");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+
+    if ( strm ( mode, "fast_pair"))
     {
-      char *mode;
-      Constraint_list *PW_CL=NULL;
-      Sequence *S;
-      char mat[100], *m;
-      char group_mat[100];
+      PW_CL->residue_index=NULL;
 
-
-
-      mode=M->executable;
-      PW_CL=copy_constraint_list ( CL, SOFT_COPY);
-      PW_CL->pw_parameters_set=1;
-
-
-
-      S=(PW_CL)?PW_CL->S:NULL;
-
-      /*DNA or Protein*/
-      m=PW_CL->method_matrix;
-      if (  strm ((PW_CL->S)->type, "PROTEIN"))
-	   {
-
-	     sprintf ( mat, "%s", (strm(m, "default"))?"blosum62mt":m);
-	     sprintf (group_mat, "vasiliky");
-	     PW_CL->ktup=2;
-
-	   }
-      else if (  strm ((PW_CL->S)->type, "DNA") || strm ((PW_CL->S)->type, "RNA") )
-	   {
-
-	      sprintf(group_mat, "idmat");
-	      sprintf ( mat, "%s", (strm(m, "default"))?"dna_idmat":m);
-	      PW_CL->ktup=5;
-
-	   }
-      if ( M->matrix[0])sprintf ( mat, "%s", M->matrix);
-
-      PW_CL->M=read_matrice (mat);
-
-
-      if ( M->gop!=UNDEFINED) {PW_CL->gop=M->gop;}
-      else
-	{
-	  PW_CL->gop= get_avg_matrix_mm (PW_CL->M, AA_ALPHABET)*10;
-	}
-
-      if ( M->gep!=UNDEFINED)PW_CL->gep=M->gep;
-      else PW_CL->gep=-1;
-
-      if (M->extend_seq ==1) PW_CL->extend_seq=1;
-      if (M->reverse_seq==1)PW_CL->reverse_seq=1;
-
-
-      if ( strm2 ( mode,"fast_pair", "ifast_pair"))
-	    {
-	      PW_CL->maximise=1;
-              PW_CL->TG_MODE=1;
-              PW_CL->use_fragments=0;
-              if ( !PW_CL->use_fragments)PW_CL->diagonal_threshold=0;
-              else PW_CL->diagonal_threshold=6;
-
-              sprintf (PW_CL->dp_mode, "fasta_pair_wise");
-      	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-
-              if ( strm ( mode, "fast_pair"))
-                {
-		  PW_CL->residue_index=NULL;
-
-                  PW_CL->get_dp_cost=slow_get_dp_cost;
-                  PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-                  PW_CL->extend_jit=0;
-		}
-	    }
-	else if ( strm2 ( mode,"diag_fast_pair","idiag_fast_pair"))
-	    {
-	      PW_CL->residue_index=NULL;
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->S=CL->S;
-
-	      PW_CL->use_fragments=1;
-	      PW_CL->diagonal_threshold=3;
-
-	      sprintf (PW_CL->dp_mode, "fasta_pair_wise");
-	      PW_CL->ktup=1;
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-
-	      PW_CL->get_dp_cost=slow_get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-
-	      PW_CL->extend_jit=0;
-	    }
-	else if ( strm ( mode,"blast_pair"))
-	    {
-	      PW_CL->residue_index=NULL;
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-
-	      PW_CL->use_fragments=0;
-
-	      PW_CL->pair_wise=gotoh_pair_wise;
-	      PW_CL->evaluate_residue_pair=evaluate_blast_profile_score;
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	      PW_CL->extend_jit=0;
-	    }
-	else if ( strm ( mode,"lalign_blast_pair"))
-	    {
-	      PW_CL->residue_index=NULL;
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-
-	      PW_CL->use_fragments=0;
-	      PW_CL->pair_wise=sim_pair_wise_lalign;
-	      PW_CL->evaluate_residue_pair=evaluate_blast_profile_score;
-	      PW_CL->lalign_n_top=10;
-
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	      PW_CL->extend_jit=0;
-	    }
-	else if ( strm ( mode,"viterbi_pair"))
-	    {
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "viterbi_pair_wise");
-	      PW_CL->residue_index=NULL;
-	      PW_CL->get_dp_cost=slow_get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	      PW_CL->extend_jit=0;
-	    }
-	else if ( strm ( mode,"glocal_pair"))
-	    {
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "glocal_pair_wise");
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-
-	      PW_CL->residue_index=NULL;
-	      PW_CL->get_dp_cost=slow_get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	      PW_CL->extend_jit=0;
-	    }
-        else if ( strm ( mode,"test_pair"))
-	    {
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "test_pair_wise");
-	    }
-        else if ( strm ( mode,"sticky_pair"))
-	  {
-	    PW_CL->maximise=1;
-	    PW_CL->TG_MODE=1;
-	    PW_CL->use_fragments=0;
-	    PW_CL->residue_index=NULL;
-	    PW_CL->get_dp_cost=cw_profile_get_dp_cost;
-	    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	    PW_CL->extend_jit=0;
-	    sprintf (PW_CL->dp_mode, "gotoh_pair_wise_lgp_sticky");
-	    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	  }
-
-	else if ( strm ( mode,"slow_pair")|| strm (mode, "islow_pair" ) )
-	    {
-
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "myers_miller_pair_wise");
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-
-	      if ( strm ( "islow_pair", mode))
-		{
-		  PW_CL->get_dp_cost=slow_get_dp_cost;
-		  PW_CL->evaluate_residue_pair=residue_pair_extended_list;
-		  PW_CL->extend_jit=1;
-		}
-	      else if ( strm ("slow_pair", mode) )
-		{
-		  PW_CL->residue_index=NULL;
-		  PW_CL->get_dp_cost=cw_profile_get_dp_cost;
-		  PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-		  PW_CL->extend_jit=0;
-		}
-	    }
-      	else if ( strm (mode, "subop1_pair"))
-	    {
-
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "subop1_pair_wise");
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	      PW_CL->residue_index=NULL;
-	      PW_CL->get_dp_cost=slow_get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	      PW_CL->extend_jit=0;
-	    }
-       else if ( strm (mode, "biphasic_pair"))
-	    {
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "biphasic_pair_wise");
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	      PW_CL->residue_index=NULL;
-	      PW_CL->get_dp_cost=cw_profile_get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	      PW_CL->extend_jit=0;
-	    }
-      else if ( strm (mode, "proba_pair"))
-	    {
-
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "proba_pair_wise");
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	      PW_CL->residue_index=NULL;
-	      PW_CL->get_dp_cost=slow_get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	      PW_CL->extend_jit=0;
-	    }
-
-      	else if ( strm (mode, "diaa_slow_pair"))
-	    {
-
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "gotoh_pair_wise_lgp");
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	      PW_CL->residue_index=NULL;
-	      PW_CL->get_dp_cost=slow_get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_diaa_matrix_score;
-	      PW_CL->extend_jit=0;
-	    }
-      	else if ( strm (mode, "r_slow_pair"))
-	    {
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "gotoh_pair_wise_lgp");
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	      PW_CL->residue_index=NULL;
-	      PW_CL->get_dp_cost=slow_get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	      PW_CL->extend_jit=0;
-	      PW_CL->reverse_seq=1;
-	    }
-	else if ( strm (mode, "tm_slow_pair"))
-	    {
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "myers_miller_pair_wise");
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	      PW_CL->residue_index=NULL;
-	      PW_CL->get_dp_cost=slow_get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_tm_matrix_score;
-	      PW_CL->extend_jit=0;
-	    }
-	else if ( strm (mode, "monoaa_slow_pair"))
-	    {
-
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "gotoh_pair_wise_lgp");
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	      PW_CL->residue_index=NULL;
-	      PW_CL->get_dp_cost=slow_get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_monoaa_matrix_score;
-	      PW_CL->extend_jit=0;
-	    }
-	else if ( strm (mode, "subop2_pair"))
-	  {
-
-	    PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "subop2_pair_wise");
-	      sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	      PW_CL->residue_index=NULL;
-	      PW_CL->get_dp_cost=slow_get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	      PW_CL->extend_jit=0;
-	    }
-
-     	else if (strm ( mode, "exon2_pair"))
-	  {
-	    int a;
-	    PW_CL->maximise=1;
-	    PW_CL->TG_MODE=1;
-
-	    PW_CL->use_fragments=0;
-	    sprintf (PW_CL->dp_mode, "myers_miller_pair_wise");
-	    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	    PW_CL->residue_index=NULL;
-
-	    for ( a=0; a<60; a++)
-	      {
-		PW_CL->M['x'-'A'][a]=0;
-		PW_CL->M[a]['x'-'A']=0;
-		PW_CL->M['X'-'A'][a]=0;
-		PW_CL->M[a]['X'-'A']=0;
-	      }
-	    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	    PW_CL->extend_jit=0;
-	  }
-      	else if (strm ( mode, "exon3_pair"))
-	  {
-	    int a;
-	    PW_CL->maximise=1;
-	    PW_CL->TG_MODE=1;
-
-	    PW_CL->use_fragments=0;
-	    sprintf (PW_CL->dp_mode, "myers_miller_pair_wise");
-	    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	    PW_CL->residue_index=NULL;
-
-	    for ( a=0; a<60; a++)
-	      {
-		PW_CL->M['x'-'A'][a]=0;
-		PW_CL->M[a]['x'-'A']=0;
-		PW_CL->M['X'-'A'][a]=0;
-		PW_CL->M[a]['X'-'A']=0;
-	      }
-	    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	    PW_CL->extend_jit=0;
-	  }
-	else if (strm ( mode, "exon_pair"))
-	  {
-	    int a;
-	    PW_CL->maximise=1;
-	    PW_CL->TG_MODE=1;
-
-	    PW_CL->use_fragments=0;
-	    sprintf (PW_CL->dp_mode, "myers_miller_pair_wise");
-	    sprintf (PW_CL->matrix_for_aa_group, "%s",group_mat);
-	    PW_CL->residue_index=NULL;
-
-	    for ( a=0; a<60; a++)
-	      {
-		PW_CL->M['x'-'A'][a]=0;
-		PW_CL->M[a]['x'-'A']=0;
-		PW_CL->M['X'-'A'][a]=0;
-		PW_CL->M[a]['X'-'A']=0;
-	      }
-	    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	    PW_CL->extend_jit=0;
-	  }
-	else if ( strm ( mode , "lalign_len_pair"))
-	  {
-	    PW_CL->residue_index=NULL;
-	    PW_CL->maximise=1;
-	    PW_CL->TG_MODE=1;
-	    PW_CL->use_fragments=0;
-	    PW_CL->pair_wise=sim_pair_wise_lalign;
-	    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	    PW_CL->get_dp_cost=slow_get_dp_cost;
-	    PW_CL->lalign_n_top=CL->lalign_n_top;
-	    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	    PW_CL->extend_jit=0;
-	  }
-	else if ( strm ( mode , "lalign_id_pair"))
-	  {
-	    PW_CL->residue_index=NULL;
-	    PW_CL->maximise=1;
-	    PW_CL->TG_MODE=1;
-	    PW_CL->use_fragments=0;
-	    PW_CL->pair_wise=sim_pair_wise_lalign;
-	    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
-	    PW_CL->get_dp_cost=slow_get_dp_cost;
-	    PW_CL->lalign_n_top=CL->lalign_n_top;
-	    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	    PW_CL->extend_jit=0;
-	  }
-      	else if ( strm ( mode , "tm_lalign_id_pair"))
-	  {
-	    PW_CL->residue_index=NULL;
-	    PW_CL->maximise=1;
-	    PW_CL->TG_MODE=1;
-	    PW_CL->use_fragments=0;
-	    PW_CL->pair_wise=sim_pair_wise_lalign;
-	    PW_CL->evaluate_residue_pair=evaluate_tm_matrix_score;
-	    PW_CL->get_dp_cost=slow_get_dp_cost;
-	    PW_CL->lalign_n_top=CL->lalign_n_top;
-	    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
-	    PW_CL->extend_jit=0;
-	  }
-/*CDNA*/
-	else if ( strm ( mode, "cdna_cfast_pair"))
-	    {
-	      PW_CL->residue_index=NULL;
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->S=CL->S;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "cfasta_cdna_pair_wise");
-
-	      PW_CL->M=read_matrice (strcpy ( mat, "blosum62mt"));
-	      PW_CL->extend_jit=0;
-
-	      PW_CL->f_gop=CL->f_gop;
-	      PW_CL->f_gep=CL->f_gep;
-	      PW_CL->get_dp_cost=get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_cdna_matrix_score;
-	      PW_CL->ktup=1;
-	    }
-	else if ( strm ( mode, "cdna_fast_pair") ||  strncmp (mode,"cdna_fast_pair",14)==0)
-	    {
-
-	      PW_CL->residue_index=NULL;
-	      PW_CL->maximise=1;
-	      PW_CL->TG_MODE=1;
-	      PW_CL->use_fragments=0;
-	      sprintf (PW_CL->dp_mode, "fasta_cdna_pair_wise");
-
-	      PW_CL->extend_jit=0;
-	      PW_CL->gop=-5;
-	      PW_CL->gep=-1;
-	      PW_CL->f_gop=-15;
-	      PW_CL->f_gep=0;
-
-	      PW_CL->get_dp_cost=get_dp_cost;
-	      PW_CL->evaluate_residue_pair=evaluate_cdna_matrix_score;
-	      PW_CL->ktup=1;
-	    }
-	else
-	  {
-	    free_constraint_list (PW_CL);
-	    PW_CL=NULL;
-	  }
-
-
-      if (!strm (CL->method_evaluate_mode, "default"))
-	{
-	  choose_extension_mode (CL->method_evaluate_mode, PW_CL);
-	}
-      return PW_CL;
+      PW_CL->get_dp_cost=slow_get_dp_cost;
+      PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+      PW_CL->extend_jit=0;
     }
+  }
+  else if ( strm2 ( mode,"diag_fast_pair","idiag_fast_pair"))
+  {
+    PW_CL->residue_index=NULL;
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->S=CL->S;
+
+    PW_CL->use_fragments=1;
+    PW_CL->diagonal_threshold=3;
+
+    sprintf (PW_CL->dp_mode, "fasta_pair_wise");
+    PW_CL->ktup=1;
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm ( mode,"blast_pair"))
+  {
+    PW_CL->residue_index=NULL;
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+
+    PW_CL->use_fragments=0;
+
+    PW_CL->pair_wise=gotoh_pair_wise;
+    PW_CL->evaluate_residue_pair=evaluate_blast_profile_score;
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm ( mode,"lalign_blast_pair"))
+  {
+    PW_CL->residue_index=NULL;
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+
+    PW_CL->use_fragments=0;
+    PW_CL->pair_wise=sim_pair_wise_lalign;
+    PW_CL->evaluate_residue_pair=evaluate_blast_profile_score;
+    PW_CL->lalign_n_top=10;
+
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm ( mode,"viterbi_pair"))
+  {
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "viterbi_pair_wise");
+    PW_CL->residue_index=NULL;
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm ( mode,"glocal_pair"))
+  {
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "glocal_pair_wise");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+
+    PW_CL->residue_index=NULL;
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm ( mode,"test_pair"))
+  {
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "test_pair_wise");
+  }
+  else if ( strm ( mode,"sticky_pair"))
+  {
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    PW_CL->residue_index=NULL;
+    PW_CL->get_dp_cost=cw_profile_get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->extend_jit=0;
+    sprintf (PW_CL->dp_mode, "gotoh_pair_wise_lgp_sticky");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+  }
+
+  else if ( strm ( mode,"slow_pair")|| strm (mode, "islow_pair" ) )
+  {
+
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "myers_miller_pair_wise");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+
+    if ( strm ( "islow_pair", mode))
+    {
+      PW_CL->get_dp_cost=slow_get_dp_cost;
+      PW_CL->evaluate_residue_pair=residue_pair_extended_list;
+      PW_CL->extend_jit=1;
+    }
+    else if ( strm ("slow_pair", mode) )
+    {
+      PW_CL->residue_index=NULL;
+      PW_CL->get_dp_cost=cw_profile_get_dp_cost;
+      PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+      PW_CL->extend_jit=0;
+    }
+  }
+  else if ( strm (mode, "subop1_pair"))
+  {
+
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "subop1_pair_wise");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->residue_index=NULL;
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm (mode, "biphasic_pair"))
+  {
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "biphasic_pair_wise");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->residue_index=NULL;
+    PW_CL->get_dp_cost=cw_profile_get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm (mode, "proba_pair"))
+  {
+
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "proba_pair_wise");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->residue_index=NULL;
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->extend_jit=0;
+  }
+
+  else if ( strm (mode, "diaa_slow_pair"))
+  {
+
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "gotoh_pair_wise_lgp");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->residue_index=NULL;
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_diaa_matrix_score;
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm (mode, "r_slow_pair"))
+  {
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "gotoh_pair_wise_lgp");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->residue_index=NULL;
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->extend_jit=0;
+    PW_CL->reverse_seq=1;
+  }
+  else if ( strm (mode, "tm_slow_pair"))
+  {
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "myers_miller_pair_wise");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->residue_index=NULL;
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_tm_matrix_score;
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm (mode, "monoaa_slow_pair"))
+  {
+
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "gotoh_pair_wise_lgp");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->residue_index=NULL;
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_monoaa_matrix_score;
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm (mode, "subop2_pair"))
+  {
+
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "subop2_pair_wise");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->residue_index=NULL;
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->extend_jit=0;
+  }
+
+  else if (strm ( mode, "exon2_pair"))
+  {
+    int a;
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "myers_miller_pair_wise");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->residue_index=NULL;
+
+    for ( a=0; a<60; a++)
+    {
+      PW_CL->M['x'-'A'][a]=0;
+      PW_CL->M[a]['x'-'A']=0;
+      PW_CL->M['X'-'A'][a]=0;
+      PW_CL->M[a]['X'-'A']=0;
+    }
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->extend_jit=0;
+  }
+  else if (strm ( mode, "exon3_pair"))
+  {
+    int a;
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "myers_miller_pair_wise");
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->residue_index=NULL;
+
+    for ( a=0; a<60; a++)
+    {
+      PW_CL->M['x'-'A'][a]=0;
+      PW_CL->M[a]['x'-'A']=0;
+      PW_CL->M['X'-'A'][a]=0;
+      PW_CL->M[a]['X'-'A']=0;
+    }
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->extend_jit=0;
+  }
+  else if (strm ( mode, "exon_pair"))
+  {
+    int a;
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "myers_miller_pair_wise");
+    sprintf (PW_CL->matrix_for_aa_group, "%s",group_mat);
+    PW_CL->residue_index=NULL;
+
+    for ( a=0; a<60; a++)
+    {
+      PW_CL->M['x'-'A'][a]=0;
+      PW_CL->M[a]['x'-'A']=0;
+      PW_CL->M['X'-'A'][a]=0;
+      PW_CL->M[a]['X'-'A']=0;
+    }
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm ( mode , "lalign_len_pair"))
+  {
+    PW_CL->residue_index=NULL;
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    PW_CL->pair_wise=sim_pair_wise_lalign;
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->lalign_n_top=CL->lalign_n_top;
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm ( mode , "lalign_id_pair"))
+  {
+    PW_CL->residue_index=NULL;
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    PW_CL->pair_wise=sim_pair_wise_lalign;
+    PW_CL->evaluate_residue_pair=evaluate_matrix_score;
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->lalign_n_top=CL->lalign_n_top;
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->extend_jit=0;
+  }
+  else if ( strm ( mode , "tm_lalign_id_pair"))
+  {
+    PW_CL->residue_index=NULL;
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    PW_CL->pair_wise=sim_pair_wise_lalign;
+    PW_CL->evaluate_residue_pair=evaluate_tm_matrix_score;
+    PW_CL->get_dp_cost=slow_get_dp_cost;
+    PW_CL->lalign_n_top=CL->lalign_n_top;
+    sprintf (PW_CL->matrix_for_aa_group,"%s", group_mat);
+    PW_CL->extend_jit=0;
+  }
+  /*CDNA*/
+  else if ( strm ( mode, "cdna_cfast_pair"))
+  {
+    PW_CL->residue_index=NULL;
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->S=CL->S;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "cfasta_cdna_pair_wise");
+
+    PW_CL->M=read_matrice (strcpy ( mat, "blosum62mt"));
+    PW_CL->extend_jit=0;
+
+    PW_CL->f_gop=CL->f_gop;
+    PW_CL->f_gep=CL->f_gep;
+    PW_CL->get_dp_cost=get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_cdna_matrix_score;
+    PW_CL->ktup=1;
+  }
+  else if ( strm ( mode, "cdna_fast_pair") ||  strncmp (mode,"cdna_fast_pair",14)==0)
+  {
+
+    PW_CL->residue_index=NULL;
+    PW_CL->maximise=1;
+    PW_CL->TG_MODE=1;
+    PW_CL->use_fragments=0;
+    sprintf (PW_CL->dp_mode, "fasta_cdna_pair_wise");
+
+    PW_CL->extend_jit=0;
+    PW_CL->gop=-5;
+    PW_CL->gep=-1;
+    PW_CL->f_gop=-15;
+    PW_CL->f_gep=0;
+
+    PW_CL->get_dp_cost=get_dp_cost;
+    PW_CL->evaluate_residue_pair=evaluate_cdna_matrix_score;
+    PW_CL->ktup=1;
+  }
+  else
+  {
+    free_constraint_list (PW_CL);
+    PW_CL=NULL;
+  }
+
+
+  if (!strm (CL->method_evaluate_mode, "default"))
+  {
+    choose_extension_mode (CL->method_evaluate_mode, PW_CL);
+  }
+  return PW_CL;
+}
 /******************************************************************/
 /*                   MULTIPLE ALIGNMENTS                          */
 /*                                                                */
@@ -948,8 +948,8 @@ Constraint_list * align_pdb_pair_2 (char *seq, Constraint_list *CL)
   char *tmp_name=NULL;
   int s1, s2;
 
-  static char *command;
-  static char *program;
+  static thread_local char *command=NULL;
+  static thread_local char *program=NULL;
 
   tmp_name=vtmpnam ( NULL);
 
@@ -964,9 +964,10 @@ Constraint_list * align_pdb_pair_2 (char *seq, Constraint_list *CL)
   else sprintf ( program, "%s", (getenv ( "ALIGN_PDB_4_TCOFFEE")));
 #endif
 
-  atoi(strtok (seq,SEPARATORS));
-  s1=atoi(strtok (NULL,SEPARATORS));
-  s2=atoi(strtok (NULL,SEPARATORS));
+  char *saveptr;
+  atoi(strtok_r (seq,SEPARATORS,&saveptr));
+  s1=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
+  s2=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
 
   sprintf ( command , "%s -in P%s P%s -gapopen=-40 -max_delta=2.5 -gapext=0 -scale=0 -hasch_mode=hasch_ca_trace_bubble -maximum_distance=10 -output pdb_constraint_list -outfile stdout> %s%s",program, (CL->S)->file[s1], (CL->S)->file[s2], get_cache_dir(),tmp_name);
 
@@ -991,10 +992,11 @@ Constraint_list *align_pdb_pair   (char *seq_in, char *dp_mode,char *evaluate_mo
 	    Constraint_list *PWCL;
 	    Alignment *F;
 
+      char *saveptr;
 	    sprintf ( seq, "%s",seq_in);
-	    atoi(strtok (seq,SEPARATORS));
-	    s1=atoi(strtok (NULL,SEPARATORS));
-	    s2=atoi(strtok (NULL,SEPARATORS));
+	    atoi(strtok_r (seq,SEPARATORS,&saveptr));
+	    s1=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
+	    s2=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
 
 
 
@@ -1033,9 +1035,10 @@ Constraint_list * hh_pair (TC_method *M , char *in_seq, Constraint_list *CL)
 	  entry=(int*)vcalloc (CL->entry_len+1, sizeof (int));
 
 	  sprintf ( seq, "%s", in_seq);
-	  atoi(strtok (seq,SEPARATORS));
-	  s1=atoi(strtok (NULL,SEPARATORS));
-	  s2=atoi(strtok (NULL,SEPARATORS));
+    char *saveptr;
+    atoi(strtok_r (seq,SEPARATORS,&saveptr));
+	  s1=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
+	  s2=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
 
 	  A1=seq2R_template_profile(CL->S,s1);
 	  A2=seq2R_template_profile(CL->S,s2);
@@ -1153,9 +1156,9 @@ Constraint_list * hh_pair (TC_method *M , char *in_seq, Constraint_list *CL)
 //
 //
 // 	sprintf ( seq, "%s", in_seq);
-// 	atoi(strtok (seq,SEPARATORS));
-// 	s1=atoi(strtok (NULL,SEPARATORS));
-// 	s2=atoi(strtok (NULL,SEPARATORS));
+// 	atoi(strtok_r (seq,SEPARATORS));
+// 	s1=atoi(strtok_r (NULL,SEPARATORS));
+// 	s2=atoi(strtok_r (NULL,SEPARATORS));
 //
 // 	A1=seq2R_template_profile(CL->S,s1);
 // 	A2=seq2R_template_profile(CL->S,s2);
@@ -1249,9 +1252,10 @@ Constraint_list * profile_pair (TC_method *M , char *in_seq, Constraint_list *CL
 
 
 	sprintf ( seq, "%s", in_seq);
-	atoi(strtok (seq,SEPARATORS));
-	s1=atoi(strtok (NULL,SEPARATORS));
-	s2=atoi(strtok (NULL,SEPARATORS));
+	char *saveptr;
+  atoi(strtok_r (seq,SEPARATORS,&saveptr));
+	s1=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
+	s2=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
 
 	A1=seq2R_template_profile(CL->S,s1);
 	A2=seq2R_template_profile(CL->S,s2);
@@ -1383,10 +1387,10 @@ Constraint_list    * pdbid_pair (TC_method *M , char *in_seq, Constraint_list *C
 	    }
 	  sprintf ( seq, "%s", in_seq);
 
-
-	  atoi(strtok (seq,SEPARATORS));
-	  s1=atoi(strtok (NULL,SEPARATORS));
-	  s2=atoi(strtok (NULL,SEPARATORS));
+    char *saveptr;
+	  atoi(strtok_r (seq,SEPARATORS,&saveptr));
+	  s1=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
+	  s2=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
 
 	  pdb1=seq2P_pdb_id(CL->S,s1);
 	  pdb2=seq2P_pdb_id(CL->S,s2);
@@ -1440,10 +1444,10 @@ Constraint_list * pdb_pair (TC_method *M , char *in_seq, Constraint_list *CL)
 	    }
 
 	  sprintf ( seq, "%s", in_seq);
-
-	  atoi(strtok (seq,SEPARATORS));
-	  s1=atoi(strtok (NULL,SEPARATORS));
-	  s2=atoi(strtok (NULL,SEPARATORS));
+    char *saveptr;
+	  atoi(strtok_r (seq,SEPARATORS,&saveptr));
+	  s1=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
+	  s2=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
 
 	  pdb1=seq2P_template_file(CL->S,s1);
 	  pdb2=seq2P_template_file(CL->S,s2);
@@ -1490,29 +1494,29 @@ Constraint_list * seq_msa (TC_method *M , char *in_seq, Constraint_list *CL)
   Alignment *F=NULL;
   FILE *fp;
   char command[1000];
-  static char *db_file;
+  char *db_file;
 
 
   if (!(CL->S)->blastdb)
-    {
-      (CL->S)->blastdb=vtmpnam(NULL);
-      seq2blastdb ((CL->S)->blastdb, (CL->S));
-    }
+  {
+    (CL->S)->blastdb=vtmpnam(NULL);
+    seq2blastdb ((CL->S)->blastdb, (CL->S));
+  }
   db_file=(CL->S)->blastdb;
 
   infile=vtmpnam (NULL);
   outfile=vtmpnam (NULL);
 
   sprintf ( seq, "%s", in_seq);
-
-  n=atoi(strtok (seq,SEPARATORS));
+  char *saveptr;
+  n=atoi(strtok_r (seq,SEPARATORS,&saveptr));
 
   fp=vfopen (infile, "w");
   for ( a=0; a<n; a++)
-    {
-      s=atoi(strtok (NULL,SEPARATORS));
-      fprintf (fp, ">%s\n%s\n", (CL->S)->name[s], (CL->S)->seq[s]);
-    }
+  {
+    s=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
+    fprintf (fp, ">%s\n%s\n", (CL->S)->name[s], (CL->S)->seq[s]);
+  }
   vfclose (fp);
 
   if (strstr (M->executable2, "blast"))sprintf ( db, " -database=%s", db_file);
@@ -1532,34 +1536,35 @@ Constraint_list * seq_msa (TC_method *M , char *in_seq, Constraint_list *CL)
 
 
   if ( strm (M->out_mode, "aln") ||  strm (M->out_mode, "A"))
+  {
+    F=main_read_aln (outfile, NULL);
+    if ( !F)
     {
-      F=main_read_aln (outfile, NULL);
-      if ( !F)
-	{
-	  fprintf ( stderr, "\n\tseq_msa/%s failed:\n\t%s\n", M->executable2,command);
-	}
-      else
-	{
-	  CL=aln2constraint_list (F, CL, "sim");
-	}
-      free_aln (F);
+      fprintf ( stderr, "\n\tseq_msa/%s failed:\n\t%s\n", M->executable2,command);
     }
+    else
+    {
+      CL=aln2constraint_list (F, CL, "sim");
+    }
+    free_aln (F);
+  }
   else if ( strm (M->out_mode, "fL")|| strm (M->out_mode, "lib"))
+  {
+    Constraint_list *NCL;
+    NCL=read_constraint_list_file(CL,outfile);
+    if ( !NCL)
     {
-      Constraint_list *NCL;
-      NCL=read_constraint_list_file(CL,outfile);
-      if ( !NCL)
-	{
-	  fprintf ( stderr, "\n\tseq_msa/%s failed:\n\t%s\n", M->executable2,command);
-	}
-      else
-	{
-	  CL=NCL;
-	}
-
+      fprintf ( stderr, "\n\tseq_msa/%s failed:\n\t%s\n", M->executable2,command);
     }
+    else
+    {
+      CL=NCL;
+    }
+
+  }
   return CL;
 }
+
 Constraint_list * thread_pair (TC_method *M , char *in_seq, Constraint_list *CL)
         {
 
@@ -1573,9 +1578,10 @@ Constraint_list * thread_pair (TC_method *M , char *in_seq, Constraint_list *CL)
 	    }
 
 	  sprintf ( seq, "%s", in_seq);
-	  atoi(strtok (seq,SEPARATORS));
-	  s1=atoi(strtok (NULL,SEPARATORS));
-	  s2=atoi(strtok (NULL,SEPARATORS));
+    char *saveptr;
+	  atoi(strtok_r (seq,SEPARATORS,&saveptr));
+	  s1=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
+	  s2=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
 
 	  CL=thread_pair2(M,s1, s2, CL);
 	  CL=thread_pair2(M,s2, s1, CL);
@@ -1633,74 +1639,75 @@ Constraint_list* thread_pair2 ( TC_method *M, int s1, int s2, Constraint_list *C
   }
 
 Constraint_list * lsqman_pair ( char *in_seq, Constraint_list *CL)
+{
+  FILE *fp;
+  static thread_local CLIST_TYPE *entry=NULL;
+  char command[STRING];
+  char seq[1000];
+  int s1, s2;
+  char *seq_file, *lsqman_result, *tmp_name1;
+  Alignment *F=NULL;
+  int n_failure=0;
+
+  sprintf ( seq, "%s", in_seq);
+
+
+  if ( !entry)entry=(int*)vcalloc ( LIST_N_FIELDS, sizeof ( CLIST_TYPE ));
+  char *saveptr;
+  atoi(strtok_r (seq,SEPARATORS,&saveptr));
+  s1=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
+  s2=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
+
+
+  tmp_name1=(char*)vcalloc (100, sizeof (char));
+  sprintf ( tmp_name1, "%s_%s.lsqman_aln", (CL->S)->name[s1], (CL->S)->name[s2]);
+  if ( check_file_exists ( tmp_name1) && (F=main_read_aln(tmp_name1, NULL))!=NULL)
+  {
+    free_aln(F);
+    lsqman_result=tmp_name1;
+  }
+
+  else
+  {
+    seq_file=vtmpnam (NULL);
+    lsqman_result=tmp_name1;
+    fp=vfopen (seq_file, "w");
+    fprintf ( fp, ">%s\n%s\n",(CL->S)->name[s1],(CL->S)->seq[s2] );
+    vfclose (fp);
+    sprintf ( command, "%s -pdb %s -pep %s > %s%s", LSQMAN_4_TCOFFEE, (CL->S)->name[s1], seq_file,get_cache_dir(), lsqman_result);
+
+    while (!F)
+    {
+      my_system ( command);
+      F=main_read_aln (lsqman_result, NULL);
+      if ( !F)
+      {
+        fprintf ( stderr, "\n\tlsqman failed: will be retried");
+        if ( n_failure==0)fprintf ( stderr, "\n\t%s", command);
+        n_failure++;
+        if ( n_failure==10)
         {
-	  FILE *fp;
-	  static CLIST_TYPE *entry;
-	  char command[STRING];
-	  char seq[1000];
-	  int s1, s2;
-	  char *seq_file, *lsqman_result, *tmp_name1;
-	  Alignment *F=NULL;
-	  int n_failure=0;
+          fprintf ( stderr, "\nCould not run Fugue: will replace it with slow_pair\n");
+          vremove (lsqman_result);
+          return NULL;
+        }
+      }
+      free_aln (F);
+    }
+    vremove( seq_file);
 
-	  sprintf ( seq, "%s", in_seq);
-
-
-	  if ( !entry)entry=(int*)vcalloc ( LIST_N_FIELDS, sizeof ( CLIST_TYPE ));
-
-	  atoi(strtok (seq,SEPARATORS));
-	  s1=atoi(strtok (NULL,SEPARATORS));
-	  s2=atoi(strtok (NULL,SEPARATORS));
+  }
 
 
-	 tmp_name1=(char*)vcalloc (100, sizeof (char));
-	 sprintf ( tmp_name1, "%s_%s.lsqman_aln", (CL->S)->name[s1], (CL->S)->name[s2]);
-	 if ( check_file_exists ( tmp_name1) && (F=main_read_aln(tmp_name1, NULL))!=NULL)
-	      {
-	        free_aln(F);
-		lsqman_result=tmp_name1;
-	      }
+  F=main_read_aln(lsqman_result, NULL);
+  /*sprintf ( F->name[0],"%s", (CL->S)->name[s1]);
+   sprintf ( F->name[1],"%s", (CL->S)->name[s2]);
+   */
+  CL=aln2constraint_list (F, CL, "100");
+  free_aln (F);
+  return CL;
+}
 
-	 else
-	   {
-	     seq_file=vtmpnam (NULL);
-	     lsqman_result=tmp_name1;
-	     fp=vfopen (seq_file, "w");
-	     fprintf ( fp, ">%s\n%s\n",(CL->S)->name[s1],(CL->S)->seq[s2] );
-	     vfclose (fp);
-	     sprintf ( command, "%s -pdb %s -pep %s > %s%s", LSQMAN_4_TCOFFEE, (CL->S)->name[s1], seq_file,get_cache_dir(), lsqman_result);
-
-	     while (!F)
-	       {
-		 my_system ( command);
-		 F=main_read_aln (lsqman_result, NULL);
-		 if ( !F)
-		   {
-		     fprintf ( stderr, "\n\tlsqman failed: will be retried");
-		     if ( n_failure==0)fprintf ( stderr, "\n\t%s", command);
-		     n_failure++;
-		     if ( n_failure==10)
-			{
-			fprintf ( stderr, "\nCould not run Fugue: will replace it with slow_pair\n");
-			vremove (lsqman_result);
-			return NULL;
-			}
-		   }
-		 free_aln (F);
-	       }
-	     vremove( seq_file);
-
-	   }
-
-
-	 F=main_read_aln(lsqman_result, NULL);
-	 /*sprintf ( F->name[0],"%s", (CL->S)->name[s1]);
-	 sprintf ( F->name[1],"%s", (CL->S)->name[s2]);
-	 */
-	 CL=aln2constraint_list (F, CL, "100");
-	 free_aln (F);
-	 return CL;
-	}
 char *atom;
 Constraint_list * srap_pair   (char *seq, char *weight, Constraint_list *CL)
 {
@@ -1739,10 +1746,10 @@ Constraint_list * sap_pair   (char *seq_in, char *weight, Constraint_list *CL)
 
 	    seq=(char*)vcalloc (strlen (seq_in)+1, sizeof(char));
 	    sprintf ( seq, "%s", seq_in);
-
-	    atoi(strtok (seq,SEPARATORS));
-	    s1=atoi(strtok (NULL,SEPARATORS));
-	    s2=atoi(strtok (NULL,SEPARATORS));
+      char *saveptr;
+	    atoi(strtok_r (seq,SEPARATORS,&saveptr));
+	    s1=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
+	    s2=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
 	    template1=seq2T_value(CL->S,s1, "template_name", "_P_");
 	    template2=seq2T_value(CL->S,s2, "template_name", "_P_");
 
@@ -1922,10 +1929,10 @@ Constraint_list *rnapdb_pair (TC_method *M ,char *in_seq,   Constraint_list *CL)
 
 	sprintf ( seq, "%s", in_seq);
 
-
-	atoi(strtok (seq,SEPARATORS));
-	s1=atoi(strtok (NULL,SEPARATORS));
-	s2=atoi(strtok (NULL,SEPARATORS));
+  char *saveptr;
+	atoi(strtok_r (seq,SEPARATORS,&saveptr));
+	s1=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
+	s2=atoi(strtok_r (NULL,SEPARATORS,&saveptr));
 
 	pdb1=seq2P_template_file(CL->S,s1);
 	pdb1_file=vtmpnam (NULL);
@@ -1975,7 +1982,7 @@ Constraint_list * best_pair4rna(Job_TC *job)
 {
 	int n,a;
 
-	static char *seq;
+	static thread_local char *seq=NULL;
 	Alignment *A;
 	Constraint_list *PW_CL;
 	Constraint_list *CL, *RCL;
@@ -1988,7 +1995,7 @@ Constraint_list * best_pair4rna(Job_TC *job)
 	Template *T1, *T2;
 	int ml=0;
 	struct X_template *r1, *r2, *p1, *p2;
-	static int **blosum;
+	static thread_local int **blosum=NULL;
 
 	if (!seq)seq=(char*)vcalloc (100, sizeof (char));
 
@@ -2057,7 +2064,7 @@ Constraint_list * best_pair4prot      (Job_TC *job)
 {
   int n,a;
 
-  static char *seq;
+  static thread_local char *seq=NULL;
   Alignment *A;
   Constraint_list *PW_CL;
   Constraint_list *CL, *RCL;
@@ -2070,7 +2077,7 @@ Constraint_list * best_pair4prot      (Job_TC *job)
   Template *T1, *T2;
   int ml=0;
   struct X_template *r1, *r2, *p1, *p2;
-  static int **blosum;
+  static thread_local int **blosum=NULL;
 
   if (!seq)seq=(char*)vcalloc (100, sizeof (char));
 
@@ -2149,118 +2156,118 @@ Constraint_list * best_pair4prot      (Job_TC *job)
 
 
 Alignment * fast_pair      (Job_TC *job)
-        {
-	    int s, n,a;
-	    int score;
-	    static int **l_s;
-	    static int *ns;
-	    char seq[1000];
-	    Alignment *A;
-	    Constraint_list *PW_CL;
-	    Constraint_list *CL;
-	    char *seq_in;
-	    Sequence *S;
-	    TC_method *M;
-	    int*seqlist;
-	    char **buf;
-	    static int do_flip;
-	    int flipped=0;
+{
+  int s, n,a;
+  int score;
+  static thread_local int **l_s=NULL;
+  static thread_local int *ns=NULL;
+  char seq[1000];
+  Alignment *A;
+  Constraint_list *PW_CL;
+  Constraint_list *CL;
+  char *seq_in;
+  Sequence *S;
+  TC_method *M;
+  int*seqlist;
+  char **buf;
+  static thread_local int do_flip=0;
+  int flipped=0;
 
-	    if (!do_flip)
-	      {
-		do_flip=get_int_variable ("flip");
-		if (!do_flip)do_flip=-1;
-	      }
-	    if (do_flip!=-1)if ((rand()%100)<do_flip)flipped=1;
+  if (!do_flip)
+  {
+    do_flip=get_int_variable ("flip");
+    if (!do_flip)do_flip=-1;
+  }
+  if (do_flip!=-1)if ((rand()%100)<do_flip)flipped=1;
 
-	    A=(job->io)->A;
-	    M=(job->param)->TCM;
-	    PW_CL=((job->param)->TCM)->PW_CL;
-	    CL=(job->io)->CL;
-	    seq_in=(job->param)->seq_c;
-
-
-	    sprintf (seq, "%s", seq_in);
-	    seqlist=string2num_list (seq);
-	    n=seqlist[1];
-	    if ( n!=2){fprintf ( stderr, "\nERROR: fast_pw_aln can only handle two seq at a time [FATAL]\n");myexit (EXIT_FAILURE);}
-
-	    S=(CL)->S;
-
-	    if (!A) {A=declare_aln (CL->S);}
-	    if ( !ns)
-	        {
-		ns=(int*)vcalloc ( 2, sizeof (int));
-		l_s=declare_int (2,(CL->S)->nseq);
-		}
-	    buf=(char**)vcalloc ( S->nseq, sizeof (char*));
-
-	    for ( a=0; a< n; a++)
-	        {
-		  s=seqlist[a+2];
-		  if ( strm (M->seq_type, "G"))
-		    {
-		      buf[s]=S->seq[s];
-		      S->seq[s]=((((S->T[s])->G)->VG)->S)->seq[0];
-		  }
-		else
-		  buf[s]=S->seq[s];
+  A=(job->io)->A;
+  M=(job->param)->TCM;
+  PW_CL=((job->param)->TCM)->PW_CL;
+  CL=(job->io)->CL;
+  seq_in=(job->param)->seq_c;
 
 
-		  sprintf ( A->seq_al[a], "%s",S->seq[s]);
-		  sprintf ( A->name[a], "%s", (CL->S)->name[s]);
-		  A->order[a][0]=s;
-		}
+  sprintf (seq, "%s", seq_in);
+  seqlist=string2num_list (seq);
+  n=seqlist[1];
+  if ( n!=2){fprintf ( stderr, "\nERROR: fast_pw_aln can only handle two seq at a time [FATAL]\n");myexit (EXIT_FAILURE);}
 
-	    A->S=CL->S;
-	    PW_CL->S=CL->S;
-	    A->CL=CL;
-	    A->nseq=n;
-	    ns[0]=ns[1]=1;
-	    l_s[0][0]=0;
-	    l_s[1][0]=1;
+  S=(CL)->S;
 
-	    //Preprocessing of the sequences
-	    if (PW_CL->reverse_seq || flipped==1)
-	      {
-		invert_string2(A->seq_al[0]);
-		invert_string2(A->seq_al[1]);
-		invert_string2 ((CL->S)->seq[A->order[0][0]]);
-		invert_string2 ((CL->S)->seq[A->order[1][0]]);
-	      }
-	    if (PW_CL->extend_seq)//use te alphabet extension for nucleic acids
-	      {
+  if (!A) {A=declare_aln (CL->S);}
+  if ( !ns)
+  {
+    ns=(int*)vcalloc ( 2, sizeof (int));
+    l_s=declare_int (2,(CL->S)->nseq);
+  }
+  buf=(char**)vcalloc ( S->nseq, sizeof (char*));
 
-		extend_seqaln (A->S,NULL);
-		extend_seqaln (NULL,A);
-	      }
+  for ( a=0; a< n; a++)
+  {
+    s=seqlist[a+2];
+    if ( strm (M->seq_type, "G"))
+    {
+      buf[s]=S->seq[s];
+      S->seq[s]=((((S->T[s])->G)->VG)->S)->seq[0];
+    }
+    else
+      buf[s]=S->seq[s];
 
-	    score=pair_wise ( A, ns, l_s, PW_CL);
-	    //PostProcessing of the sequences
-	    if (PW_CL->reverse_seq || flipped==1)
-	      {
 
-		invert_string2(A->seq_al[0]);
-		invert_string2(A->seq_al[1]);
-		invert_string2 ((CL->S)->seq[A->order[0][0]]);
-		invert_string2 ((CL->S)->seq[A->order[1][0]]);
-	      }
-	    if (PW_CL->extend_seq)
-	      {
-		unextend_seqaln (A->S,NULL);
-		unextend_seqaln (NULL,A);
-	      }
-	    A->nseq=n;
+    sprintf ( A->seq_al[a], "%s",S->seq[s]);
+    sprintf ( A->name[a], "%s", (CL->S)->name[s]);
+    A->order[a][0]=s;
+  }
 
-	    for ( a=0; a<S->nseq; a++)
-	      {
-		if ( !buf[a] || buf[a]==S->seq[a]);
-		else S->seq[a]=buf[a];
-	      }
-	    vfree (buf);vfree (seqlist);
-	    return A;
+  A->S=CL->S;
+  PW_CL->S=CL->S;
+  A->CL=CL;
+  A->nseq=n;
+  ns[0]=ns[1]=1;
+  l_s[0][0]=0;
+  l_s[1][0]=1;
 
-	}
+  //Preprocessing of the sequences
+  if (PW_CL->reverse_seq || flipped==1)
+  {
+    invert_string2(A->seq_al[0]);
+    invert_string2(A->seq_al[1]);
+    invert_string2 ((CL->S)->seq[A->order[0][0]]);
+    invert_string2 ((CL->S)->seq[A->order[1][0]]);
+  }
+  if (PW_CL->extend_seq)//use te alphabet extension for nucleic acids
+  {
+
+    extend_seqaln (A->S,NULL);
+    extend_seqaln (NULL,A);
+  }
+
+  score=pair_wise ( A, ns, l_s, PW_CL);
+  //PostProcessing of the sequences
+  if (PW_CL->reverse_seq || flipped==1)
+  {
+
+    invert_string2(A->seq_al[0]);
+    invert_string2(A->seq_al[1]);
+    invert_string2 ((CL->S)->seq[A->order[0][0]]);
+    invert_string2 ((CL->S)->seq[A->order[1][0]]);
+  }
+  if (PW_CL->extend_seq)
+  {
+    unextend_seqaln (A->S,NULL);
+    unextend_seqaln (NULL,A);
+  }
+  A->nseq=n;
+
+  for ( a=0; a<S->nseq; a++)
+  {
+    if ( !buf[a] || buf[a]==S->seq[a]);
+    else S->seq[a]=buf[a];
+  }
+  vfree (buf);vfree (seqlist);
+  return A;
+
+}
 Alignment * align_two_aln ( Alignment *A1, Alignment  *A2, char *in_matrix, int gop, int gep, char *in_align_mode)
 {
 	Alignment *A=NULL;
@@ -2269,8 +2276,8 @@ Alignment * align_two_aln ( Alignment *A1, Alignment  *A2, char *in_matrix, int 
 	int a;
 	int *ns;
 	int **ls;
-	static char *matrix;
-	static char *align_mode;
+	static thread_local char *matrix=NULL;
+	static thread_local char *align_mode=NULL;
 
 	if (!matrix)matrix=(char*)vcalloc ( 100, sizeof (char));
 	if (!align_mode)align_mode=(char*)vcalloc ( 100, sizeof (char));
@@ -2340,100 +2347,100 @@ void toggle_case_in_align_two_sequences(int value)
 
 Alignment * align_two_sequences ( char *seq1, char *seq2, char *in_matrix, int gop, int gep, char *in_align_mode)
 {
-	static Alignment *A;
-	Constraint_list *CL;
-	Sequence *S;
+  Alignment *A;
+  Constraint_list *CL;
+  Sequence *S;
 
-	int *ns;
-	int **l_s;
+  int *ns;
+  int **l_s;
 
-	char       **seq_array;
-	char       **name_array;
-	static char *matrix;
-	static int  **M;
+  char       **seq_array;
+  char       **name_array;
+  static thread_local char *matrix=NULL;
+  static thread_local int  **M=NULL;
 
-	static char *align_mode;
+  static thread_local char *align_mode=NULL;
 
-	if (!matrix)matrix=(char*)vcalloc ( 100, sizeof (char));
-	if (!align_mode)align_mode=(char*)vcalloc ( 100, sizeof (char));
-	sprintf ( align_mode, "%s", in_align_mode);
+  if (!matrix)matrix=(char*)vcalloc ( 100, sizeof (char));
+  if (!align_mode)align_mode=(char*)vcalloc ( 100, sizeof (char));
+  sprintf ( align_mode, "%s", in_align_mode);
 
-	CL=(Constraint_list*)vcalloc ( 1, sizeof (Constraint_list));
+  CL=(Constraint_list*)vcalloc ( 1, sizeof (Constraint_list));
 
-	CL->pw_parameters_set=1;
+  CL->pw_parameters_set=1;
 
-	CL->matrices_list=declare_char (10, 10);
-
-
-	if ( !strm (matrix, in_matrix))
-	  {
-	    sprintf ( matrix,"%s", in_matrix);
-	    M=CL->M=read_matrice (matrix);
-
-	  }
-	else
-	  {
-	    CL->M=M;
-	  }
-
-	if (strstr (in_align_mode, "cdna"))
-	  CL->evaluate_residue_pair=evaluate_cdna_matrix_score;
-	else
-	  CL->evaluate_residue_pair=evaluate_matrix_score;
-
-	CL->get_dp_cost=get_dp_cost;
-	CL->extend_jit=0;
-	CL->maximise=1;
-	CL->gop=gop;
-	CL->gep=gep;
-	CL->TG_MODE=2;
-	sprintf (CL->matrix_for_aa_group, "vasiliky");
-	CL->use_fragments=0;
-	CL->ktup=3;
-	if ( !CL->use_fragments)CL->diagonal_threshold=0;
-	else CL->diagonal_threshold=6;
-
-	sprintf (CL->dp_mode, "%s", align_mode);
-
-	seq_array=declare_char ( 2, MAX(strlen(seq1), strlen (seq2))+1);
-	sprintf (seq_array[0], "%s",seq1);
-	sprintf (seq_array[1],"%s", seq2);
-	ungap_array(seq_array,2);
-	if (align_two_seq_keep_case !=KEEP_CASE)string_array_lower(seq_array,2);
-
-	name_array=declare_char (2, STRING);
-	sprintf ( name_array[0], "A");
-	sprintf ( name_array[1], "B");
+  CL->matrices_list=declare_char (10, 10);
 
 
-	ns=(int*)vcalloc ( 2, sizeof(int));
-	l_s=declare_int ( 2, 1);
-	ns[0]=ns[1]=1;
-	l_s[0][0]=0;
-	l_s[1][0]=1;
+  if ( !strm (matrix, in_matrix))
+  {
+    sprintf ( matrix,"%s", in_matrix);
+    M=CL->M=read_matrice (matrix);
+
+  }
+  else
+  {
+    CL->M=M;
+  }
+
+  if (strstr (in_align_mode, "cdna"))
+    CL->evaluate_residue_pair=evaluate_cdna_matrix_score;
+  else
+    CL->evaluate_residue_pair=evaluate_matrix_score;
+
+  CL->get_dp_cost=get_dp_cost;
+  CL->extend_jit=0;
+  CL->maximise=1;
+  CL->gop=gop;
+  CL->gep=gep;
+  CL->TG_MODE=2;
+  sprintf (CL->matrix_for_aa_group, "vasiliky");
+  CL->use_fragments=0;
+  CL->ktup=3;
+  if ( !CL->use_fragments)CL->diagonal_threshold=0;
+  else CL->diagonal_threshold=6;
+
+  sprintf (CL->dp_mode, "%s", align_mode);
+
+  seq_array=declare_char ( 2, MAX(strlen(seq1), strlen (seq2))+1);
+  sprintf (seq_array[0], "%s",seq1);
+  sprintf (seq_array[1],"%s", seq2);
+  ungap_array(seq_array,2);
+  if (align_two_seq_keep_case !=KEEP_CASE)string_array_lower(seq_array,2);
+
+  name_array=declare_char (2, STRING);
+  sprintf ( name_array[0], "A");
+  sprintf ( name_array[1], "B");
 
 
-
-	CL->S=fill_sequence_struc(2, seq_array, name_array, NULL);
-
-	A=seq2aln(CL->S, NULL, 1);
-
-	ungap (A->seq_al[0]);
-	ungap (A->seq_al[1]);
+  ns=(int*)vcalloc ( 2, sizeof(int));
+  l_s=declare_int ( 2, 1);
+  ns[0]=ns[1]=1;
+  l_s[0][0]=0;
+  l_s[1][0]=1;
 
 
 
-	A->score_aln=pair_wise (A, ns, l_s,CL);
+  CL->S=fill_sequence_struc(2, seq_array, name_array, NULL);
 
-	vfree (ns);
-	free_int (l_s, -1);
-	free_char (name_array, -1);free_char ( seq_array,-1);
+  A=seq2aln(CL->S, NULL, 1);
 
-	CL->M=NULL;
-        S=free_constraint_list (CL);
-	free_sequence (S,-1);
-	A->S=NULL;
-	return A;
+  ungap (A->seq_al[0]);
+  ungap (A->seq_al[1]);
+
+
+
+  A->score_aln=pair_wise (A, ns, l_s,CL);
+
+  vfree (ns);
+  free_int (l_s, -1);
+  free_char (name_array, -1);free_char ( seq_array,-1);
+
+  CL->M=NULL;
+  S=free_constraint_list (CL);
+  free_sequence (S,-1);
+  A->S=NULL;
+  return A;
 }
 
 
@@ -2568,27 +2575,27 @@ Alignment *recompute_local_aln (Alignment *A, Sequence *S,Constraint_list *CL, i
 
 
 Alignment *stack_progressive_nol_aln_with_seq_coor(Constraint_list *CL,int gop, int gep,Sequence *S, int **seq_coor, int nseq)
-    {
-    static int ** local_coor1;
-    static int ** local_coor2;
-    if ( local_coor1!=NULL)free_int (local_coor1, -1);
-    if ( local_coor2!=NULL)free_int (local_coor2, -1);
+{
+  static thread_local int ** local_coor1=NULL;
+  static thread_local int ** local_coor2=NULL;
+  if ( local_coor1!=NULL)free_int (local_coor1, -1);
+  if ( local_coor2!=NULL)free_int (local_coor2, -1);
 
-    local_coor1=get_nol_seq          ( CL,seq_coor, nseq, S);
-    local_coor2=minimise_repeat_coor ( local_coor1, nseq, S);
+  local_coor1=get_nol_seq          ( CL,seq_coor, nseq, S);
+  local_coor2=minimise_repeat_coor ( local_coor1, nseq, S);
 
-    return stack_progressive_aln_with_seq_coor(CL,gop, gep,S, local_coor2,nseq);
-    }
+  return stack_progressive_aln_with_seq_coor(CL,gop, gep,S, local_coor2,nseq);
+}
 
 
 Alignment *stack_progressive_aln_with_seq_coor (Constraint_list*CL,int gop, int gep, Sequence *S, int **coor, int nseq)
-    {
-    Alignment *A=NULL;
+{
+  Alignment *A=NULL;
 
-    A=seq_coor2aln (S,NULL, coor, nseq);
+  A=seq_coor2aln (S,NULL, coor, nseq);
 
-    return stack_progressive_aln ( A,CL, gop, gep);
-    }
+  return stack_progressive_aln ( A,CL, gop, gep);
+}
 
 Alignment *est_progressive_aln(Alignment *A, Constraint_list *CL, int gop, int gep)
     {
@@ -2895,16 +2902,18 @@ Alignment *realign_aln_clust ( Alignment*A, Constraint_list *CL)
   int **ls;
 
   int a, b, c,n;
-  static int **rm, **dm, **target;
+  static thread_local int **rm=NULL;
+  static thread_local int **dm=NULL;
+  static thread_local int **target=NULL;
   int score;
 
 
 
   if (!A)
-    {
-      free_int (dm, -1); free_int (rm, -1);free_int (target, -1);
-      dm=rm=target=NULL;
-    }
+  {
+    free_int (dm, -1); free_int (rm, -1);free_int (target, -1);
+    dm=rm=target=NULL;
+  }
 
 
   if (!rm)rm=seq2ecl_mat(CL);
@@ -2917,52 +2926,52 @@ Alignment *realign_aln_clust ( Alignment*A, Constraint_list *CL)
 
   for (a=0; a<A->nseq-1; a++)
     for (b=a+1; b<A->nseq; b++)
-      {
-	ns[0]=2;
-	ls[0][0]=a;
-	ls[0][1]=b;
-	score=sub_aln2ecl_raw_score (A, CL, ns[0], ls[0]);
-	dm[a][b]=dm[b][a]=MAX(0,(rm[a][b]-score));
-      }
-  for (n=0,a=0; a<A->nseq; a++)
     {
-      for (b=a; b<A->nseq; b++, n++)
-	{
-
-	  target[n][0]=a;
-	  target[n][1]=b;
-	  for ( c=0; c<A->nseq; c++)
-	    {
-	      if (c!=a && c!=b)target[n][2]+=dm[a][c]+dm[b][c];
-	    }
-	}
+      ns[0]=2;
+      ls[0][0]=a;
+      ls[0][1]=b;
+      score=sub_aln2ecl_raw_score (A, CL, ns[0], ls[0]);
+      dm[a][b]=dm[b][a]=MAX(0,(rm[a][b]-score));
     }
+  for (n=0,a=0; a<A->nseq; a++)
+  {
+    for (b=a; b<A->nseq; b++, n++)
+    {
+
+      target[n][0]=a;
+      target[n][1]=b;
+      for ( c=0; c<A->nseq; c++)
+      {
+        if (c!=a && c!=b)target[n][2]+=dm[a][c]+dm[b][c];
+      }
+    }
+  }
   sort_int_inv (target,3, 2, 0, n-1);
 
   for (a=0; a<A->nseq; a++)
+  {
+    if (target[a][0]==target[a][1])
     {
-      if (target[a][0]==target[a][1])
-	{
-	  ns[0]=1;
-	  ls[0][0]=target[a][0];
-	}
-      else
-	{
-	  ns[0]=2;
-	  ls[0][0]=target[a][0]; ls[0][1]=target[a][1];
-	}
-
-      for (ns[1]=0,b=0; b<A->nseq; b++)
-	{
-	  if (b!=target[a][0] && b!=target[a][1])ls[1][ns[1]++]=b;
-	}
-
-      ungap_sub_aln (A, ns[0], ls[0]);
-      ungap_sub_aln (A, ns[1], ls[1]);
-
-      A->score_aln=pair_wise (A, ns, ls,CL);
-      fprintf ( stderr, "\nSEQ: %d %d SCORE=%d\n",target[a][0],target[a][1], aln2ecl_raw_score(A, CL));
+      ns[0]=1;
+      ls[0][0]=target[a][0];
     }
+    else
+    {
+      ns[0]=2;
+      ls[0][0]=target[a][0]; ls[0][1]=target[a][1];
+    }
+
+    for (ns[1]=0,b=0; b<A->nseq; b++)
+    {
+      if (b!=target[a][0] && b!=target[a][1])ls[1][ns[1]++]=b;
+    }
+
+    ungap_sub_aln (A, ns[0], ls[0]);
+    ungap_sub_aln (A, ns[1], ls[1]);
+
+    A->score_aln=pair_wise (A, ns, ls,CL);
+    fprintf ( stderr, "\nSEQ: %d %d SCORE=%d\n",target[a][0],target[a][1], aln2ecl_raw_score(A, CL));
+  }
   return A;
 }
 
@@ -3368,49 +3377,49 @@ Alignment *sorted_aln_old (Alignment *A,Constraint_list *CL)
 
 int add_group2sorted_aln   (Alignment *A, Constraint_list *CL, int *used, int g,int minid, int mincov)
 {
-  static int **ls;
-  static int *ns;
-  int a, next, id, cov;
+  static thread_local int **ls=NULL;
+  static thread_local int *ns=NULL;
+  int a, id, cov;
   int add=1;
   int tot=0;
   int nadded=0;
   if (!ls)
-    {
-      ls=declare_int (2,(CL->S)->nseq);
-      ns=(int*)vcalloc (3,sizeof (int));
-    }
+  {
+    ls=declare_int (2,(CL->S)->nseq);
+    ns=(int*)vcalloc (3,sizeof (int));
+  }
   ns[0]=0;
   for (a=0; a<(CL->S)->nseq;a++)
     if (!used[a]){ls[0][ns[0]++]=a;used[a]=g;tot++;break;}
   if (!ns[0])return 0;
   ns[1]=1;
   while (add && tot<(CL->S)->nseq)
+  {
+    ls[1][0]=sa_get_next(A,used, CL,g);
+
+    ns=set_profile_master (A, ns, ls, CL);
+    pair_wise (A,ns,ls,CL);
+
+    sa2sc(A->seq_al[ls[0][ns[0]]],A->seq_al[ls[1][ns[1]]], &id, &cov);
+    unset_profile_master (A, ns, ls, CL);
+
+    if (cov>mincov && id>minid)
     {
-      ls[1][0]=sa_get_next(A,used, CL,g);
-
-      ns=set_profile_master (A, ns, ls, CL);
-      pair_wise (A,ns,ls,CL);
-
-      sa2sc(A->seq_al[ls[0][ns[0]]],A->seq_al[ls[1][ns[1]]], &id, &cov);
-      unset_profile_master (A, ns, ls, CL);
-
-      if (cov>mincov && id>minid)
-	{
-	  add=1;
-	  used[ls[1][0]]=g;
-	  ls[0][ns[0]++]=ls[1][0];
-	  HERE ("\tID: %d COV: %d ***",id, cov);
-	  ns[1]=1;
-	}
-      else
-	{
-	  add=0;
-	  used[ls[1][0]]=-1;
-	  HERE ("\tID: %d COV: %d",id, cov);
-	}
-      tot+=add;
-      nadded+=add;
+      add=1;
+      used[ls[1][0]]=g;
+      ls[0][ns[0]++]=ls[1][0];
+      HERE ("\tID: %d COV: %d ***",id, cov);
+      ns[1]=1;
     }
+    else
+    {
+      add=0;
+      used[ls[1][0]]=-1;
+      HERE ("\tID: %d COV: %d",id, cov);
+    }
+    tot+=add;
+    nadded+=add;
+  }
   for (a=0; a<(CL->S)->nseq; a++)if (used[a]==-1)used[a]=0;
   return nadded+1;
 }
@@ -3436,31 +3445,31 @@ int sa2sc      (char *s1, char *s2, int *id, int *cov)
 }
 int sa_get_next (Alignment *A,int *used, Constraint_list *CL, int g)
 {
-  static int **sim;
+  static thread_local int **sim=NULL;
   int a, b, c,n;
   n=(CL->S)->nseq;
   int bseq=-1, bscore;
 
 
   if (!sim)
-    {
-      (CL->DM)=CL->DM=cl2distance_matrix ( CL,A,NULL,NULL, 1);
-      sim=(CL->DM)->score_similarity_matrix;
-    }
+  {
+    (CL->DM)=CL->DM=cl2distance_matrix ( CL,A,NULL,NULL, 1);
+    sim=(CL->DM)->score_similarity_matrix;
+  }
 
   for (bscore=0,a=0; a< n; a++)
-    {
-      if (used[a]!=g)continue;
+  {
+    if (used[a]!=g)continue;
 
-      for (b=0; b<n; b++)
-	{
-	  if (!used[b] && sim[a][b]>=bscore)
-	    {
-	      bscore=sim[a][b];
-	      bseq=b;
-	    }
-	}
+    for (b=0; b<n; b++)
+    {
+      if (!used[b] && sim[a][b]>=bscore)
+      {
+        bscore=sim[a][b];
+        bseq=b;
+      }
     }
+  }
 
   return bseq;
 }
@@ -3490,10 +3499,10 @@ Alignment *sorted_aln_new (Alignment *A,Constraint_list *CL)
 int sa_align_groups (Alignment *A, Constraint_list *CL, int *used, int minid, int mincov)
 {
   int s0,s1,g0, g1,a,id,cov;
-  static int **ls;
-  static int *ns;
+  static thread_local int **ls=NULL;
+  static thread_local int *ns=NULL;
   int n=(CL->S)->nseq;
-  static int **f;
+  static thread_local int **f=NULL;
 
 
   if (A->nseq==n) return -1;
@@ -3532,29 +3541,28 @@ int sa_align_groups (Alignment *A, Constraint_list *CL, int *used, int minid, in
 }
 int sa_get_next_group (Alignment *A,Constraint_list *CL,int *used, int *s0, int *s1, int **f)
 {
-  static int **sim;
-  int a, b, c, bsim;
+  static thread_local int **sim=NULL;
+  int a, b, bsim;
   int n=(CL->S)->nseq;
-  static int **sim2;
 
   s0[0]=s1[0]=-1;
   if (!sim)
-    {
-      (CL->DM)=CL->DM=cl2distance_matrix ( CL,A,NULL,NULL, 1);
-      sim=(CL->DM)->score_similarity_matrix;
-    }
+  {
+    (CL->DM)=CL->DM=cl2distance_matrix ( CL,A,NULL,NULL, 1);
+    sim=(CL->DM)->score_similarity_matrix;
+  }
   for (bsim=0,a=0; a<n-1; a++)
+  {
+    for (b=a+1; b<n; b++)
     {
-      for (b=a+1; b<n; b++)
-	{
-	  if (!f[a][b] && used[b] && used[a]!=used[b] && sim[a][b]>bsim)
-	    {
-	      s0[0]=a;
-	      s1[0]=b;
-	      bsim=sim[a][b];
-	    }
-	}
+      if (!f[a][b] && used[b] && used[a]!=used[b] && sim[a][b]>bsim)
+      {
+        s0[0]=a;
+        s1[0]=b;
+        bsim=sim[a][b];
+      }
     }
+  }
   HERE ("---- %d %d", s0[0], s1[0]);
   return bsim;
 }
@@ -3790,32 +3798,28 @@ else fp=stderr;
  return A;
 }
 
-static NT_node* SNL;
+static thread_local NT_node* SNL;
 NT_node* tree_aln ( NT_node LT, NT_node RT, Alignment*A, int nseq, Constraint_list *CL)
 {
-  int a;
-
-
-
   A->ibit=0;
   if ( strm ((CL->TC)->use_seqan, "NO") || !(CL->TC)->use_seqan)
+  {
+    static thread_local char *tmp=NULL;
+    NT_node *T;
+    if (!tmp)tmp=vtmpnam(NULL);
+    if ( CL && CL->dp_mode && strstr (CL->dp_mode, "collapse"))dump_constraint_list (CL, tmp, "w");
+    T=local_tree_aln (LT, RT, A, nseq, CL);
+
+    if ( CL && CL->dp_mode && strstr (CL->dp_mode, "collapse"))
     {
-      static char *tmp;
-      NT_node *T;
-      if (!tmp)tmp=vtmpnam(NULL);
-      if ( CL && CL->dp_mode && strstr (CL->dp_mode, "collapse"))dump_constraint_list (CL, tmp, "w");
-      T=local_tree_aln (LT, RT, A, nseq, CL);
+      empty_constraint_list  (CL);
+      undump_constraint_list (CL, tmp);
 
-      if ( CL && CL->dp_mode && strstr (CL->dp_mode, "collapse"))
-	{
-	  empty_constraint_list  (CL);
-	  undump_constraint_list (CL, tmp);
-
-	}
-      return T;
     }
-  else return seqan_tree_aln (LT, RT, A, nseq, CL);
-
+    return T;
+  }
+  else
+    return seqan_tree_aln (LT, RT, A, nseq, CL);
 }
 
 NT_node* seqan_tree_aln ( NT_node LT, NT_node RT, Alignment*A, int nseq, Constraint_list *CL)
@@ -3858,15 +3862,15 @@ NT_node* local_tree_aln ( NT_node l, NT_node r, Alignment*A,int nseq, Constraint
   int a;
   NT_node P, *NL;
   int **min=NULL;
-  static int set_display;
-  static int display;
+  static thread_local int set_display=0;
+  static thread_local int display=0;
 
 
   if (!set_display)
-    {
-      set_display=1;
-      if (int_variable_isset ("display"))display=get_int_variable ("display");
-    }
+  {
+    set_display=1;
+    if (int_variable_isset ("display"))display=get_int_variable ("display");
+  }
 
 
   if (!r && !l) return NULL;
@@ -3891,32 +3895,32 @@ NT_node* local_tree_aln ( NT_node l, NT_node r, Alignment*A,int nseq, Constraint
   initialize_scoring_scheme (CL);
 
   if ( get_nproc()>1 && strstr (CL->multi_thread, "msa") && !(strstr(CL->dp_mode, "collapse")))
-    {
-      int max_fork;
+  {
+    int max_fork;
 
-      max_fork=get_nproc()/2;//number of nodes forked, one node =>two jobs
-      tree2nnode (P);
-      NL=tree2node_list (P, NULL);
-      min=declare_int (P->node+1,3);
-      for (a=0; a<=P->node; a++)
-	{
-	  NT_node N;
-	  N=NL[a];
-	  min[a][0]=a;
-	  if (!N);
-	  else if (N && N->nseq==1)min[a][1]=0;
-	  else
-	    {
-	      min[a][1]=MIN(((N->left)->nseq),((N->right)->nseq))*A->nseq+MAX(((N->left)->nseq),((N->right)->nseq));//sort on min and break ties on max
-	      min[a][2]=MIN(((N->left)->nseq),((N->right)->nseq));
-	    }
-	}
-      sort_int_inv (min,3, 1, 0, P->node);
-      for (a=0; a<=P->node && a<max_fork; a++)
-	{
-	  if (min[a][2]>1)(NL[min[a][0]])->fork=1;
-	}
+    max_fork=get_nproc()/2;//number of nodes forked, one node =>two jobs
+    tree2nnode (P);
+    NL=tree2node_list (P, NULL);
+    min=declare_int (P->node+1,3);
+    for (a=0; a<=P->node; a++)
+    {
+      NT_node N;
+      N=NL[a];
+      min[a][0]=a;
+      if (!N);
+      else if (N && N->nseq==1)min[a][1]=0;
+      else
+      {
+        min[a][1]=MIN(((N->left)->nseq),((N->right)->nseq))*A->nseq+MAX(((N->left)->nseq),((N->right)->nseq));//sort on min and break ties on max
+        min[a][2]=MIN(((N->left)->nseq),((N->right)->nseq));
+      }
     }
+    sort_int_inv (min,3, 1, 0, P->node);
+    for (a=0; a<=P->node && a<max_fork; a++)
+    {
+      if (min[a][2]>1)(NL[min[a][0]])->fork=1;
+    }
+  }
   free_int (min, -1);
   rec_local_tree_aln (P, A,CL, 1);
   for (a=0; a<P->nseq; a++)sprintf (A->tree_order[a], "%s", (CL->S)->name[P->lseq[a]]);
@@ -4008,223 +4012,224 @@ NT_node rec_local_tree_aln ( NT_node P, Alignment*A, Constraint_list *CL,int pri
 
 
 NT_node* tree2ao ( NT_node LT, NT_node RT, Alignment*A, int nseq, Constraint_list *CL)
+{
+  int *n_s;
+  int ** l_s;
+  int a, b;
+  static thread_local int n_groups_done=0;
+  int do_split=0;
+  int  nseq2align=0;
+  int *translation;
+
+
+  NT_node P=NULL;
+
+
+
+
+  if (n_groups_done==0)
+  {
+    if (SNL)vfree(SNL);
+    SNL=(NT_node*)vcalloc ( (CL->S)->nseq, sizeof (NT_node));
+
+    if (CL->translation)vfree(CL->translation);
+    CL->translation=(int*)vcalloc ( (CL->S)->nseq, sizeof (int));
+
+    for ( a=0; a< (CL->S)->nseq; a++)
+      CL->translation[a]=name_is_in_list ( (CL->S)->name[a], (CL->S)->name, (CL->S)->nseq, MAXNAMES);
+
+    n_groups_done=(CL->S)->nseq;
+    A=reorder_aln (A, (CL->S)->name,(CL->S)->nseq);
+    A->nseq=nseq;
+  }
+
+  translation=CL->translation;
+  n_s=(int*)vcalloc (2, sizeof ( int));
+  l_s=declare_int ( 2, nseq);
+
+
+  if ( RT->parent !=LT->parent)fprintf ( stderr, "Tree Pb [FATAL:%s]", PROGRAM);
+  else P=RT->parent;
+
+  if ( LT->leaf==1 && RT->leaf==0)
+    tree2ao ( RT->left, RT->right,A, nseq,CL);
+
+  else if ( RT->leaf==1 && LT->leaf==0)
+    tree2ao ( LT->left, LT->right,A,nseq,CL);
+
+  else if (RT->leaf==0 && LT->leaf==0)
+  {
+    tree2ao ( LT->left, LT->right,A,nseq,CL);
+    tree2ao ( RT->left, RT->right,A,nseq,CL);
+  }
+
+  if ( LT->leaf==1 && RT->leaf==1)
+  {
+    /*1 Identify the two groups of sequences to align*/
+
+    nseq2align=LT->nseq+RT->nseq;
+    n_s[0]=LT->nseq;
+    for ( a=0; a< LT->nseq; a++)l_s[0][a]=translation[LT->lseq[a]];
+    if ( LT->nseq==1)LT->group=l_s[0][0];
+
+    n_s[1]=RT->nseq;
+    for ( a=0; a< RT->nseq; a++)l_s[1][a]=translation[RT->lseq[a]];
+    if ( RT->nseq==1)RT->group=l_s[1][0];
+
+
+    P->group=n_groups_done++;
+
+    if (nseq2align==nseq)
     {
-    int *n_s;
-    int ** l_s;
-    int a, b;
-    static int n_groups_done, do_split=0;
-    int  nseq2align=0;
-    int *translation;
+      for (b=0, a=0; a< n_s[0]; a++, b++)sprintf ( A->tree_order[b],"%s", (CL->S)->name[l_s[0][a]]);
+      for (a=0; a< n_s[1]     ; a++, b++)sprintf ( A->tree_order[b], "%s",(CL->S)->name[l_s[1][a]]);
+      n_groups_done=0;
+    }
+  }
+  if (P->parent)P->leaf=1;
+  if ( LT->isseq==0)LT->leaf=0;
+  if ( RT->isseq==0)RT->leaf=0;
+
+  if (RT->isseq){SNL[translation[RT->lseq[0]]]=RT;RT->score=100;}
+  if (LT->isseq){SNL[translation[LT->lseq[0]]]=LT;LT->score=100;}
+
+  do_split=split_condition (nseq2align,A->score_aln,CL);
+  if (CL->split && do_split)
+  {
+
+    for (a=0; a< P->nseq; a++)SNL[CL->translation[P->lseq[a]]]=NULL;
+    SNL[CL->translation[RT->lseq[0]]]=P;
+
+  }
+
+  vfree ( n_s);
+  free_int ( l_s, 2);
+  return SNL;
+
+}
+
+NT_node* tree_realn ( NT_node LT, NT_node RT, Alignment*A, int nseq, Constraint_list *CL)
+{
+  int *n_s;
+  int ** l_s;
+  int a, b;
+  int score;
+  static thread_local int n_groups_done=0;
+  int nseq2align=0;
+  int *translation;
 
 
-    NT_node P=NULL;
+  NT_node P=NULL;
 
 
 
 
-    if (n_groups_done==0)
-       {
-	 if (SNL)vfree(SNL);
-	 SNL=(NT_node*)vcalloc ( (CL->S)->nseq, sizeof (NT_node));
+  if (n_groups_done==0)
+  {
+    if (SNL)vfree(SNL);
+    SNL=(NT_node*)vcalloc ( (CL->S)->nseq, sizeof (NT_node));
 
-	 if (CL->translation)vfree(CL->translation);
-	 CL->translation=(int*)vcalloc ( (CL->S)->nseq, sizeof (int));
+    if (CL->translation)vfree(CL->translation);
+    CL->translation=(int*)vcalloc ( (CL->S)->nseq, sizeof (int));
 
-	 for ( a=0; a< (CL->S)->nseq; a++)
-	   CL->translation[a]=name_is_in_list ( (CL->S)->name[a], (CL->S)->name, (CL->S)->nseq, MAXNAMES);
+    for ( a=0; a< (CL->S)->nseq; a++)
+      CL->translation[a]=name_is_in_list ( (CL->S)->name[a], (CL->S)->name, (CL->S)->nseq, MAXNAMES);
+    if (nseq>2)fprintf ( CL->local_stderr, "\nPROGRESSIVE_ALIGNMENT [Tree Based]\n");
+    else fprintf ( CL->local_stderr, "\nPAIRWISE_ALIGNMENT [No Tree]\n");
+    n_groups_done=(CL->S)->nseq;
+    A=reorder_aln (A, (CL->S)->name,(CL->S)->nseq);
+    A->nseq=nseq;
+  }
 
-	 n_groups_done=(CL->S)->nseq;
-	 A=reorder_aln (A, (CL->S)->name,(CL->S)->nseq);
-	 A->nseq=nseq;
-       }
-
-    translation=CL->translation;
-    n_s=(int*)vcalloc (2, sizeof ( int));
-    l_s=declare_int ( 2, nseq);
+  translation=CL->translation;
+  n_s=(int*)vcalloc (2, sizeof ( int));
+  l_s=declare_int ( 2, nseq);
 
 
+  if ( nseq==2)
+  {
+    n_s[0]=n_s[1]=1;
+    l_s[0][0]=name_is_in_list ((CL->S)->name[0],(CL->S)->name, (CL->S)->nseq, MAXNAMES);
+    l_s[1][0]=name_is_in_list ((CL->S)->name[1],(CL->S)->name, (CL->S)->nseq, MAXNAMES);
+    A->score_aln=score=pair_wise (A, n_s, l_s,CL);
+
+    vfree ( n_s);
+    free_int ( l_s, 2);
+    return SNL;
+  }
+  else
+  {
     if ( RT->parent !=LT->parent)fprintf ( stderr, "Tree Pb [FATAL:%s]", PROGRAM);
     else P=RT->parent;
 
     if ( LT->leaf==1 && RT->leaf==0)
-      tree2ao ( RT->left, RT->right,A, nseq,CL);
+      tree_realn ( RT->left, RT->right,A, nseq,CL);
 
     else if ( RT->leaf==1 && LT->leaf==0)
-      tree2ao ( LT->left, LT->right,A,nseq,CL);
+      tree_realn ( LT->left, LT->right,A,nseq,CL);
 
     else if (RT->leaf==0 && LT->leaf==0)
+    {
+      tree_realn ( LT->left, LT->right,A,nseq,CL);
+      tree_realn ( RT->left, RT->right,A,nseq,CL);
+    }
+
+    if ( LT->leaf==1 && RT->leaf==1 && (RT->nseq+LT->nseq)<nseq)
+    {
+      /*1 Identify the two groups of sequences to align*/
+      int *list, s, id1, id2;
+      list=(int*)vcalloc (nseq, sizeof (int));
+      for (a=0; a<LT->nseq; a++)
       {
-	tree2ao ( LT->left, LT->right,A,nseq,CL);
-	tree2ao ( RT->left, RT->right,A,nseq,CL);
+        s=translation[LT->lseq[a]];
+        list[s]=1;
+      }
+      for (a=0; a<RT->nseq; a++)
+      {
+        s=translation[RT->lseq[a]];
+        list[s]=1;
+      }
+      for (a=0; a<nseq; a++)
+      {
+        s=list[a];
+        l_s[s][n_s[s]++]=a;
       }
 
-    if ( LT->leaf==1 && RT->leaf==1)
+      vfree (list);
+
+      id1=sub_aln2sim (A, n_s, l_s, "idmat_sim");
+
+
+      ungap_sub_aln (A, n_s[0],l_s[0]);
+      ungap_sub_aln (A, n_s[1],l_s[1]);
+      P->score=A->score_aln=score=pair_wise (A, n_s, l_s,CL);
+      id2=sub_aln2sim (A, n_s, l_s, "idmat_sim");
+
+
+
+
+      if (nseq2align==nseq)
       {
-	/*1 Identify the two groups of sequences to align*/
-
-	nseq2align=LT->nseq+RT->nseq;
-	n_s[0]=LT->nseq;
-	for ( a=0; a< LT->nseq; a++)l_s[0][a]=translation[LT->lseq[a]];
-	if ( LT->nseq==1)LT->group=l_s[0][0];
-
-	n_s[1]=RT->nseq;
-	for ( a=0; a< RT->nseq; a++)l_s[1][a]=translation[RT->lseq[a]];
-	if ( RT->nseq==1)RT->group=l_s[1][0];
-
-
-	P->group=n_groups_done++;
-
-	if (nseq2align==nseq)
-	  {
-	    for (b=0, a=0; a< n_s[0]; a++, b++)sprintf ( A->tree_order[b],"%s", (CL->S)->name[l_s[0][a]]);
-	    for (a=0; a< n_s[1]     ; a++, b++)sprintf ( A->tree_order[b], "%s",(CL->S)->name[l_s[1][a]]);
-	    n_groups_done=0;
-	  }
+        for (b=0, a=0; a< n_s[0]; a++, b++)sprintf ( A->tree_order[b],"%s", (CL->S)->name[l_s[0][a]]);
+        for (a=0; a< n_s[1]     ; a++, b++)sprintf ( A->tree_order[b], "%s",(CL->S)->name[l_s[1][a]]);
+        n_groups_done=0;
       }
+    }
     if (P->parent)P->leaf=1;
+    //Recycle the tree
     if ( LT->isseq==0)LT->leaf=0;
     if ( RT->isseq==0)RT->leaf=0;
 
     if (RT->isseq){SNL[translation[RT->lseq[0]]]=RT;RT->score=100;}
     if (LT->isseq){SNL[translation[LT->lseq[0]]]=LT;LT->score=100;}
 
-    do_split=split_condition (nseq2align,A->score_aln,CL);
-    if (CL->split && do_split)
-      {
-
-	for (a=0; a< P->nseq; a++)SNL[CL->translation[P->lseq[a]]]=NULL;
-	SNL[CL->translation[RT->lseq[0]]]=P;
-
-      }
-
     vfree ( n_s);
     free_int ( l_s, 2);
     return SNL;
-
-    }
-
-NT_node* tree_realn ( NT_node LT, NT_node RT, Alignment*A, int nseq, Constraint_list *CL)
-    {
-    int *n_s;
-    int ** l_s;
-    int a, b;
-    int score;
-    static int n_groups_done;
-    int nseq2align=0;
-    int *translation;
+  }
 
 
-    NT_node P=NULL;
-
-
-
-
-    if (n_groups_done==0)
-       {
-	 if (SNL)vfree(SNL);
-	 SNL=(NT_node*)vcalloc ( (CL->S)->nseq, sizeof (NT_node));
-
-	 if (CL->translation)vfree(CL->translation);
-	 CL->translation=(int*)vcalloc ( (CL->S)->nseq, sizeof (int));
-
-	 for ( a=0; a< (CL->S)->nseq; a++)
-	   CL->translation[a]=name_is_in_list ( (CL->S)->name[a], (CL->S)->name, (CL->S)->nseq, MAXNAMES);
-	 if (nseq>2)fprintf ( CL->local_stderr, "\nPROGRESSIVE_ALIGNMENT [Tree Based]\n");
-	 else fprintf ( CL->local_stderr, "\nPAIRWISE_ALIGNMENT [No Tree]\n");
-	 n_groups_done=(CL->S)->nseq;
-	 A=reorder_aln (A, (CL->S)->name,(CL->S)->nseq);
-	 A->nseq=nseq;
-       }
-
-    translation=CL->translation;
-    n_s=(int*)vcalloc (2, sizeof ( int));
-    l_s=declare_int ( 2, nseq);
-
-
-    if ( nseq==2)
-       {
-       n_s[0]=n_s[1]=1;
-       l_s[0][0]=name_is_in_list ((CL->S)->name[0],(CL->S)->name, (CL->S)->nseq, MAXNAMES);
-       l_s[1][0]=name_is_in_list ((CL->S)->name[1],(CL->S)->name, (CL->S)->nseq, MAXNAMES);
-       A->score_aln=score=pair_wise (A, n_s, l_s,CL);
-
-       vfree ( n_s);
-       free_int ( l_s, 2);
-       return SNL;
-       }
-    else
-       {
-       if ( RT->parent !=LT->parent)fprintf ( stderr, "Tree Pb [FATAL:%s]", PROGRAM);
-       else P=RT->parent;
-
-       if ( LT->leaf==1 && RT->leaf==0)
-	   tree_realn ( RT->left, RT->right,A, nseq,CL);
-
-       else if ( RT->leaf==1 && LT->leaf==0)
-	   tree_realn ( LT->left, LT->right,A,nseq,CL);
-
-       else if (RT->leaf==0 && LT->leaf==0)
-          {
-	  tree_realn ( LT->left, LT->right,A,nseq,CL);
-	  tree_realn ( RT->left, RT->right,A,nseq,CL);
-	  }
-
-       if ( LT->leaf==1 && RT->leaf==1 && (RT->nseq+LT->nseq)<nseq)
-          {
-	  /*1 Identify the two groups of sequences to align*/
-	    int *list, s, id1, id2;
-	    list=(int*)vcalloc (nseq, sizeof (int));
-	    for (a=0; a<LT->nseq; a++)
-	      {
-		s=translation[LT->lseq[a]];
-		list[s]=1;
-	      }
-	    for (a=0; a<RT->nseq; a++)
-	      {
-		s=translation[RT->lseq[a]];
-		list[s]=1;
-	      }
-	    for (a=0; a<nseq; a++)
-	      {
-		s=list[a];
-		l_s[s][n_s[s]++]=a;
-	      }
-
-	    vfree (list);
-
-	    id1=sub_aln2sim (A, n_s, l_s, "idmat_sim");
-
-
-	    ungap_sub_aln (A, n_s[0],l_s[0]);
-	    ungap_sub_aln (A, n_s[1],l_s[1]);
-	    P->score=A->score_aln=score=pair_wise (A, n_s, l_s,CL);
-	    id2=sub_aln2sim (A, n_s, l_s, "idmat_sim");
-
-
-
-
-	    if (nseq2align==nseq)
-	      {
-		for (b=0, a=0; a< n_s[0]; a++, b++)sprintf ( A->tree_order[b],"%s", (CL->S)->name[l_s[0][a]]);
-		for (a=0; a< n_s[1]     ; a++, b++)sprintf ( A->tree_order[b], "%s",(CL->S)->name[l_s[1][a]]);
-		n_groups_done=0;
-	      }
-	  }
-       if (P->parent)P->leaf=1;
-       //Recycle the tree
-       if ( LT->isseq==0)LT->leaf=0;
-       if ( RT->isseq==0)RT->leaf=0;
-
-       if (RT->isseq){SNL[translation[RT->lseq[0]]]=RT;RT->score=100;}
-       if (LT->isseq){SNL[translation[LT->lseq[0]]]=LT;LT->score=100;}
-
-       vfree ( n_s);
-       free_int ( l_s, 2);
-       return SNL;
-       }
-
-
-    }
+}
 
 
 
@@ -4233,17 +4238,17 @@ Alignment* profile_tree_aln ( NT_node P,Alignment*A,Constraint_list *CL, int thr
   int *ns, **ls, a, sim;
   NT_node LT, RT, D, UD;
   Alignment *F;
-  static NT_node R;
-  static int n_groups_done;
+  static thread_local NT_node R=NULL;
+  static thread_local int n_groups_done=0;
 
 
   //first pass
   //Sequences must be in the same order as the tree sequences
-   if (!P->parent)
-    {
-      R=P;
-      n_groups_done=P->nseq+1;
-    }
+  if (!P->parent)
+  {
+    R=P;
+    n_groups_done=P->nseq+1;
+  }
 
   LT=P->left;
   RT=P->right;
@@ -4255,18 +4260,18 @@ Alignment* profile_tree_aln ( NT_node P,Alignment*A,Constraint_list *CL, int thr
   ls=declare_int ( 2,R->nseq);
 
   if ( LT->nseq==1)
-    {
-      ls[0][ns[0]++]=LT->lseq[0];
-      LT->group=ls[0][0]+1;
-    }
+  {
+    ls[0][ns[0]++]=LT->lseq[0];
+    LT->group=ls[0][0]+1;
+  }
   else
     node2seq_list (LT,&ns[0], ls[0]);
 
   if ( RT->nseq==1)
-    {
-      ls[1][ns[1]++]=RT->lseq[0];
-      RT->group=ls[1][0]+1;
-    }
+  {
+    ls[1][ns[1]++]=RT->lseq[0];
+    RT->group=ls[1][0]+1;
+  }
   else
     node2seq_list (RT,&ns[1], ls[1]);
 
@@ -4278,45 +4283,45 @@ Alignment* profile_tree_aln ( NT_node P,Alignment*A,Constraint_list *CL, int thr
   sim=sub_aln2sim(A, ns, ls, "idmat_sim1");
 
   if ( sim<threshold)
+  {
+    UD=(ns[0]<=ns[1])?RT:LT;
+    D= (ns[0]<=ns[1])?LT:RT;
+
+    UD->aligned=1;
+    D->aligned=0;
+
+    fprintf (CL->local_stderr,  "[Delayed (Sim=%4d). Kept Group %4d]",sim,UD->group);
+
+
+    ungap_sub_aln (A, ns[0],ls[0]);
+    ungap_sub_aln (A, ns[1],ls[1]);
+    A->nseq=MAX(ns[0],ns[1]);
+
+    F=A;
+    while (F->A)F=F->A;
+    F->A=main_read_aln (output_fasta_sub_aln (NULL, A, ns[(D==LT)?0:1], ls[(D==LT)?0:1]), NULL);
+    if ( P==R)
     {
-      UD=(ns[0]<=ns[1])?RT:LT;
-      D= (ns[0]<=ns[1])?LT:RT;
-
-      UD->aligned=1;
-      D->aligned=0;
-
-      fprintf (CL->local_stderr,  "[Delayed (Sim=%4d). Kept Group %4d]",sim,UD->group);
-
-
-      ungap_sub_aln (A, ns[0],ls[0]);
-      ungap_sub_aln (A, ns[1],ls[1]);
-      A->nseq=MAX(ns[0],ns[1]);
-
+      F=F->A;
+      F->A=main_read_aln (output_fasta_sub_aln (NULL, A, ns[(D==LT)?1:0], ls[(D==LT)?1:0]), NULL);
+    }
+    if (F->A==NULL)
+    {
+      printf_exit (EXIT_FAILURE, stderr, "\nError: Empty group");
+    }
+  }
+  else
+  {
+    LT->aligned=1; RT->aligned=1;
+    fprintf (CL->local_stderr, "[Score=%4d][Len=%5d]",sub_aln2sub_aln_score (A, CL, CL->evaluate_mode,ns, ls), (int)strlen ( A->seq_al[ls[0][0]]));
+    A->nseq=ns[0]+ns[1];
+    if (P==R)
+    {
       F=A;
       while (F->A)F=F->A;
-      F->A=main_read_aln (output_fasta_sub_aln (NULL, A, ns[(D==LT)?0:1], ls[(D==LT)?0:1]), NULL);
-      if ( P==R)
-	{
-	  F=F->A;
-	  F->A=main_read_aln (output_fasta_sub_aln (NULL, A, ns[(D==LT)?1:0], ls[(D==LT)?1:0]), NULL);
-	}
-      if (F->A==NULL)
-	{
-	  printf_exit (EXIT_FAILURE, stderr, "\nError: Empty group");
-	}
+      F->A=main_read_aln (output_fasta_sub_aln2 (NULL, A, ns, ls), NULL);
     }
-  else
-    {
-      LT->aligned=1; RT->aligned=1;
-      fprintf (CL->local_stderr, "[Score=%4d][Len=%5d]",sub_aln2sub_aln_score (A, CL, CL->evaluate_mode,ns, ls), (int)strlen ( A->seq_al[ls[0][0]]));
-      A->nseq=ns[0]+ns[1];
-      if (P==R)
-	{
-	  F=A;
-	  while (F->A)F=F->A;
-	  F->A=main_read_aln (output_fasta_sub_aln2 (NULL, A, ns, ls), NULL);
-	}
-    }
+  }
   P->nseq=0;
   for (a=0; a<LT->nseq;a++)P->lseq[P->nseq++]=LT->lseq[a];
   for (a=0; a<RT->nseq;a++)P->lseq[P->nseq++]=RT->lseq[a];
@@ -4404,8 +4409,8 @@ Alignment* delayed_tree_aln1 ( NT_node P,Alignment*A,Constraint_list *CL, int th
 {
   int *ns, **ls, a, sim;
   NT_node LT, RT, D, UD;
-  static NT_node R;
-  static int n_groups_done;
+  static thread_local NT_node R=NULL;
+  static thread_local int n_groups_done=0;
 
 
   //first pass
@@ -4485,7 +4490,7 @@ Alignment* delayed_tree_aln2 ( NT_node P,Alignment*A,Constraint_list *CL, int th
 {
 
   NT_node LT, RT, D;
-  static NT_node R;
+  static thread_local NT_node R=NULL;
 
 
   LT=P->left;
@@ -4842,21 +4847,21 @@ int set_node_score (Alignment *A, NT_node P, char *mode)
 void   ns2master_ns       (int *ins, int **ils, int **ons, int ***ols)
 {
   if (read_size_int (ins, sizeof (int))!=3)
-    {
-      ons[0]=ins;
-      ols[0]=ils;
-    }
+  {
+    ons[0]=ins;
+    ols[0]=ils;
+  }
   else
-    {
-      static int *lns;
-      static int **lls;
+  {
+    static thread_local int *lns=NULL;
+    static thread_local int **lls=NULL;
 
-      if (!lns){lns=(int*)vcalloc (2, sizeof(int));lls=declare_int(2,1);}
-      ons[0]=lns;
-      ols[0]=lls;
-      lls[0][0]=ils[0][ins[0]];
-      lls[1][0]=ils[1][ins[1]];
-    }
+    if (!lns){lns=(int*)vcalloc (2, sizeof(int));lls=declare_int(2,1);}
+    ons[0]=lns;
+    ols[0]=lls;
+    lls[0][0]=ils[0][ins[0]];
+    lls[1][0]=ils[1][ins[1]];
+  }
 }
 
 
@@ -4926,27 +4931,27 @@ int split_condition (int nseq, int score, Constraint_list *CL)
 }
 int profile_pair_wise (Alignment *A, int n1, int *l1, int n2, int *l2, Constraint_list *CL)
 {
-  static int *ns;
-  static int **ls;
-  static int **ils;
+  static thread_local int *ns=NULL;
+  static thread_local int **ls=NULL;
+  static thread_local int **ils=NULL;
   int ret,a,b;
   int master_profile=atoigetenv ("MASTER_PROFILE");
   if (!ns)
-    {
-      ils=(int**)vcalloc(2, sizeof (int*));
-      ns=(int*)vcalloc (2, sizeof (int));
-      ls=declare_int (2, (CL->S)->nseq+1);
-    }
+  {
+    ils=(int**)vcalloc(2, sizeof (int*));
+    ns=(int*)vcalloc (2, sizeof (int));
+    ls=declare_int (2, (CL->S)->nseq+1);
+  }
 
   ns[0]=n1;
   ns[1]=n2;
   ils[0]=l1;
   ils[1]=l2;
   for (a=0; a<2; a++)
-    {
-      if (read_size_int(ls[a],sizeof(int))<(ns[a]+1))ls[a]=(int*)vrealloc (ls[a], sizeof(int)*(ns[a]+1));
-      for (b=0; b<ns[a]; b++)ls[a][b]=ils[a][b];
-    }
+  {
+    if (read_size_int(ls[a],sizeof(int))<(ns[a]+1))ls[a]=(int*)vrealloc (ls[a], sizeof(int)*(ns[a]+1));
+    for (b=0; b<ns[a]; b++)ls[a][b]=ils[a][b];
+  }
 
   if (master_profile)ns=set_profile_master (A, ns, ls, CL);
   ret=pair_wise (A, ns, ls, CL);
@@ -4960,9 +4965,9 @@ void mpw_display_groups (Alignment *A, int *ns, int **ls);
 int check_integrity (Alignment *A, Constraint_list *CL);
 int pair_wise_ms(Alignment *A, int*ins, int **ils,Constraint_list *CL )
 {
-  static int *ns;
-  static int **ls;
-  int score,a;
+  static thread_local int *ns=NULL;
+  static thread_local int **ls=NULL;
+  int score=0;
   int print=0;
 
   if (!ns)ns=(int*)vcalloc (2, sizeof(int));
@@ -4973,135 +4978,136 @@ int pair_wise_ms(Alignment *A, int*ins, int **ils,Constraint_list *CL )
   if      (read_size_int (ins, sizeof (int))!=3)return pair_wise (A, ins,ils,CL);
   else if (ins[2]==-1)return pair_wise (A, ins,ils,CL);//ignore the new mode
   else
+  {
+    int a,b,c,s,ss,g,p,l,ml;
+    int ***col;
+    char **array1,**array2;
+    int *pos;
+    int *res;
+    static thread_local Alignment *B=NULL;
+
+
+    if (!B)B=copy_aln (A, NULL);
+
+    pos=(int*)vcalloc (2, sizeof (int));
+    res=(int*)vcalloc (2, sizeof (int));
+
+    for(g=0;g<2; g++)ls[g][0]=ils[g][ins[g]];
+
+    for (a=0, ml=0; a<(CL->S)->nseq; a++)ml=MAX(ml,(strlen(A->seq_al[a])));
+    array1 =(char**)vcalloc ((CL->S)->nseq, sizeof (char*));
+    array2 =(char**)vcalloc ((CL->S)->nseq, sizeof (char*));
+
+    //mpw_display_groups (A, ins, ils);
+
+
+    //duplicate the two groups to align
+    for (g=0; g<2; g++)
+      for (b=0; b<ins[g]; b++)
+      {
+        s=ils[g][b];
+
+        array1[s]=(char*)vcalloc (ml+1,   sizeof (char));
+        array2[s]=(char*)vcalloc (ml*2, sizeof (char));
+        sprintf (array1[s], "%s", A->seq_al[s]);
+      }
+
+    //map the columns positions
+    col=(int***)vcalloc (2, sizeof(int**));
+    for (g=0;g<2; g++)
     {
-      int a,b,c,d,s,ss,g,p,l,ml;
-      int ***col;
-      char **array1,**array2;
-      int *pos;
-      int *res;
-      static Alignment *B;
-
-
-      if (!B)B=copy_aln (A, NULL);
-
-      pos=(int*)vcalloc (2, sizeof (int));
-      res=(int*)vcalloc (2, sizeof (int));
-
-      for(g=0;g<2; g++)ls[g][0]=ils[g][ins[g]];
-
-      for (a=0, ml=0; a<(CL->S)->nseq; a++)ml=MAX(ml,(strlen(A->seq_al[a])));
-      array1 =(char**)vcalloc ((CL->S)->nseq, sizeof (char*));
-      array2 =(char**)vcalloc ((CL->S)->nseq, sizeof (char*));
-
-      //mpw_display_groups (A, ins, ils);
-
-
-      //duplicate the two groups to align
-      for (g=0; g<2; g++)
-	for (b=0; b<ins[g]; b++)
-	  {
-	    s=ils[g][b];
-
-	    array1[s]=(char*)vcalloc (ml+1,   sizeof (char));
-	    array2[s]=(char*)vcalloc (ml*2, sizeof (char));
-	    sprintf (array1[s], "%s", A->seq_al[s]);
-	  }
-
-      //map the columns positions
-      col=(int***)vcalloc (2, sizeof(int**));
-      for (g=0;g<2; g++)
-	{
-	  for (b=0; b<ns[g]; b++)
-	    {
-	      int d;
-	      s=ls[g][b];
-	      l=strlen (array1[s]);
-	      col[g]=declare_int (l+1,2);
-	      for (p=0,d=0; p<l; p++)
-		{
-		  if (is_gap(A->seq_al[s][p])){col[g][d][1]++;}
-		  else {col[g][++d][0]=p+1;}
-		}
-	      ungap (A->seq_al[s]);
-	    }
-	}
-
-      score=pair_wise (A, ns,ls,CL);
-
-      if (print)
-	{
-	  B->nseq=2;
-	  B->seq_al[0]=A->seq_al[ls[0][0]];
-	  B->seq_al[1]=A->seq_al[ls[1][0]];
-	  B->name[0]=A->name[ls[0][0]];
-	  B->name[1]=A->name[ls[1][0]];
-	  B->len_aln=strlen (B->seq_al[0]);
-	  print_aln (B);
-	}
-
-
-      pos[0]=pos[1]=0;
-      res[0]=res[1]=0;
-
-      //add potential extremity gaps
-      for (g=0; g<2; g++)
-	{
-	  for (b=0; b<ins[g]; b++)
-	    {
-	      s=ils[g][b];
-	      for (p=0; p<col[g][0][1]; p++)array2[s][p]=array1[s][p];
-	    }
-	  pos[g]=p;
-	}
-      array2=mpw_gap_padd (array2,ins,ils,pos);
-
-      for (p=0; p<A->len_aln; p++)
-	{
-	  for (g=0; g<2; g++)
-	    {
-	      int ig;
-	      int r=A->seq_al[ls[g][0]][p];
-	      int cpos;
-	      int **ccol=col[g];
-	      res[g]+=!(ig=is_gap(r));
-
-	      for (b=0; b<ins[g]; b++)
-		{
-		  cpos =pos[g];
-		  ss=ils[g][b];
-		  if (!ig)
-		    {
-		      array2[ss][cpos++]=array1[ss][ccol[res[g]][0]-1];
-		      for (c=0; c<ccol[res[g]][1]; c++)array2[ss][cpos++]=array1[ss][ccol[res[g]][0]+c];;
-		    }
-		  else
-		    {
-		      array2[ss][cpos++]='-';
-		    }
-
-		}
-	      pos[g]=cpos;
-	    }
-	  array2=mpw_gap_padd(array2,ins,ils,pos);
-	}
-      A=realloc_aln2  ( A,pos[0]+1, 10000);
-      for (a=0; a<2; a++)
-	for (b=0; b<ins[a]; b++)
-	  {
-	    sprintf (A->seq_al[ils[a][b]], "%s",array2[ils[a][b]]);
-	  }
-      A->len_aln=pos[0];
-      A->nseq=ins[0]+ins[1];
-
-      A=mpw_compact_aln(A,ins,ils);
-      //mpw_display_groups (A, ins, ils);
-      free_char (array1, -1);
-      free_char (array2,-1);
-      free_arrayN((void**)col, 3);
-      //check_integrity(A, CL);
-      return score;
+      for (b=0; b<ns[g]; b++)
+      {
+        int d;
+        s=ls[g][b];
+        l=strlen (array1[s]);
+        col[g]=declare_int (l+1,2);
+        for (p=0,d=0; p<l; p++)
+        {
+          if (is_gap(A->seq_al[s][p])){col[g][d][1]++;}
+          else {col[g][++d][0]=p+1;}
+        }
+        ungap (A->seq_al[s]);
+      }
     }
+
+    score=pair_wise (A, ns,ls,CL);
+
+    if (print)
+    {
+      B->nseq=2;
+      B->seq_al[0]=A->seq_al[ls[0][0]];
+      B->seq_al[1]=A->seq_al[ls[1][0]];
+      B->name[0]=A->name[ls[0][0]];
+      B->name[1]=A->name[ls[1][0]];
+      B->len_aln=strlen (B->seq_al[0]);
+      print_aln (B);
+    }
+
+
+    pos[0]=pos[1]=0;
+    res[0]=res[1]=0;
+
+    //add potential extremity gaps
+    for (g=0; g<2; g++)
+    {
+      for (b=0; b<ins[g]; b++)
+      {
+        s=ils[g][b];
+        for (p=0; p<col[g][0][1]; p++)array2[s][p]=array1[s][p];
+      }
+      pos[g]=p;
+    }
+    array2=mpw_gap_padd (array2,ins,ils,pos);
+
+    for (p=0; p<A->len_aln; p++)
+    {
+      for (g=0; g<2; g++)
+      {
+        int ig;
+        int r=A->seq_al[ls[g][0]][p];
+        int cpos;
+        int **ccol=col[g];
+        res[g]+=!(ig=is_gap(r));
+
+        for (b=0; b<ins[g]; b++)
+        {
+          cpos =pos[g];
+          ss=ils[g][b];
+          if (!ig)
+          {
+            array2[ss][cpos++]=array1[ss][ccol[res[g]][0]-1];
+            for (c=0; c<ccol[res[g]][1]; c++)array2[ss][cpos++]=array1[ss][ccol[res[g]][0]+c];;
+          }
+          else
+          {
+            array2[ss][cpos++]='-';
+          }
+
+        }
+        pos[g]=cpos;
+      }
+      array2=mpw_gap_padd(array2,ins,ils,pos);
+    }
+    A=realloc_aln2  ( A,pos[0]+1, 10000);
+    for (a=0; a<2; a++)
+      for (b=0; b<ins[a]; b++)
+      {
+        sprintf (A->seq_al[ils[a][b]], "%s",array2[ils[a][b]]);
+      }
+    A->len_aln=pos[0];
+    A->nseq=ins[0]+ins[1];
+
+    A=mpw_compact_aln(A,ins,ils);
+    //mpw_display_groups (A, ins, ils);
+    free_char (array1, -1);
+    free_char (array2,-1);
+    free_arrayN((void**)col, 3);
+    //check_integrity(A, CL);
+    return score;
+  }
 }
+
 int check_integrity (Alignment *A, Constraint_list *CL)
 {
   int a;
@@ -5278,217 +5284,217 @@ int empty_pair_wise ( Alignment *A, int *ns, int **l_s, Constraint_list *CL, int
 
 
 Pwfunc get_pair_wise_function (Pwfunc pw,char *dp_mode, int *glocal)
+{
+  /*Returns a function and a mode (Glogal, Local...)*/
+
+
+
+  int a;
+  static thread_local int npw=0;
+  static thread_local Pwfunc *pwl;
+  static thread_local char **dpl;
+  static thread_local int *dps;
+
+  /*The first time: initialize the list of pairwse functions*/
+  if ( npw==0)
   {
-    /*Returns a function and a mode (Glogal, Local...)*/
+    pwl=(Pwfunc*)vcalloc ( 100, sizeof (Pwfunc));
+    dpl=declare_char (100, 100);
+    dps=(int*)vcalloc ( 100, sizeof (int));
+
+    pwl[npw]=fasta_cdna_pair_wise;
+    sprintf (dpl[npw], "fasta_cdna_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
+
+    pwl[npw]=cfasta_cdna_pair_wise;
+    sprintf (dpl[npw], "cfasta_cdna_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
+
+    pwl[npw]=idscore_pair_wise;
+    sprintf (dpl[npw], "idscore_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
+
+    pwl[npw]=gotoh_pair_wise;
+    sprintf (dpl[npw], "gotoh_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
+
+    pwl[npw]=gotoh_pair_wise_lgp;
+    sprintf (dpl[npw], "gotoh_pair_wise_lgp");
+    dps[npw]=GLOBAL;
+    npw++;
 
 
+    pwl[npw]=proba_pair_wise;
+    sprintf (dpl[npw], "proba_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-    int a;
-    static int npw;
-    static Pwfunc *pwl;
-    static char **dpl;
-    static int *dps;
+    pwl[npw]=biphasic_pair_wise;
+    sprintf (dpl[npw], "biphasic_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-    /*The first time: initialize the list of pairwse functions*/
-    if ( npw==0)
-      {
-	pwl=(Pwfunc*)vcalloc ( 100, sizeof (Pwfunc));
-	dpl=declare_char (100, 100);
-	dps=(int*)vcalloc ( 100, sizeof (int));
+    pwl[npw]=subop1_pair_wise;
+    sprintf (dpl[npw], "subop1_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=fasta_cdna_pair_wise;
-	sprintf (dpl[npw], "fasta_cdna_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=subop2_pair_wise;
+    sprintf (dpl[npw], "subop2_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=cfasta_cdna_pair_wise;
-	sprintf (dpl[npw], "cfasta_cdna_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=myers_miller_pair_wise;
+    sprintf (dpl[npw], "myers_miller_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=idscore_pair_wise;
-	sprintf (dpl[npw], "idscore_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=test_pair_wise;
+    sprintf (dpl[npw], "test_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=gotoh_pair_wise;
-	sprintf (dpl[npw], "gotoh_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=fasta_gotoh_pair_wise;
+    sprintf (dpl[npw], "fasta_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
+    pwl[npw]=cfasta_gotoh_pair_wise;
+    sprintf (dpl[npw], "cfasta_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=gotoh_pair_wise_lgp;
-	sprintf (dpl[npw], "gotoh_pair_wise_lgp");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=very_fast_gotoh_pair_wise;
+    sprintf (dpl[npw], "very_fast_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
+    pwl[npw]=gotoh_pair_wise_sw;
+    sprintf (dpl[npw], "gotoh_pair_wise_sw");
+    dps[npw]=LOCAL;
+    npw++;
 
-	pwl[npw]=proba_pair_wise;
-	sprintf (dpl[npw], "proba_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=cfasta_gotoh_pair_wise_sw;
+    sprintf (dpl[npw], "cfasta_sw_pair_wise");
+    dps[npw]=LOCAL;
+    npw++;
 
-	pwl[npw]=biphasic_pair_wise;
-	sprintf (dpl[npw], "biphasic_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=gotoh_pair_wise_lalign;
+    sprintf (dpl[npw], "gotoh_pair_wise_lalign");
+    dps[npw]=LALIGN;
+    npw++;
 
-	pwl[npw]=subop1_pair_wise;
-	sprintf (dpl[npw], "subop1_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=sim_pair_wise_lalign;
+    sprintf (dpl[npw], "sim_pair_wise_lalign");
+    dps[npw]=LALIGN;
+    npw++;
 
-	pwl[npw]=subop2_pair_wise;
-	sprintf (dpl[npw], "subop2_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=domain_pair_wise;
+    sprintf (dpl[npw], "domain_pair_wise");
+    dps[npw]=MOCCA;
+    npw++;
 
-	pwl[npw]=myers_miller_pair_wise;
-	sprintf (dpl[npw], "myers_miller_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=gotoh_pair_wise;
+    sprintf (dpl[npw], "ssec_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=test_pair_wise;
-	sprintf (dpl[npw], "test_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=ktup_pair_wise;
+    sprintf (dpl[npw], "ktup_pair_wise");
+    dps[npw]=LOCAL;
+    npw++;
 
-	pwl[npw]=fasta_gotoh_pair_wise;
-	sprintf (dpl[npw], "fasta_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
-	pwl[npw]=cfasta_gotoh_pair_wise;
-	sprintf (dpl[npw], "cfasta_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=precomputed_pair_wise;
+    sprintf (dpl[npw], "precomputed_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=very_fast_gotoh_pair_wise;
-	sprintf (dpl[npw], "very_fast_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=myers_miller_pair_wise;
+    sprintf (dpl[npw], "default");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=gotoh_pair_wise_sw;
-	sprintf (dpl[npw], "gotoh_pair_wise_sw");
-	dps[npw]=LOCAL;
-	npw++;
+    pwl[npw]=viterbi_pair_wise;
+    sprintf (dpl[npw], "viterbi_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=cfasta_gotoh_pair_wise_sw;
-	sprintf (dpl[npw], "cfasta_sw_pair_wise");
-	dps[npw]=LOCAL;
-	npw++;
+    pwl[npw]=viterbiL_pair_wise;
+    sprintf (dpl[npw], "viterbiL_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=gotoh_pair_wise_lalign;
-	sprintf (dpl[npw], "gotoh_pair_wise_lalign");
-	dps[npw]=LALIGN;
-	npw++;
+    pwl[npw]=viterbiD_pair_wise;
+    sprintf (dpl[npw], "viterbiD_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=sim_pair_wise_lalign;
-	sprintf (dpl[npw], "sim_pair_wise_lalign");
-	dps[npw]=LALIGN;
-	npw++;
+    pwl[npw]=seq_viterbi_pair_wise;
+    sprintf (dpl[npw], "seq_viterbi_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=domain_pair_wise;
-	sprintf (dpl[npw], "domain_pair_wise");
-	dps[npw]=MOCCA;
-	npw++;
+    pwl[npw]=pavie_pair_wise;
+    sprintf (dpl[npw], "pavie_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=gotoh_pair_wise;
-	sprintf (dpl[npw], "ssec_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=glocal_pair_wise;
+    sprintf (dpl[npw], "glocal_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=ktup_pair_wise;
-	sprintf (dpl[npw], "ktup_pair_wise");
-	dps[npw]=LOCAL;
-	npw++;
+    pwl[npw]=linked_pair_wise;
+    sprintf (dpl[npw], "linked_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=precomputed_pair_wise;
-	sprintf (dpl[npw], "precomputed_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=procoffee_pair_wise;
+    sprintf (dpl[npw], "procoffee_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=myers_miller_pair_wise;
-	sprintf (dpl[npw], "default");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=linked_pair_wise_collapse;
+    sprintf (dpl[npw], "linked_pair_wise_collapse");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=viterbi_pair_wise;
-	sprintf (dpl[npw], "viterbi_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=hh_pair_wise;
+    sprintf (dpl[npw], "hh_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
-	pwl[npw]=viterbiL_pair_wise;
-	sprintf (dpl[npw], "viterbiL_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
-
-	pwl[npw]=viterbiD_pair_wise;
-	sprintf (dpl[npw], "viterbiD_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
-
-	pwl[npw]=seq_viterbi_pair_wise;
-	sprintf (dpl[npw], "seq_viterbi_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
-
-	pwl[npw]=pavie_pair_wise;
-	sprintf (dpl[npw], "pavie_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
-
-	pwl[npw]=glocal_pair_wise;
-	sprintf (dpl[npw], "glocal_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
-
-	pwl[npw]=linked_pair_wise;
-	sprintf (dpl[npw], "linked_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
-
-	pwl[npw]=procoffee_pair_wise;
-	sprintf (dpl[npw], "procoffee_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
-
-	pwl[npw]=linked_pair_wise_collapse;
-	sprintf (dpl[npw], "linked_pair_wise_collapse");
-	dps[npw]=GLOBAL;
-	npw++;
-
-	pwl[npw]=hh_pair_wise;
-	sprintf (dpl[npw], "hh_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
-
-	pwl[npw]=co_pair_wise;
-	sprintf (dpl[npw], "co_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
+    pwl[npw]=co_pair_wise;
+    sprintf (dpl[npw], "co_pair_wise");
+    dps[npw]=GLOBAL;
+    npw++;
 
 
-	/*
-	pwl[npw]=viterbiDGL_pair_wise;
-	sprintf (dpl[npw], "viterbiDGL_pair_wise");
-	dps[npw]=GLOBAL;
-	npw++;
-	*/
-      }
-
-    for ( a=0; a< npw; a++)
-      {
-	if ( (dp_mode && strm (dpl[a], dp_mode)) || pwl[a]==pw)
-	     {
-	       pw=pwl[a];
-	       if (dp_mode)sprintf (dp_mode,"%s", dpl[a]);
-	       glocal[0]=dps[a];
-	       return pw;
-	     }
-      }
-    fprintf ( stderr, "\n[%s] is an unknown mode for dp_mode[FATAL]\n", dp_mode);
-    crash ( "\n");
-    return NULL;
+    /*
+  pwl[npw]=viterbiDGL_pair_wise;
+  sprintf (dpl[npw], "viterbiDGL_pair_wise");
+  dps[npw]=GLOBAL;
+  npw++;
+  */
   }
+
+  for ( a=0; a< npw; a++)
+  {
+    if ( (dp_mode && strm (dpl[a], dp_mode)) || pwl[a]==pw)
+    {
+      pw=pwl[a];
+      if (dp_mode)sprintf (dp_mode,"%s", dpl[a]);
+      glocal[0]=dps[a];
+      return pw;
+    }
+  }
+  fprintf ( stderr, "\n[%s] is an unknown mode for dp_mode[FATAL]\n", dp_mode);
+  crash ( "\n");
+  return NULL;
+}
 
 
 /*******************************************************************************/
@@ -5500,34 +5506,34 @@ Pwfunc get_pair_wise_function (Pwfunc pw,char *dp_mode, int *glocal)
 /*******************************************************************************/
 
 char *build_consensus ( char *seq1, char *seq2, char *dp_mode)
-        {
-	Alignment *A;
-	char *buf;
-	int a;
-	char c1, c2;
-	static char *mat;
+{
+  Alignment *A;
+  char *buf;
+  int a;
+  char c1, c2;
+  static thread_local char *mat=NULL;
 
 
-	if ( !mat) mat=(char*)vcalloc ( STRING, sizeof (char));
+  if ( !mat) mat=(char*)vcalloc ( STRING, sizeof (char));
 
 
-	A=align_two_sequences (seq1, seq2, strcpy(mat,"idmat"), 0, 0,dp_mode);
-	buf=(char*)vcalloc ( A->len_aln+1, sizeof (char));
+  A=align_two_sequences (seq1, seq2, strcpy(mat,"idmat"), 0, 0,dp_mode);
+  buf=(char*)vcalloc ( A->len_aln+1, sizeof (char));
 
-	for ( a=0; a< A->len_aln; a++)
-	    {
-		c1=A->seq_al[0][a];
-		c2=A->seq_al[1][a];
-		if (is_gap(c1) && is_gap(c2))buf[a]='-';
-		else if (is_gap(c1))buf[a]=c2;
-		else if (is_gap(c2))buf[a]=c1;
-		else if (c1!=c2){vfree (buf);buf=NULL;free_aln(A);return NULL;}
-		else buf[a]=c1;
-	    }
-	buf[a]='\0';
-	free_sequence (free_aln (A), -1);
-	return buf;
-	}
+  for ( a=0; a< A->len_aln; a++)
+  {
+    c1=A->seq_al[0][a];
+    c2=A->seq_al[1][a];
+    if (is_gap(c1) && is_gap(c2))buf[a]='-';
+    else if (is_gap(c1))buf[a]=c2;
+    else if (is_gap(c2))buf[a]=c1;
+    else if (c1!=c2){vfree (buf);buf=NULL;free_aln(A);return NULL;}
+    else buf[a]=c1;
+  }
+  buf[a]='\0';
+  free_sequence (free_aln (A), -1);
+  return buf;
+}
 
 
 

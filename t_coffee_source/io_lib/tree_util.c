@@ -833,7 +833,7 @@ NT_node tree_scan (Alignment *A,NT_node RT, char *pscan, char *ptree)
 	for(i = 0; i < nl; i++)
       		ffpHitScoreMatrix[i]=(float*)vcalloc (nl-i, sizeof (float));
 
-	fprintf (stdout, "Process positions\n", i);
+	fprintf (stdout, "Process positions\n");
 	for(i = 0; i < nl; i++)
 	{
 		fprintf (stdout, "%d, ", i);

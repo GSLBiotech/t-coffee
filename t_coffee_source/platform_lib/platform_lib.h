@@ -4,6 +4,7 @@
 #ifdef _MSC_VER
   #define ENV_HOME "USERPROFILE"
   #define WIN32_LEAN_AND_MEAN
+  #define strtok_r strtok_s
 
   // CreateDirectory
   #include <Windows.h>

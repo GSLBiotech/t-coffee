@@ -35,17 +35,18 @@ void
 tree_parse(struct Fastal_arguments *arguments, char* param)
 {
 	char delims[] = "";
-	arguments->tree_method = strtok(param,delims);
+  char *saveptr;
+	arguments->tree_method = strtok_r(param,delims,&saveptr);
 	if (arguments->tree_method == "parttree")
 	{
 		arguments->tree_param1 = 6;
 		arguments->tree_param2 = 150;
 	}
-	char *tmp = strtok(NULL,delims);
+	char *tmp = strtok_r(NULL,delims,&saveptr);
 	if (tmp != NULL)
 	{
 		arguments->tree_param1 = atoi(tmp);
-		arguments->tree_param2 = atoi(strtok(NULL,delims));
+		arguments->tree_param2 = atoi(strtok_r(NULL,delims,&saveptr));
 	}
 // 	printf("A: %s %i %i", arguments->tree_method, arguments->tree_param1, arguments->tree_param2);
 }

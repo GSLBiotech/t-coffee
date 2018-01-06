@@ -45,10 +45,10 @@
 
 
 
-int 
+int
 diagonal_compare (const void * a, const void * b)
 {
-	
+
 	int tmp = ((((Diagonal*)a)->y - ((Diagonal*)a)->x) - (((Diagonal*)b)->y - ((Diagonal*)b)->x));
 	if (tmp != 0)
 		return tmp;
@@ -110,7 +110,7 @@ extend_diagonals(Diagonal *diagonals, int *num_diagonal, int l1, int l2)
           diagonals[first].end_exp = tc_max(diagonals[first].end_exp, diff);
           diagonals[next].front_exp = tc_max(diagonals[next].front_exp, diff);
 	// 				if (diagonals[next].x - diagonals[next].front_exp < 0)
-	
+
 					while (diagonals[++first].x == -1);
 				}
 				else
@@ -125,18 +125,18 @@ extend_diagonals(Diagonal *diagonals, int *num_diagonal, int l1, int l2)
 			if (diff > 0)
 			{
 	// 			diff = diagonals[next].x + diagonals[next].length - diagonals[first].x;
-	
+
         diagonals[first].front_exp =  tc_max(diagonals[first].front_exp, diff);
         diagonals[next].end_exp = tc_max(diagonals[next].end_exp, diff);
 	// 			++num_segments;
 	// 			if (diagonals[first].x - diagonals[first].front_exp < 0)
-	
+
 				while (diagonals[++first].x == -1);
 			}
 		} else
 			++ first;
 		++next;
-		
+
 	}
 
 	int num_segments =0;
@@ -170,9 +170,9 @@ extend_diagonals(Diagonal *diagonals, int *num_diagonal, int l1, int l2)
 	}
 // 	exit(1);
 	vrealloc(seg,num_segments*sizeof(Segment));
-	
+
 	*num_diagonal = num_segments;
-	
+
 // 	vfree(diagonals);
 	return seg;
 }
@@ -238,7 +238,7 @@ segments2int(Segment *diagonals,
 		diagonals[i].prev_position = diagonals[i].current_pos[1] - diagonals[i].current_pos[0];
 		b = i;
 	}
-	
+
 // 	vfree(diags);
 	int tmpy_pos;
 	int tmpy_value;
@@ -290,7 +290,7 @@ segments2int(Segment *diagonals,
 		//diagonals
 		for (i = a; i <= b; ++i)
 		{
-			
+
 			if (pos_x == diagonals[i].current_pos[0])
 			{
 				if (diagonals[i].current_pos[2] == 0)
@@ -319,7 +319,7 @@ segments2int(Segment *diagonals,
 		}
 // 		last_y[tmpy_pos] = tmpy_value;
 
-		
+
 		//lower border
 		if (list[list_pos-1][1] != l2)
 		{
@@ -327,7 +327,7 @@ segments2int(Segment *diagonals,
 			list[list_pos][0] = pos_x;
 			list[list_pos][1] = l2;
 			list[list_pos][3] = last_y[l2];
-			
+
 			list[list_pos][2] = -1000;
 			list[list_pos][4] = list_pos-1;
 			if (pos_x > l2)
@@ -336,13 +336,13 @@ segments2int(Segment *diagonals,
 				list[list_pos][5] = l2-pos_x;
 			last_y[l2] = list_pos;
 			++list_pos;
-			
+
 		}
 
 
 		if ((b >= 0) && (diagonals[b].current_pos[1] > l2))
 			--b;
-		
+
 		if ((a >0) && (diagonals[a-1].current_pos[0] - diagonals[a-1].current_pos[1] == pos_x))
 		{
 			--a;
@@ -359,15 +359,15 @@ segments2int(Segment *diagonals,
 	}
 
 
-// 	right border	
+// 	right border
 	list[list_pos] = (int*) vcalloc(6, sizeof(int));
 	list[list_pos][0] = l1;
 	list[list_pos][1] = 0;
 	list[list_pos][3] = last_x[l1-1];
 	list[list_pos][2] = -1000;
 	++list_pos;
-	
-	
+
+
 
 	for (i = 1; i <= l2; ++i)
 	{
@@ -396,7 +396,7 @@ segments2int(Segment *diagonals,
 		}
 		++list_pos;
 	}
-	
+
 	list[list_pos - l2][2] = -1000;
 
 	*num_points = list_pos;
@@ -439,22 +439,23 @@ seq_pair2blast_diagonal2(char *seq_file_name1,
 	fgets(line, 300, diag_f);
 	fgets(line, 300, diag_f);
 	fgets(line, 300, diag_f);
-	
-	
+
+
 	char delims[] = "\t";
 	int length, pos_q, pos_d;
 	int current_pos = 0;
+  char *saveptr;
 	while (fgets(line, 300, diag_f) != NULL)
 	{
-		strtok(line, delims);
-		strtok(NULL, delims);
-		strtok(NULL, delims);
-		length =  atoi(strtok(NULL, delims));
-		strtok(NULL, delims);
-		strtok(NULL, delims);
-		pos_q = atoi(strtok(NULL, delims));
-		strtok(NULL, delims);
-		pos_d = atoi(strtok(NULL, delims));
+		strtok_r(line, delims,&saveptr);
+		strtok_r(NULL, delims,&saveptr);
+		strtok_r(NULL, delims,&saveptr);
+		length =  atoi(strtok_r(NULL, delims,&saveptr));
+		strtok_r(NULL, delims,&saveptr);
+		strtok_r(NULL, delims,&saveptr);
+		pos_q = atoi(strtok_r(NULL, delims,&saveptr));
+		strtok_r(NULL, delims,&saveptr);
+		pos_d = atoi(strtok_r(NULL, delims,&saveptr));
 
 		if (current_pos >= *dig_length)
 		{

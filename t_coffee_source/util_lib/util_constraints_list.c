@@ -38,8 +38,6 @@
 #include "define_header.h"
 #include "dp_lib_header.h"
 
-static int entry_len;
-
 /**
  * \file util_constraints_list.c
  * All utilities for the Constraint_list.
@@ -141,7 +139,6 @@ Constraint_list *fork_subset_produce_list   ( Constraint_list *CL, Sequence *S, 
   Job_TC *heap,*end,*start, ***jl;
   TC_method *M;
   char **pid_tmpfile;
-  int   *pid_list;
   int pid, npid, njob, max_nproc;
 
   max_nproc=nproc;
@@ -167,7 +164,6 @@ Constraint_list *fork_subset_produce_list   ( Constraint_list *CL, Sequence *S, 
   M=(job->param)->TCM;
   if (M)M->PW_CL=method2pw_cl ( M, CL);
   pid_tmpfile=(char**)vcalloc (MAX(njob,nproc)+1, sizeof (char*));
-  pid_list   =(int *)vcalloc (MAX_N_PID, sizeof (int *));
 
   fprintf ( local_stderr, "\n\tMulti Core Mode: %d processors [subset]\n", nproc);
 
@@ -181,20 +177,18 @@ Constraint_list *fork_subset_produce_list   ( Constraint_list *CL, Sequence *S, 
     pid_tmpfile[a]=vtmpnam(NULL);
     pid = start_thread( [=]{ fork_subset_produce_list_task( a, CL, pid_tmpfile, job, start, end, local_stderr ); } );
     thread_indexes.push_back( pid );
-    pid_list[pid]=npid;
     npid++;
     a++;
   }
 
-  //wait for all processes to finish
+  //wait for all to finish
   join( thread_indexes );
   for (a=0; a<npid; a++)
   {
-    CL=undump_constraint_list (CL, pid_tmpfile[pid_list[pid]]);
-    remove(pid_tmpfile[pid_list[pid]]);
+    CL=undump_constraint_list (CL, pid_tmpfile[a]);
+    remove(pid_tmpfile[a]);
   }
 
-  vfree (pid_list);
   vfree (pid_tmpfile);
 
   job=heap;
@@ -443,40 +437,42 @@ Job_TC *retrieve_lib_job ( Job_TC *job)
 
 int add_method_output2method_log (char *l,char *command,Alignment *A, Constraint_list *CL, char *io_file)
 {
-	static int header, set;
-	static char *file, *log_file;
+  static thread_local int header=0;
+  static thread_local int set=0;
+  static thread_local char *file=NULL;
+  static thread_local char *log_file=NULL;
 
-	if ( set && log_file==NULL && l==NULL) return 0;
-	if (!set )
-	  {
+  if ( set && log_file==NULL && l==NULL) return 0;
+  if (!set )
+  {
 
-	    log_file=get_string_variable ("method_log");if (log_file && strm (log_file, "no"))log_file=NULL; set=1;
-	  }
+    log_file=get_string_variable ("method_log");if (log_file && strm (log_file, "no"))log_file=NULL; set=1;
+  }
 
-	if (!file)file=vtmpnam (NULL);
+  if (!file)file=vtmpnam (NULL);
 
-	if ( l);
-	else if (!l && log_file) l=log_file;
-	else return 0;
-
-
-	if (!header){printf_file ( l, "w", "# CONC_MSF_FORMAT_01\n");header=1;}
-	if (command)printf_file (l,  "a", "%s\n#----------------------------------------------\n#%s\n", TC_REC_SEPARATOR,command);
+  if ( l);
+  else if (!l && log_file) l=log_file;
+  else return 0;
 
 
-	if ( A)
-	{
+  if (!header){printf_file ( l, "w", "# CONC_MSF_FORMAT_01\n");header=1;}
+  if (command)printf_file (l,  "a", "%s\n#----------------------------------------------\n#%s\n", TC_REC_SEPARATOR,command);
 
-		io_file=file;
-		output_fasta_aln (io_file, A);
-	}
-	else if (CL)
-	{
-		io_file=file;
-		vfclose (save_constraint_list ( CL, 0, CL->ne,io_file, NULL, "ascii",CL->S));
-	}
-	else
-		file_cat (io_file,l);
+
+  if ( A)
+  {
+
+    io_file=file;
+    output_fasta_aln (io_file, A);
+  }
+  else if (CL)
+  {
+    io_file=file;
+    vfclose (save_constraint_list ( CL, 0, CL->ne,io_file, NULL, "ascii",CL->S));
+  }
+  else
+    file_cat (io_file,l);
 
 
 	return 1;
@@ -486,81 +482,81 @@ int add_method_output2method_log (char *l,char *command,Alignment *A, Constraint
 
 Job_TC *submit_lib_job ( Job_TC *job)
 {
-	Job_param_TC *p;
-	Job_io_TC *io;
-	TC_method *M;
-	static char *tdir=NULL;
-	static char *cdir=NULL;
+  Job_param_TC *p;
+  Job_io_TC *io;
+  TC_method *M;
+  static thread_local char *tdir=NULL;
+  static thread_local char *cdir=NULL;
 
-	if (!tdir)tdir=get_tmp_4_tcoffee();
-	if (!cdir)cdir=get_pwd(NULL);
+  if (!tdir)tdir=get_tmp_4_tcoffee();
+  if (!cdir)cdir=get_pwd(NULL);
 
-	p=job->param;
-	io=job->io;
-	M=(job->param)->TCM;
-	add_method_output2method_log (NULL, p->aln_c, NULL, NULL, NULL);
-	if ( getenv4debug ("DEBUG_LIBRARY"))fprintf ( stderr, "\n[DEBUG_LIBRARY:produce_list] Instruction: %s\n", p->aln_c);
+  p=job->param;
+  io=job->io;
+  M=(job->param)->TCM;
+  add_method_output2method_log (NULL, p->aln_c, NULL, NULL, NULL);
+  if ( getenv4debug ("DEBUG_LIBRARY"))fprintf ( stderr, "\n[DEBUG_LIBRARY:produce_list] Instruction: %s\n", p->aln_c);
 
-	if ( !M)
-	  {
-	    return job;
-	  }
-	else if (strm4 (M->out_mode,"A", "L", "aln", "lib"))
-	  {
-	    char *com=NULL;
-	    static int do_flip;
-	    int flipped=0;
+  if ( !M)
+  {
+    return job;
+  }
+  else if (strm4 (M->out_mode,"A", "L", "aln", "lib"))
+  {
+    char *com=NULL;
+    static thread_local int do_flip=0;
+    int flipped=0;
 
-	    if (!do_flip)
-	      {
-		do_flip=get_int_variable ("flip");
-		if (!do_flip)do_flip=-1;
-	      }
+    if (!do_flip)
+    {
+      do_flip=get_int_variable ("flip");
+      if (!do_flip)do_flip=-1;
+    }
 
-	    seq_list2in_file ( M, (io->CL)->S, p->seq_c, io->in);
-	    if (do_flip!=-1)
-	      {
-		if ((rand()%100)<do_flip)
-		  {
-		    invert_seq_file (io->in);
-		    flipped=1;
-		  }
-	      }
+    seq_list2in_file ( M, (io->CL)->S, p->seq_c, io->in);
+    if (do_flip!=-1)
+    {
+      if ((rand()%100)<do_flip)
+      {
+        invert_seq_file (io->in);
+        flipped=1;
+      }
+    }
 
-	    com=(char*)vcalloc ( strlen (p->aln_c)+100, sizeof (char));
-	    sprintf (com, "%s", p->aln_c);
-	    substitute (com, "//", "/");
-	    substitute (com, tdir, "./");
-	    chdir (tdir);
-	    printf_system ("%s ::IGNORE_FAILURE::", com);
-	    vfree (com);
-	    chdir (cdir);
-	    add_method_output2method_log (NULL,NULL, NULL, NULL, io->out);
+    com=(char*)vcalloc ( strlen (p->aln_c)+100, sizeof (char));
+    sprintf (com, "%s", p->aln_c);
+    substitute (com, "//", "/");
+    substitute (com, tdir, "./");
+    chdir (tdir);
+    printf_system ("%s ::IGNORE_FAILURE::", com);
+    vfree (com);
+    chdir (cdir);
+    add_method_output2method_log (NULL,NULL, NULL, NULL, io->out);
 
-	    if (!evaluate_sys_call_io (io->out,p->aln_c, "") || (strm (M->out_mode, "aln") && !(is_aln (io->out) || is_seq(io->out))) )
-	      {
-		job->status=EXIT_FAILURE;
-		//myexit (EXIT_FAILURE);
-		return job;
-	      }
-	    if (flipped==1)invert_aln_file (io->out);
-	  }
-	else if ( strm2 (M->out_mode, "fA", "fL"))
-	  {
+    if (!evaluate_sys_call_io (io->out,p->aln_c, "") || (strm (M->out_mode, "aln") && !(is_aln (io->out) || is_seq(io->out))) )
+    {
+      job->status=EXIT_FAILURE;
+      //myexit (EXIT_FAILURE);
+      return job;
+    }
+    if (flipped==1)invert_aln_file (io->out);
+  }
+  else if ( strm2 (M->out_mode, "fA", "fL"))
+  {
 
-	    io->CL= seq2list(job);
-	    if (!io->CL)
-	      {
-		add_warning (stderr, "\nFAILED TO EXECUTE:%s [SERIOUS:%s]", p->aln_c, PROGRAM);
-		job->status=EXIT_FAILURE;
-	      }
-	  }
-	else
-	  {
-	    myexit(fprintf_error ( stderr, "\nERROR: Unknown out_mode=%s for method[FATAL:%s]\n", M->out_mode, M->executable));
-	  }
+    io->CL= seq2list(job);
+    if (!io->CL)
+    {
+      add_warning (stderr, "\nFAILED TO EXECUTE:%s [SERIOUS:%s]", p->aln_c, PROGRAM);
+      job->status=EXIT_FAILURE;
+    }
+  }
+  else
+  {
+    myexit(fprintf_error ( stderr, "\nERROR: Unknown out_mode=%s for method[FATAL:%s]\n", M->out_mode, M->executable));
+  }
 
-	return job;
+  return job;
 }
 
 
@@ -568,7 +564,9 @@ Job_TC *submit_lib_job ( Job_TC *job)
 Job_TC* method2job_list ( char *method_name,Sequence *S, char *weight, char *lib_list, Distance_matrix *DM, Constraint_list *CL)
 {
   int preset_method;
-  static char *fname, *bufS, *bufA;
+  static thread_local char *fname=NULL;
+  static thread_local char *bufS=NULL;
+  static thread_local char *bufA=NULL;
   char *in,*out;
   TC_method *method;
   char aln_mode[100];
@@ -587,10 +585,10 @@ Job_TC* method2job_list ( char *method_name,Sequence *S, char *weight, char *lib
   */
 
   if ( !fname)
-    {
-      fname=(char*)vcalloc ( 1000, sizeof (char));
-      bufS=(char*)vcalloc ( S->nseq*10, sizeof (char));
-    }
+  {
+    fname=(char*)vcalloc ( 1000, sizeof (char));
+    bufS=(char*)vcalloc ( S->nseq*10, sizeof (char));
+  }
 
   /*Make sure that fname is a method*/
 
@@ -598,38 +596,38 @@ Job_TC* method2job_list ( char *method_name,Sequence *S, char *weight, char *lib
   sprintf(fname, "%s", method_name);
 
   if ( fname[0]=='A' || fname[0]=='L')
-    {
-      method=method_file2TC_method("no_method");
-      sprintf ( method->out_mode, "%c", fname[0]);
+  {
+    method=method_file2TC_method("no_method");
+    sprintf ( method->out_mode, "%c", fname[0]);
 
-      if (!strm (weight, "default"))sprintf ( method->weight, "%s", weight);
+    if (!strm (weight, "default"))sprintf ( method->weight, "%s", weight);
 
-      return print_lib_job(NULL,"param->out=%s param->TCM=%p",fname+1, method);
-    }
+    return print_lib_job(NULL,"param->out=%s param->TCM=%p",fname+1, method);
+  }
   else if ( fname[0]=='M' && is_in_pre_set_method_list (fname+1))
-    {
-      preset_method=1;
-      fname++;
-    }
+  {
+    preset_method=1;
+    fname++;
+  }
   else if ( is_in_pre_set_method_list (fname))
-    {
-      preset_method=1;
-    }
+  {
+    preset_method=1;
+  }
   else
+  {
+    char buf[1000];
+    if ( check_file_exists ( fname));
+    else if (fname[0]=='M' && check_file_exists(fname+1));
+    else
     {
-      char buf[1000];
-      if ( check_file_exists ( fname));
-      else if (fname[0]=='M' && check_file_exists(fname+1));
+      sprintf ( buf, "%s/%s", get_methods_4_tcoffee(), fname);
+      if( check_file_exists(buf)){sprintf ( fname, "%s", buf);}
       else
-	{
-	  sprintf ( buf, "%s/%s", get_methods_4_tcoffee(), fname);
-	  if( check_file_exists(buf)){sprintf ( fname, "%s", buf);}
-	  else
-	    {
-	      myexit (fprintf_error ( stderr, "%s is not a valid method", fname));
-	    }
-	}
+      {
+        myexit (fprintf_error ( stderr, "%s is not a valid method", fname));
+      }
     }
+  }
 
 
   method=method_file2TC_method(fname);
@@ -643,177 +641,178 @@ Job_TC* method2job_list ( char *method_name,Sequence *S, char *weight, char *lib
 
 
   if (lib_list && lib_list[0])
+  {
+    static thread_local char **lines=NULL;
+    static thread_local char **list=NULL;
+    int a,i, x, n, nl;
+
+
+
+    if ( lines) free_char (lines, -1);
+
+
+    if ( strstr (lib_list, "prune"))
     {
-      static char **lines, **list=NULL;
-      int a,i, x, n, nl;
-
-
-
-      if ( lines) free_char (lines, -1);
-
-
-      if ( strstr (lib_list, "prune"))
-	{
-	  lines=file2lines (list2prune_list (S,DM->similarity_matrix));
-	}
-      else
-	{
-	  lines=file2lines (lib_list);
-	}
-
-      nl=atoi (lines[0]);
-      for (a=1; a<nl; a++)
-	{
-
-	  if (list) free_char (list, -1);
-	  if (isblanc (lines[a]))continue;
-
-	  list=string2list (lines[a]);n=atoi(list[1]);
-	  if ( n> 2 && strm (aln_mode, "pairwise"))continue;
-	  if ( n==2 && strm (aln_mode, "multiple"))continue;
-
-	  for (i=2; i<n+2; i++)
-	    {
-	      if ( is_number (list[i]));
-	      else if ((x=name_is_in_list (list[i], S->name, S->nseq, 100))!=-1)sprintf(list[i], "%d", x);
-	      else
-		{
-		  add_warning ( stderr, "\nWARNING: %s is not part of the sequence dataset \n", list[i]);
-		  continue;
-		}
-	    }
-	  sprintf ( bufS, "%s", list[1]);
-	  for ( i=2; i<n+2; i++) {strcat (bufS, " ");strcat ( bufS, list[i]);}
-
-
-	  bufA=make_aln_command (method, in=vtmpnam(NULL),out=vtmpnam(NULL));
-
-	  if (!debugio && strrchr(bufA, '>')==NULL)strcat (bufA,TO_NULL_DEVICE);
-	  if ( check_seq_type ( method, bufS, S))
-	    {
-	      job->c=print_lib_job (NULL, "param->TCM=%p param->method=%s param->aln_c=%s param->seq_c=%s io->in=%s io->out=%s ", method, fname, bufA, bufS, in, out);
-	      job=queue_cat (job, job->c);
-	    }
-	  vfree (bufA);
-
-	}
+      lines=file2lines (list2prune_list (S,DM->similarity_matrix));
     }
-  else if ( strcmp (aln_mode, "multiple")==0)
+    else
     {
-      int d;
-      char buf[10000];
+      lines=file2lines (lib_list);
+    }
 
-      sprintf (bufS, "%d",S->nseq);
-      for (d=0; d< S->nseq; d++)
-	{
-	  sprintf ( buf," %d",d);
-	  strcat ( bufS, buf);
-	}
+    nl=atoi (lines[0]);
+    for (a=1; a<nl; a++)
+    {
+
+      if (list) free_char (list, -1);
+      if (isblanc (lines[a]))continue;
+
+      list=string2list (lines[a]);n=atoi(list[1]);
+      if ( n> 2 && strm (aln_mode, "pairwise"))continue;
+      if ( n==2 && strm (aln_mode, "multiple"))continue;
+
+      for (i=2; i<n+2; i++)
+      {
+        if ( is_number (list[i]));
+        else if ((x=name_is_in_list (list[i], S->name, S->nseq, 100))!=-1)sprintf(list[i], "%d", x);
+        else
+        {
+          add_warning ( stderr, "\nWARNING: %s is not part of the sequence dataset \n", list[i]);
+          continue;
+        }
+      }
+      sprintf ( bufS, "%s", list[1]);
+      for ( i=2; i<n+2; i++) {strcat (bufS, " ");strcat ( bufS, list[i]);}
+
 
       bufA=make_aln_command (method, in=vtmpnam(NULL),out=vtmpnam(NULL));
+
       if (!debugio && strrchr(bufA, '>')==NULL)strcat (bufA,TO_NULL_DEVICE);
-
       if ( check_seq_type ( method, bufS, S))
-	{
-	  job->c=print_lib_job (NULL, "param->TCM=%p param->method=%s param->aln_c=%s param->seq_c=%s io->in=%s io->out=%s ", method, fname, bufA, bufS, in, out, S->template_file);
-
-	  job=queue_cat (job, job->c);
-
-	}
+      {
+        job->c=print_lib_job (NULL, "param->TCM=%p param->method=%s param->aln_c=%s param->seq_c=%s io->in=%s io->out=%s ", method, fname, bufA, bufS, in, out);
+        job=queue_cat (job, job->c);
+      }
       vfree (bufA);
+
     }
-  else if ( strstr(aln_mode, "o2a"))
+  }
+  else if ( strcmp (aln_mode, "multiple")==0)
+  {
+    int d;
+    char buf[10000];
+
+    sprintf (bufS, "%d",S->nseq);
+    for (d=0; d< S->nseq; d++)
     {
-      int x, n;
-      static char *tmpf;
-      int byte=CL->o2a_byte;
-      int max=0;
-      FILE *fp;
-
-      for (x=0; x<(CL->S)->nseq; x++)max+=(CL->master[x]);
-
-      if (CL->o2a_byte>=max)byte=(max/get_nproc())+1;
-
-      if (!tmpf)tmpf=vtmpnam (NULL);
-
-      fp=vfopen (tmpf, "w");
-      for (n=0,x=0; x<(CL->S)->nseq; x++)
-	{
-	  if (CL->master[x]){fprintf (fp, "%d ", x);n++;}
-	  if (n==byte || (n && x==(CL->S)->nseq-1))
-	    {
-	      vfclose (fp);
-	      sprintf (bufS, "%d %s", n,file2string (tmpf));n=0;
-	      bufA=make_aln_command (method, in=vtmpnam(NULL),out=vtmpnam(NULL));
-	      if (!debugio && strrchr(bufA, '>')==NULL)strcat (bufA,TO_NULL_DEVICE);
-	      if ( check_seq_type ( method, bufS, S))
-		{
-		  job->c=print_lib_job (NULL, "param->TCM=%p param->method=%s param->aln_c=%s param->seq_c=%s io->in=%s io->out=%s ", method, fname, bufA, bufS, in, out, S->template_file);
-		  job=queue_cat (job, job->c);
-		}
-	      vfree (bufA);
-	      fp=vfopen (tmpf, "w");
-	    }
-	}
-      vfclose (fp);
+      sprintf ( buf," %d",d);
+      strcat ( bufS, buf);
     }
+
+    bufA=make_aln_command (method, in=vtmpnam(NULL),out=vtmpnam(NULL));
+    if (!debugio && strrchr(bufA, '>')==NULL)strcat (bufA,TO_NULL_DEVICE);
+
+    if ( check_seq_type ( method, bufS, S))
+    {
+      job->c=print_lib_job (NULL, "param->TCM=%p param->method=%s param->aln_c=%s param->seq_c=%s io->in=%s io->out=%s ", method, fname, bufA, bufS, in, out, S->template_file);
+
+      job=queue_cat (job, job->c);
+
+    }
+    vfree (bufA);
+  }
+  else if ( strstr(aln_mode, "o2a"))
+  {
+    int x, n;
+    static thread_local char *tmpf=NULL;
+    int byte=CL->o2a_byte;
+    int max=0;
+    FILE *fp;
+
+    for (x=0; x<(CL->S)->nseq; x++)max+=(CL->master[x]);
+
+    if (CL->o2a_byte>=max)byte=(max/get_nproc())+1;
+
+    if (!tmpf)tmpf=vtmpnam (NULL);
+
+    fp=vfopen (tmpf, "w");
+    for (n=0,x=0; x<(CL->S)->nseq; x++)
+    {
+      if (CL->master[x]){fprintf (fp, "%d ", x);n++;}
+      if (n==byte || (n && x==(CL->S)->nseq-1))
+      {
+        vfclose (fp);
+        sprintf (bufS, "%d %s", n,file2string (tmpf));n=0;
+        bufA=make_aln_command (method, in=vtmpnam(NULL),out=vtmpnam(NULL));
+        if (!debugio && strrchr(bufA, '>')==NULL)strcat (bufA,TO_NULL_DEVICE);
+        if ( check_seq_type ( method, bufS, S))
+        {
+          job->c=print_lib_job (NULL, "param->TCM=%p param->method=%s param->aln_c=%s param->seq_c=%s io->in=%s io->out=%s ", method, fname, bufA, bufS, in, out, S->template_file);
+          job=queue_cat (job, job->c);
+        }
+        vfree (bufA);
+        fp=vfopen (tmpf, "w");
+      }
+    }
+    vfclose (fp);
+  }
 
 
   else if ( strstr(aln_mode, "pairwise"))
+  {
+    int do_mirror, do_self, x, y, id;
+    int **set;
+
+    do_mirror=(strstr(aln_mode, "m_"))?1:0;
+    do_self=(strstr(aln_mode, "s_"))?1:0;
+    set=declare_int (S->nseq, S->nseq);
+    if (method->minid!=0 || method->maxid!=100)
+      DM=CL->DM=cl2distance_matrix ( CL,NOALN,NULL,NULL,1);
+
+    for (x=0; x< S->nseq; x++)
     {
-      int do_mirror, do_self, x, y, id;
-      int **set;
+      if (!CL->master[x])continue;
+      for ( y=0; y< S->nseq; y++)
+      {
+        if (!do_mirror && set[y][x])continue;
+        set[x][y]=1;
 
-      do_mirror=(strstr(aln_mode, "m_"))?1:0;
-      do_self=(strstr(aln_mode, "s_"))?1:0;
-      set=declare_int (S->nseq, S->nseq);
-      if (method->minid!=0 || method->maxid!=100)
-	DM=CL->DM=cl2distance_matrix ( CL,NOALN,NULL,NULL,1);
+        id=(DM && DM->similarity_matrix)?DM->similarity_matrix[x][y]:-1;
 
-      for (x=0; x< S->nseq; x++)
-	{
-	  if (!CL->master[x])continue;
-	  for ( y=0; y< S->nseq; y++)
-	    {
-	      if (!do_mirror && set[y][x])continue;
-	      set[x][y]=1;
+        if ( x==y && !do_self);
+        else if ( id!=-1 && !is_in_range(id,method->minid, method->maxid));
+        else
+        {
+          sprintf (bufS, "2 %d %d",x,y);
+          bufA=make_aln_command (method,in=vtmpnam(NULL),out=vtmpnam (NULL));
 
-	      id=(DM && DM->similarity_matrix)?DM->similarity_matrix[x][y]:-1;
+          if (!debugio && strrchr(bufA, '>')==NULL)strcat (bufA, TO_NULL_DEVICE);
+          if (check_seq_type (method, bufS, S))
+          {
+            job->c=print_lib_job (job->c, "param->TCM=%p param->method=%s param->aln_c=%s param->seq_c=%s io->in=%s io->out=%s ",method,fname,bufA, bufS, in, out);
+            job=queue_cat (job, job->c);
+          }
+          else if ( method->seq_type[0]=='P' && hijack_P_jobs)
+          {
+            //Hijack _P_ jobs without enough templates
+            static thread_local TC_method *proba_pairM=NULL;
 
-	      if ( x==y && !do_self);
-	      else if ( id!=-1 && !is_in_range(id,method->minid, method->maxid));
-	      else
-		{
-		  sprintf (bufS, "2 %d %d",x,y);
-		  bufA=make_aln_command (method,in=vtmpnam(NULL),out=vtmpnam (NULL));
+            add_information(stderr, "Method %s cannot be applied to [%s vs %s], proba_pair will be used instead",(method->executable2)?method->executable2:method->executable, (CL->S)->name[x], (CL->S)->name [y]);
+            if (!proba_pairM)
+            {
+              proba_pairM=method_file2TC_method(method_name2method_file ("proba_pair"));
+              proba_pairM->PW_CL=method2pw_cl(proba_pairM, CL);
+            }
+            job->c=print_lib_job (job->c, "param->TCM=%p param->method=%s param->aln_c=%s param->seq_c=%s io->in=%s io->out=%s ",proba_pairM,fname,bufA, bufS, in, out);
+            job=queue_cat (job, job->c);
+          }
 
-		  if (!debugio && strrchr(bufA, '>')==NULL)strcat (bufA, TO_NULL_DEVICE);
-		  if (check_seq_type (method, bufS, S))
-		    {
-		      job->c=print_lib_job (job->c, "param->TCM=%p param->method=%s param->aln_c=%s param->seq_c=%s io->in=%s io->out=%s ",method,fname,bufA, bufS, in, out);
-		      job=queue_cat (job, job->c);
-		    }
-		  else if ( method->seq_type[0]=='P' && hijack_P_jobs)
-		    {
-		      //Hijack _P_ jobs without enough templates
-		      static TC_method *proba_pairM;
-
-		      add_information(stderr, "Method %s cannot be applied to [%s vs %s], proba_pair will be used instead",(method->executable2)?method->executable2:method->executable, (CL->S)->name[x], (CL->S)->name [y]);
-		      if (!proba_pairM)
-			{
-			  proba_pairM=method_file2TC_method(method_name2method_file ("proba_pair"));
-			  proba_pairM->PW_CL=method2pw_cl(proba_pairM, CL);
-			}
-		      job->c=print_lib_job (job->c, "param->TCM=%p param->method=%s param->aln_c=%s param->seq_c=%s io->in=%s io->out=%s ",proba_pairM,fname,bufA, bufS, in, out);
-		      job=queue_cat (job, job->c);
-		    }
-
-		  vfree (bufA);
-		}
-	    }
-	}
-      free_int (set, -1);
+          vfree (bufA);
+        }
+      }
     }
+    free_int (set, -1);
+  }
 
   return job;
 }
@@ -899,7 +898,7 @@ int check_profile_seq_type (Sequence *S, int i, char t)
 char **method_list2method4dna_list ( char **list, int n)
 {
 	int a;
-	static char *buf;
+	static thread_local char *buf=NULL;
 
 	if ( !buf)buf=(char*)vcalloc ( 1000, sizeof (char));
 
@@ -1081,7 +1080,8 @@ char *method_file_tag2value (char *method, char *tag)
 {
 	FILE *fp;
 	char c, *p;
-	static char *buf, *line;
+	static thread_local char *buf=NULL;
+  static thread_local char *line=NULL;
 	if (!buf) buf=(char*)vcalloc ( 1000, sizeof (char));
 	else buf[0]='\0';
 
@@ -1111,8 +1111,8 @@ char *method_file_tag2value (char *method, char *tag)
 struct TC_method * method_file2TC_method( char *method)
 {
 	TC_method *m;
-	static char *subcommand;
-	static char *line;
+	static thread_local char *subcommand;
+	static thread_local char *line=NULL;
 	char *p;
 	FILE *fp;
 	int c;
@@ -1520,41 +1520,41 @@ Constraint_list * add_list_entry2list (Constraint_list *CL, int n_para, ...)
 
 int *extract_entry (Constraint_list *CL)
 {
-	static int s=0;
-	static int r=0;
-	static int l=1;
-	static int *entry;
+	static thread_local int s=0;
+	static thread_local int r=0;
+	static thread_local int l=1;
+  static thread_local int *entry=NULL;
 
-	if (!entry)entry=(int*)vcalloc (100, sizeof (int));
-	if (!CL){s=0;r=1;l=1; return NULL;}
+  if (!entry)entry=(int*)vcalloc (100, sizeof (int));
+  if (!CL){s=0;r=1;l=1; return NULL;}
 
 
-	for (; s<(CL->S)->nseq; s++)
-	  {
-	    while ((CL->residue_index[s][r]))
-	      {
-		for (; l<CL->residue_index[s][r][0];)
-		  {
+  for (; s<(CL->S)->nseq; s++)
+  {
+    while ((CL->residue_index[s][r]))
+    {
+      for (; l<CL->residue_index[s][r][0];)
+      {
 
-		    entry[SEQ1]=s;
-		    entry[R1]=r;
-		    entry[SEQ2]=CL->residue_index[s][r][l+SEQ2];
-		    entry[R2]=  CL->residue_index[s][r][l+R2];
-		    entry[WE]=  CL->residue_index[s][r][l+WE];
-		    entry[CONS]=CL->residue_index[s][r][l+CONS];
-		    entry[MISC]=CL->residue_index[s][r][l+MISC];
-		    entry[INDEX]=l;
-		    l+=ICHUNK;
-		    return entry;
-		  }
-		l=1;
-		r++;
-	      }
-	    r=0;
-	  }
-	s=0;
-	r=0;
-	l=1;
+        entry[SEQ1]=s;
+        entry[R1]=r;
+        entry[SEQ2]=CL->residue_index[s][r][l+SEQ2];
+        entry[R2]=  CL->residue_index[s][r][l+R2];
+        entry[WE]=  CL->residue_index[s][r][l+WE];
+        entry[CONS]=CL->residue_index[s][r][l+CONS];
+        entry[MISC]=CL->residue_index[s][r][l+MISC];
+        entry[INDEX]=l;
+        l+=ICHUNK;
+        return entry;
+      }
+      l=1;
+      r++;
+    }
+    r=0;
+  }
+  s=0;
+  r=0;
+  l=1;
 
 	return NULL;
 }
@@ -1786,8 +1786,8 @@ int get_entry_index_serial (int *entry, Constraint_list *CL)
   int a;
   int *r= CL->residue_index[s1][r1];
 
-  static int tot;
-  static int pr;
+  static thread_local int tot=0;
+  static thread_local int pr=0;
   if (r[0]==1)return -1;//corresponding entry undeclared->must be inserted
   else
     {
@@ -1817,8 +1817,8 @@ int get_entry_index_dico (int *entry, Constraint_list *CL)
   int i;
   int *r= CL->residue_index[s1][r1];
   int ps2, pr2, ns2,nr2,p,n;
-  static int tot;
-  static int pr;
+  static thread_local int tot=0;
+  static thread_local int pr=0;
 
   if (r[0]==1)return -1;//corresponding entry undeclared->must be inserted
   dir=1;
@@ -1869,8 +1869,8 @@ int get_entry_index_dico (int *entry, Constraint_list *CL)
 Constraint_list *remove_entry (CLIST_TYPE *entry, Constraint_list *CL, int i)
 {
 	//insert entry right after i;
-	static char *buf;
-	static int bsize;
+	static thread_local char *buf=NULL;
+	static thread_local int bsize=0;
 	int *r=CL->residue_index[entry[SEQ1]][entry[R1]];
 	int s;
 
@@ -1888,8 +1888,8 @@ Constraint_list *remove_entry (CLIST_TYPE *entry, Constraint_list *CL, int i)
 Constraint_list *insert_entry (CLIST_TYPE *entry, Constraint_list *CL, int i)
 {
 	//insert entry right after i;
-	static char *buf;
-	static int bsize;
+	static thread_local char *buf=NULL;
+	static thread_local int bsize=0;
 	int *r=CL->residue_index[entry[SEQ1]][entry[R1]];
 	int s;
 	//inserts a new entry between i-1 and i
@@ -1937,7 +1937,7 @@ Constraint_list *update_entry (CLIST_TYPE *entry, Constraint_list *CL, int i)
 
 CLIST_TYPE *main_search_in_list_constraint ( int *key,int *p,int k_len,Constraint_list *CL)
 {
-	static CLIST_TYPE *l=NULL;
+	static thread_local CLIST_TYPE *l=NULL;
 	int a, s1, s2, r1, r2, ni;
 
 	if (!l)l=(int*)vcalloc (CL->entry_len+1, sizeof (int));
@@ -2114,7 +2114,7 @@ Constraint_list* fork_read_n_constraint_list(char **fname,int n_list, char *in_m
       if (rCL->ne>in)dump_constraint_list(rCL,tmp_list[a], "w");
     });
     thread_indexes.push_back( pid );
-    fprintf ( local_stderr, "\n\t--- Process Method/Library/Aln %s", fname[a], ns);
+    fprintf ( local_stderr, "\n\t--- Process Method/Library/Aln %s", fname[a]);
     proclist[pid]=a;
   }
 
@@ -2157,111 +2157,111 @@ Constraint_list* fork_read_n_constraint_list(char **fname,int n_list, char *in_m
  */
 Constraint_list* read_constraint_list(Constraint_list *CL,char *in_fname,char *in_mode, char *mem_mode,char *weight_mode)
 {
-	Sequence *SL=NULL, *TS=NULL;
-	int a;
-	Constraint_list *SUBCL=NULL;
-	static char *read_mode;
-	char *fname;
+  Sequence *SL=NULL, *TS=NULL;
+  int a;
+  Constraint_list *SUBCL=NULL;
+  static thread_local char *read_mode=NULL;
+  char *fname;
 
-	fname=in_fname;
-	if ( !read_mode)read_mode=(char*)vcalloc ( STRING, sizeof (char));
+  fname=in_fname;
+  if ( !read_mode)read_mode=(char*)vcalloc ( STRING, sizeof (char));
 
-	if ( is_lib_list (in_fname))sprintf ( read_mode, "lib_list");
-	else if ( in_mode)sprintf (read_mode, "%s", in_mode);
-	else if ( fname[0]=='A'){sprintf ( read_mode, "aln");fname++;}
-	else if ( fname[0]=='L'){sprintf ( read_mode, "lib");fname++;}
-	else if ( fname[0]=='M'){sprintf ( read_mode, "method");fname++;}
-	else if ( fname[0]=='S'){sprintf ( read_mode, "sequence");return CL;}
-	else if ( fname[0]=='P'){sprintf ( read_mode, "pdb")     ;return CL;}
-	else if ( fname[0]=='R'){sprintf ( read_mode, "profile") ;return CL;}
-	else if ( fname[0]=='X'){sprintf ( read_mode, "matrix");++fname;}
-	else if ( fname[0]=='W'){sprintf ( read_mode, "structure");fname++;}
-	else
-	{
-		fprintf ( stderr, "\nERROR: The descriptor %s could not be identified as a file or a method.[FATAL]\nIf it is a method file please indicate it with M%s\n", fname, fname);
-		myexit (EXIT_SUCCESS);
-	}
+  if ( is_lib_list (in_fname))sprintf ( read_mode, "lib_list");
+  else if ( in_mode)sprintf (read_mode, "%s", in_mode);
+  else if ( fname[0]=='A'){sprintf ( read_mode, "aln");fname++;}
+  else if ( fname[0]=='L'){sprintf ( read_mode, "lib");fname++;}
+  else if ( fname[0]=='M'){sprintf ( read_mode, "method");fname++;}
+  else if ( fname[0]=='S'){sprintf ( read_mode, "sequence");return CL;}
+  else if ( fname[0]=='P'){sprintf ( read_mode, "pdb")     ;return CL;}
+  else if ( fname[0]=='R'){sprintf ( read_mode, "profile") ;return CL;}
+  else if ( fname[0]=='X'){sprintf ( read_mode, "matrix");++fname;}
+  else if ( fname[0]=='W'){sprintf ( read_mode, "structure");fname++;}
+  else
+  {
+    fprintf ( stderr, "\nERROR: The descriptor %s could not be identified as a file or a method.[FATAL]\nIf it is a method file please indicate it with M%s\n", fname, fname);
+    myexit (EXIT_SUCCESS);
+  }
 
-	fprintf (CL->local_stderr, "\n\t%s [%s]\n", fname, read_mode);
-
-
-	if ( strm (read_mode, "lib_list"))
-	{
-		int n, a;
-		char **l;
-		l=read_lib_list (fname, &n);
-		for ( a=0; a<n; a++)
-			CL=read_constraint_list (CL,l[a],in_mode, mem_mode,weight_mode);
-		free_char (l,-1);
-	}
-	else if (strm(read_mode, "binary"))
-	{
-		fprintf ( stderr, "\nERROR: Library %s: binary mode is not any more supported [FATAL:%s]\n", fname,PROGRAM);
-		myexit (EXIT_FAILURE);
-	}
-	else if ( strm (fname, "make_test_lib"))
-	{
-		CL=make_test_lib (CL);
-	}
-	else if ( strm2 (read_mode,"ascii","lib"))
-	{
-
-		SUBCL=read_constraint_list_file(NULL, fname);
-
-	}
-	else if (strm(read_mode, "method"))
-	{
-		CL=produce_list ( CL, CL->S, fname,weight_mode,mem_mode);
-	}
-	else if (strm(read_mode, "matrix"))
-	{
-		CL->residue_index=NULL;
-		CL->extend_jit=0;
-		CL->M=read_matrice ( fname);
-	}
-	else if ( strm ( read_mode, "structure"))
-	{
-		if ( CL->ne>0)
-		{
-			fprintf ( stderr, "\nERROR: Wstructure must come before Mmethod or Aaln [FATAL:%s]",PROGRAM);
-			myexit (EXIT_FAILURE);
-		}
-
-		if ( !(CL->STRUC_LIST))
-		{
-			CL->STRUC_LIST=declare_sequence (1,1,10000);
-			(CL->STRUC_LIST)->nseq=0;
-		}
-		SL=CL->STRUC_LIST;
-
-		if ( check_file_exists(fname))
-		{
-			TS=main_read_seq ( fname);
-			for (a=0; a<TS->nseq; a++)sprintf (SL->name[SL->nseq++], "%s", TS->name[a]);
-			free_sequence (TS, TS->nseq);
-		}
-		else
-		{
-			sprintf (SL->name[SL->nseq++], "%s", fname);
-		}
-	}
-	else if (strm (read_mode, "aln"))
-	{
-		CL=aln_file2constraint_list ( fname,CL,weight_mode);
-	}
-	else
-	{
-		SUBCL=read_constraint_list_file(SUBCL, fname);
-	}
+  fprintf (CL->local_stderr, "\n\t%s [%s]\n", fname, read_mode);
 
 
-	if (SUBCL)
-	{
-		CL=merge_constraint_list    (SUBCL, CL, "default");
-		free_constraint_list_full (SUBCL);
-	}
+  if ( strm (read_mode, "lib_list"))
+  {
+    int n, a;
+    char **l;
+    l=read_lib_list (fname, &n);
+    for ( a=0; a<n; a++)
+      CL=read_constraint_list (CL,l[a],in_mode, mem_mode,weight_mode);
+    free_char (l,-1);
+  }
+  else if (strm(read_mode, "binary"))
+  {
+    fprintf ( stderr, "\nERROR: Library %s: binary mode is not any more supported [FATAL:%s]\n", fname,PROGRAM);
+    myexit (EXIT_FAILURE);
+  }
+  else if ( strm (fname, "make_test_lib"))
+  {
+    CL=make_test_lib (CL);
+  }
+  else if ( strm2 (read_mode,"ascii","lib"))
+  {
 
-	return CL;
+    SUBCL=read_constraint_list_file(NULL, fname);
+
+  }
+  else if (strm(read_mode, "method"))
+  {
+    CL=produce_list ( CL, CL->S, fname,weight_mode,mem_mode);
+  }
+  else if (strm(read_mode, "matrix"))
+  {
+    CL->residue_index=NULL;
+    CL->extend_jit=0;
+    CL->M=read_matrice ( fname);
+  }
+  else if ( strm ( read_mode, "structure"))
+  {
+    if ( CL->ne>0)
+    {
+      fprintf ( stderr, "\nERROR: Wstructure must come before Mmethod or Aaln [FATAL:%s]",PROGRAM);
+      myexit (EXIT_FAILURE);
+    }
+
+    if ( !(CL->STRUC_LIST))
+    {
+      CL->STRUC_LIST=declare_sequence (1,1,10000);
+      (CL->STRUC_LIST)->nseq=0;
+    }
+    SL=CL->STRUC_LIST;
+
+    if ( check_file_exists(fname))
+    {
+      TS=main_read_seq ( fname);
+      for (a=0; a<TS->nseq; a++)sprintf (SL->name[SL->nseq++], "%s", TS->name[a]);
+      free_sequence (TS, TS->nseq);
+    }
+    else
+    {
+      sprintf (SL->name[SL->nseq++], "%s", fname);
+    }
+  }
+  else if (strm (read_mode, "aln"))
+  {
+    CL=aln_file2constraint_list ( fname,CL,weight_mode);
+  }
+  else
+  {
+    SUBCL=read_constraint_list_file(SUBCL, fname);
+  }
+
+
+  if (SUBCL)
+  {
+    CL=merge_constraint_list    (SUBCL, CL, "default");
+    free_constraint_list_full (SUBCL);
+  }
+
+  return CL;
 }
 
 
@@ -2297,164 +2297,164 @@ Sequence *precompute_blast_db (Sequence *S, char **ml, int n)
  */
 Sequence * read_seq_in_n_list(char **fname, int n, char *type, char *SeqMode)
 {
-	int nseq=0;
-	int a, b;
-	Alignment *A;
-	char **sequences=NULL;
-	char **seq_name=NULL;
-	Genomic_info *genome_co = NULL;
-	Sequence *S=NULL;
-	Sequence *S1;
-	char mode;
+  int nseq=0;
+  int a, b;
+  Alignment *A;
+  char **sequences=NULL;
+  char **seq_name=NULL;
+  Genomic_info *genome_co = NULL;
+  Sequence *S=NULL;
+  Sequence *S1;
+  char mode;
 
 
 
-	/*THE TYPE OF EACH FILE MUST BE INDICATED*/
-	/*SeqMode indicates the type of file that can be used as sequence sources*/
-	/*
-	ANY: any mode
-	SL: only sequences from Libraries and Sequences
-	_A: anything BUT sequences from A(lignments)
-	*/
+  /*THE TYPE OF EACH FILE MUST BE INDICATED*/
+  /*SeqMode indicates the type of file that can be used as sequence sources*/
+  /*
+  ANY: any mode
+  SL: only sequences from Libraries and Sequences
+  _A: anything BUT sequences from A(lignments)
+  */
 
-	if ( n==0)
-	{
-		myexit (fprintf_error ( stderr, "NO in FILE"));
-	}
-	else
-	{
-		for ( a=0; a< n ; a++)
-		{
-			static char *buf;
-			char *lname;
-			if (buf)vfree (buf);
-
-
-			buf=name2type_name(fname[a]);mode=buf[0];lname=buf+1;
-			if (is_seq_source ('A', mode, SeqMode))
-			  {
+  if ( n==0)
+  {
+    myexit (fprintf_error ( stderr, "NO in FILE"));
+  }
+  else
+  {
+    for ( a=0; a< n ; a++)
+    {
+      static thread_local char *buf=NULL;
+      char *lname;
+      if (buf)vfree (buf);
 
 
-				A=main_read_aln (lname,NULL);
-
-				S1=aln2seq(A);
-				S1=seq2unique_name_seq (S1);
-				if ((S=merge_seq ( S1, S))==NULL){fprintf ( stderr, "\nERROR: Sequence Error in %s [FATAL:%s]\n",lname, PROGRAM); myexit(EXIT_FAILURE);}
-				free_aln (A);
-				free_sequence (S1, S1->nseq);
-			  }
-			else if ( is_seq_source ('R', mode, SeqMode))
-			  {
-
-				S=add_prf2seq (lname, S);
-
-			  }
-			else if (is_seq_source ('P', mode, SeqMode))
-			  {
-			    int i;
-
-			    S1=get_pdb_sequence (lname);
-			    if (S1==NULL)
-			      {
-				add_warning ( stderr, "\nWarning: Could not use PDB: %s", lname);
-			      }
-			    else
-			      {
-				if ((S=merge_seq ( S1, S))==NULL){fprintf ( stderr, "\nERROR: Sequence Error in %s [FATAL:%s]\n",lname, PROGRAM); myexit(EXIT_FAILURE);}
-				i=name_is_in_list (S1->name[0], S->name, S->nseq, 100);
-				(S->T[i])->P=fill_P_template (S->name[i], lname, S);
-			      }
-			    free_sequence (S1, S1->nseq);
-			  }
-			else if ( mode=='M');
-			else if ( mode=='X');
-			else if ( mode=='W');
-
-			else if (is_seq_source ('S', mode, SeqMode))
-			  {
-				/*1 Try with my routines (read t_coffee and MSF)*/
-				if ( (A=main_read_aln ( lname, NULL))!=NULL)
-				{
-
-					S1=aln2seq(A);
-					free_aln(A);
-				}
-				else
-				{
-					S1=main_read_seq (lname);
-				}
-
-				for ( b=0; b< S1->nseq; b++)ungap(S1->seq[b]);
-				S1=seq2unique_name_seq (S1);
+      buf=name2type_name(fname[a]);mode=buf[0];lname=buf+1;
+      if (is_seq_source ('A', mode, SeqMode))
+      {
 
 
-				if ((S=merge_seq ( S1, S))==NULL){fprintf ( stderr, "\nSequence Error in %s [FATAL:%s]\n",lname,PROGRAM); myexit(EXIT_FAILURE);}
+        A=main_read_aln (lname,NULL);
 
-				free_sequence (S1,S1->nseq);
+        S1=aln2seq(A);
+        S1=seq2unique_name_seq (S1);
+        if ((S=merge_seq ( S1, S))==NULL){fprintf ( stderr, "\nERROR: Sequence Error in %s [FATAL:%s]\n",lname, PROGRAM); myexit(EXIT_FAILURE);}
+        free_aln (A);
+        free_sequence (S1, S1->nseq);
+      }
+      else if ( is_seq_source ('R', mode, SeqMode))
+      {
 
-			}
-			else if (is_seq_source ('L', mode, SeqMode))
-			{
+        S=add_prf2seq (lname, S);
 
-				read_seq_in_list (lname,&nseq,&sequences,&seq_name, &genome_co);
-				S1=fill_sequence_struc ( nseq, sequences, seq_name, genome_co);
+      }
+      else if (is_seq_source ('P', mode, SeqMode))
+      {
+        int i;
 
-				if (genome_co != NULL)
-				{
-					for ( b=0; b< S1->nseq; b++)
-						vfree(genome_co[b].seg_name);
- 				}
-				nseq=0;
+        S1=get_pdb_sequence (lname);
+        if (S1==NULL)
+        {
+          add_warning ( stderr, "\nWarning: Could not use PDB: %s", lname);
+        }
+        else
+        {
+          if ((S=merge_seq ( S1, S))==NULL){fprintf ( stderr, "\nERROR: Sequence Error in %s [FATAL:%s]\n",lname, PROGRAM); myexit(EXIT_FAILURE);}
+          i=name_is_in_list (S1->name[0], S->name, S->nseq, 100);
+          (S->T[i])->P=fill_P_template (S->name[i], lname, S);
+        }
+        free_sequence (S1, S1->nseq);
+      }
+      else if ( mode=='M');
+      else if ( mode=='X');
+      else if ( mode=='W');
 
-				vfree(genome_co);
-				free_char (sequences, -1);
-				free_char ( seq_name, -1);
-				sequences=NULL;
-				seq_name=NULL;
-				S1=seq2unique_name_seq (S1);
+      else if (is_seq_source ('S', mode, SeqMode))
+      {
+        /*1 Try with my routines (read t_coffee and MSF)*/
+        if ( (A=main_read_aln ( lname, NULL))!=NULL)
+        {
 
-				if ((S=merge_seq( S1, S))==NULL)
-				{
-					fprintf ( stderr, "\nSequence Error in %s [FATAL:%s]\n",lname,PROGRAM);
-					myexit(EXIT_FAILURE);
-				}
-				free_sequence(S1, S1->nseq);
-			}
+          S1=aln2seq(A);
+          free_aln(A);
+        }
+        else
+        {
+          S1=main_read_seq (lname);
+        }
 
-			else if ( !strchr ( "ALSMXPRWG", mode))
-			{
-				myexit (fprintf_error ( stderr, "%s is neither a file nor a method [FATAL:%s]\n", lname));
-			}
-		}
-
-		S=remove_empty_sequence (S);
-
-
-		if ( type && type[0] )sprintf ( S->type, "%s", type);
-		else S=get_sequence_type (S);
-
-		if ( strm (S->type, "PROTEIN_DNA"))
-		{
-			for ( a=0; a< S->nseq; a++)
-			{
-				if (strm ( get_string_type ( S->seq[a]), "DNA") ||strm ( get_string_type ( S->seq[a]), "RNA")  );
-				else if ( strm ( get_string_type ( S->seq[a]), "PROTEIN"))
-				{
-					S->seq[a]=thread_aa_seq_on_dna_seq (S->seq[a]);
-					S->len[a]=strlen (S->seq[a]);
-					S->max_len=MAX(S->max_len, S->len[a]);
-				}
-			}
-		}
+        for ( b=0; b< S1->nseq; b++)ungap(S1->seq[b]);
+        S1=seq2unique_name_seq (S1);
 
 
+        if ((S=merge_seq ( S1, S))==NULL){fprintf ( stderr, "\nSequence Error in %s [FATAL:%s]\n",lname,PROGRAM); myexit(EXIT_FAILURE);}
 
-		return S;
-	}
+        free_sequence (S1,S1->nseq);
+
+      }
+      else if (is_seq_source ('L', mode, SeqMode))
+      {
+
+        read_seq_in_list (lname,&nseq,&sequences,&seq_name, &genome_co);
+        S1=fill_sequence_struc ( nseq, sequences, seq_name, genome_co);
+
+        if (genome_co != NULL)
+        {
+          for ( b=0; b< S1->nseq; b++)
+            vfree(genome_co[b].seg_name);
+        }
+        nseq=0;
+
+        vfree(genome_co);
+        free_char (sequences, -1);
+        free_char ( seq_name, -1);
+        sequences=NULL;
+        seq_name=NULL;
+        S1=seq2unique_name_seq (S1);
+
+        if ((S=merge_seq( S1, S))==NULL)
+        {
+          fprintf ( stderr, "\nSequence Error in %s [FATAL:%s]\n",lname,PROGRAM);
+          myexit(EXIT_FAILURE);
+        }
+        free_sequence(S1, S1->nseq);
+      }
+
+      else if ( !strchr ( "ALSMXPRWG", mode))
+      {
+        myexit (fprintf_error ( stderr, "%s is neither a file nor a method [FATAL:%s]\n", lname));
+      }
+    }
+
+    S=remove_empty_sequence (S);
+
+
+    if ( type && type[0] )sprintf ( S->type, "%s", type);
+    else S=get_sequence_type (S);
+
+    if ( strm (S->type, "PROTEIN_DNA"))
+    {
+      for ( a=0; a< S->nseq; a++)
+      {
+        if (strm ( get_string_type ( S->seq[a]), "DNA") ||strm ( get_string_type ( S->seq[a]), "RNA")  );
+        else if ( strm ( get_string_type ( S->seq[a]), "PROTEIN"))
+        {
+          S->seq[a]=thread_aa_seq_on_dna_seq (S->seq[a]);
+          S->len[a]=strlen (S->seq[a]);
+          S->max_len=MAX(S->max_len, S->len[a]);
+        }
+      }
+    }
 
 
 
-	return NULL;
+    return S;
+  }
+
+
+
+  return NULL;
 }
 
 int read_cpu_in_list ( char *fname)
@@ -2646,7 +2646,7 @@ Constraint_list * old_read_constraint_list_file(Constraint_list *CL, char *fname
 
 Constraint_list *read_constraint_list_file(Constraint_list *CL, char *fname)
 {
-	static int ov = -1;
+	static thread_local int ov = -1;
 	if (ov == -1)
 	{
 		if (NULL == getenv ("DEBUG_READ_LIB"))
@@ -2660,7 +2660,7 @@ Constraint_list *read_constraint_list_file(Constraint_list *CL, char *fname)
 
 	Sequence *NS;
 	int **index, *entry;
-	int c,line=0,s1, s2, r1, r2, misc, cons,x,we;
+    int line=0,s1, s2, r1, r2, misc, cons,x,we;
 	FILE *fp;
 	char *buf=NULL;
 	int error=0;
@@ -2686,69 +2686,69 @@ Constraint_list *read_constraint_list_file(Constraint_list *CL, char *fname)
 	//while ((c=fgetc(fp))!='#' && c!=EOF){line+=(c=='\n')?1:0;}
 	//ungetc (c, fp);
 
-	while ((buf=vfgets ( buf, fp))!=NULL)
-	{
-		line++;
-		if (buf[0]=='!')
-		  {
-		    if (strstr (buf, "!CMT:"))
-		      {
-			if ((CL->comment && ! strstr (CL->comment, buf))|| !CL->comment)
-			  CL->comment=vcat(CL->comment, buf);
-		      }
-		    else continue;
-		  }
-		else if (buf[0]!='#' && !start)continue;
-		else if (buf[0]=='#')
-		  {
-		    start=1;
-		    sscanf ( buf, "#%d %d", &s1, &s2);
-		    s1--; s2--;
-		    if (s1>NS->nseq || s2>NS->nseq)error=1;
-		  }
-		else
-		  {
-		    cons=misc=r1=r2=we=0;
-		    if (buf[0] != '+')
-		      {
-			x=sscanf (buf, "%d %d %d %d %d",&r1,&r2,&we,&cons,&misc);
-			length = 1;
-		      }
-		    else
-		      {
-			x=sscanf (buf, "%s %d %d %d %d %d",arg, &length, &r1,&r2,&we,&cons,&misc);
-		      }
+    while ((buf=vfgets ( buf, fp))!=NULL)
+    {
+        line++;
+        if (buf[0]=='!')
+        {
+            if (strstr (buf, "!CMT:"))
+            {
+                if ((CL->comment && ! strstr (CL->comment, buf))|| !CL->comment)
+                    CL->comment=vcat(CL->comment, buf);
+            }
+            else continue;
+        }
+        else if (buf[0]!='#' && !start)continue;
+        else if (buf[0]=='#')
+        {
+            start=1;
+            sscanf ( buf, "#%d %d", &s1, &s2);
+            s1--; s2--;
+            if (s1>NS->nseq || s2>NS->nseq)error=1;
+        }
+        else
+        {
+            cons=misc=r1=r2=we=0;
+            if (buf[0] != '+')
+            {
+                x=sscanf (buf, "%d %d %d %d %d",&r1,&r2,&we,&cons,&misc);
+                length = 1;
+            }
+            else
+            {
+                x=sscanf (buf, "%s %d %d %d %d %d",arg, &length, &r1,&r2,&we,&cons);
+            }
 
-		    for (i = 0; i < length; ++i)
-		      {
-			if (r1>NS->len[s1] || r2>NS->len[s2] || x<3)error=1;
-			else
-			  {
-			    int is1, is2, ir1, ir2;
+            for (i = 0; i < length; ++i)
+            {
+                if (r1>NS->len[s1] || r2>NS->len[s2] || x<3)error=1;
+                else
+                {
+                    int is1, is2, ir1, ir2;
 
-			    is1=entry[SEQ1]=index[s1][0];//0-N-1
-			    is2=entry[SEQ2]=index[s2][0];//0-N-1
-			    ir1=entry[R1]=index[s1][r1];//1-N
-			    ir2=entry[R2]=index[s2][r2];//1-N
-			    entry[WE]=we;//0-1000
-			    entry[CONS]=cons;
-			    entry[MISC]=misc;
-			    if (ir1>(CL->S)->len[is1] || ir2>(CL->S)->len[is2])
-			      {
+                    is1=entry[SEQ1]=index[s1][0];//0-N-1
+                    is2=entry[SEQ2]=index[s2][0];//0-N-1
+                    ir1=entry[R1]=index[s1][r1];//1-N
+                    ir2=entry[R2]=index[s2][r2];//1-N
+                    entry[WE]=we;//0-1000
+                    entry[CONS]=cons;
+                    entry[MISC]=misc;
+                    if (ir1>(CL->S)->len[is1] || ir2>(CL->S)->len[is2])
+                    {
 
-				myexit(fprintf_error (stderr, "%s::%d -- %s::%d ---- %s::%d %s::%d", NS->name[s1],r1, NS->name[s2],r2, (CL->S)->name[is1],ir1, (CL->S)->name[is2],ir2));
-			      }
-			    if (entry[SEQ1]>-1 && entry[SEQ2]>-1 && entry[R1]>0 && entry[R2]>0 && entry[WE]>0)
-			      add_entry2list (entry, CL);
-			  }
-			++r1;
-			++r2;
-		      }
+                        myexit(fprintf_error (stderr, "%s::%d -- %s::%d ---- %s::%d %s::%d", NS->name[s1],r1, NS->name[s2],r2, (CL->S)->name[is1],ir1, (CL->S)->name[is2],ir2));
+                    }
+                    if (entry[SEQ1]>-1 && entry[SEQ2]>-1 && entry[R1]>0 && entry[R2]>0 && entry[WE]>0)
+                        add_entry2list (entry, CL);
+                }
+                ++r1;
+                ++r2;
+            }
 
-		  }
-		if (error)
-		  printf_exit (EXIT_FAILURE,stderr,"Parsing Error [L:%d F:%s S:%s]",line,fname,buf);
-	}
+        }
+        if (error)
+            printf_exit (EXIT_FAILURE,stderr,"Parsing Error [L:%d F:%s S:%s]",line,fname,buf);
+    }
 
 	vfclose (fp);
 
@@ -2761,145 +2761,146 @@ Constraint_list *read_constraint_list_file(Constraint_list *CL, char *fname)
 
 int read_seq_in_list ( char *fname,  int *nseq, char ***sequences, char ***seq_name, Genomic_info **genome_co)
 {
-	int a;
-	int seq_len, sn;
+  int a;
+  int seq_len, sn;
 
-	FILE *fp;
-	char name[1000];
-	char *sequence;
-	static int max_nseq;
-	static int *sn_list;
-	int list_nseq;
-	int lline;
+  FILE *fp;
+  char name[1000];
+  char *sequence;
+  static thread_local int max_nseq;
+  static thread_local int *sn_list=NULL;
+  int list_nseq;
+  int lline;
 
-	fp=vfopen (fname, "r");
-	fp=skip_commentary_line_in_file ('!', fp);
-	fscanf (fp, "%d\n", &max_nseq);
-	for ( lline=0,a=0; a<max_nseq; a++)
-	{
-		int l=0;
-		fp=skip_commentary_line_in_file ('!', fp);
-		fscanf (fp, "%*s %d %*s\n", &l);
-		lline=MAX(lline, l);
-	}
-	vfclose (fp);
-	sequence=(char*)vcalloc (lline+1, sizeof (char));
+  fp=vfopen (fname, "r");
+  fp=skip_commentary_line_in_file ('!', fp);
+  fscanf (fp, "%d\n", &max_nseq);
+  for ( lline=0,a=0; a<max_nseq; a++)
+  {
+    int l=0;
+    fp=skip_commentary_line_in_file ('!', fp);
+    fscanf (fp, "%*s %d %*s\n", &l);
+    lline=MAX(lline, l);
+  }
+  vfclose (fp);
+  sequence=(char*)vcalloc (lline+1, sizeof (char));
 
-	Genomic_info *gn_co;
-	if ( seq_name[0]==NULL)
-	{
-		seq_name[0]= declare_char (max_nseq,0);
-		sequences[0]=declare_char (max_nseq,0);
-		gn_co=(Genomic_info*)vcalloc(max_nseq, sizeof(Genomic_info));
-	}
+  Genomic_info *gn_co;
+  if ( seq_name[0]==NULL)
+  {
+    seq_name[0]= declare_char (max_nseq,0);
+    sequences[0]=declare_char (max_nseq,0);
+    gn_co=(Genomic_info*)vcalloc(max_nseq, sizeof(Genomic_info));
+  }
 
-	if ( sn_list==NULL)
-		sn_list=(int*)vcalloc ( max_nseq, sizeof (int));
-	else
-		sn_list=(int*)vrealloc (sn_list, max_nseq*sizeof (int));
+  if ( sn_list==NULL)
+    sn_list=(int*)vcalloc ( max_nseq, sizeof (int));
+  else
+    sn_list=(int*)vrealloc (sn_list, max_nseq*sizeof (int));
 
-	fp=vfopen (fname,"r");
-	fp=skip_commentary_line_in_file ('!', fp);
-	if (fscanf ( fp, "%d\n", &list_nseq)!=1)
-		return 0;
-	char c;
-	char line[200];
-	char *tag;
-	int genomic_info_found = 0;
-	fp=skip_commentary_line_in_file ('!', fp);
-
-
-	for ( a=0; a<max_nseq; a++)
-	{
-		fscanf ( fp, "%s %d %s\n", name, &seq_len, sequence);
-		lower_string (sequence);
-		if ((sn=name_is_in_list (name, seq_name[0], nseq[0], 100))==-1)
-		{
-			seq_name[0][nseq[0]]=(char*)vcalloc (strlen (name)+1, sizeof (char));
-			sprintf (seq_name[0][nseq[0]], "%s", name);
-			sequences[0][nseq[0]]=(char*)vcalloc (strlen (sequence)+1, sizeof (char));
-			sprintf (sequences[0][nseq[0]], "%s", sequence);
-			sn_list[a]=nseq[0];
-			nseq[0]++;
-		}
-		else
-		{
-			sn_list[a]=sn;
-		}
-  		gn_co[a].seg_name = NULL;
-
-		gn_co[a].strand='|';
-		gn_co[a].start=1;
-		gn_co[a].end =2;
-		gn_co[a].seg_len=0;
-		char *tmp;
-		while ((c = fgetc(fp)) == '!')
-		{
-
-			fgets (line , 200 , fp);
-
-			tag = strtok(line, " ");
-			if (strcmp(tag, "SG") == 0)
-			{
-			  genomic_info_found = 1;
-			  tmp = strtok(NULL, " \n");
-			  gn_co[a].seg_name =(char*) vcalloc(strlen(tmp)+1, sizeof(char));
-			  strcpy(gn_co[a].seg_name, tmp);
+  fp=vfopen (fname,"r");
+  fp=skip_commentary_line_in_file ('!', fp);
+  if (fscanf ( fp, "%d\n", &list_nseq)!=1)
+    return 0;
+  char c;
+  char line[200];
+  char *tag;
+  int genomic_info_found = 0;
+  fp=skip_commentary_line_in_file ('!', fp);
 
 
-			}
-			else
-			  {
-			  if (strcmp(tag, "SD") == 0)
-			    {
-			      genomic_info_found = 1;
-			      gn_co[a].strand = strtok(NULL, " ")[0];
-			    }
-			  else
-			    {
-			      if (strcmp(tag, "ST") == 0)
-				{
-				  genomic_info_found = 1;
-				  gn_co[a].start = atoi(strtok(NULL, " "))-1;
-				}
-			      else
-				{
-				if (strcmp(tag, "EN") == 0)
-				  {
-				    genomic_info_found = 1;
-				    gn_co[a].end = atoi(strtok(NULL, " "))-1;
-				  }
-				else
-				  {
-				    if (strcmp(tag, "SL") == 0)
-				      {
-					genomic_info_found = 1;
-					gn_co[a].seg_len = atoi(strtok(NULL, " "));
-				      }
-				  }
-				}
-			    }
-			}
-		}
- 		ungetc(c, fp);
-	}
+  for ( a=0; a<max_nseq; a++)
+  {
+    fscanf ( fp, "%s %d %s\n", name, &seq_len, sequence);
+    lower_string (sequence);
+    if ((sn=name_is_in_list (name, seq_name[0], nseq[0], 100))==-1)
+    {
+      seq_name[0][nseq[0]]=(char*)vcalloc (strlen (name)+1, sizeof (char));
+      sprintf (seq_name[0][nseq[0]], "%s", name);
+      sequences[0][nseq[0]]=(char*)vcalloc (strlen (sequence)+1, sizeof (char));
+      sprintf (sequences[0][nseq[0]], "%s", sequence);
+      sn_list[a]=nseq[0];
+      nseq[0]++;
+    }
+    else
+    {
+      sn_list[a]=sn;
+    }
+    gn_co[a].seg_name = NULL;
+
+    gn_co[a].strand='|';
+    gn_co[a].start=1;
+    gn_co[a].end =2;
+    gn_co[a].seg_len=0;
+    char *tmp;
+    char *saveptr;
+    while ((c = fgetc(fp)) == '!')
+    {
+
+      fgets (line , 200 , fp);
+
+      tag = strtok_r(line, " ",&saveptr);
+      if (strcmp(tag, "SG") == 0)
+      {
+        genomic_info_found = 1;
+        tmp = strtok_r(NULL, " \n",&saveptr);
+        gn_co[a].seg_name =(char*) vcalloc(strlen(tmp)+1, sizeof(char));
+        strcpy(gn_co[a].seg_name, tmp);
 
 
-	if (genomic_info_found)
-	  {
-	    *genome_co = gn_co;
+      }
+      else
+      {
+        if (strcmp(tag, "SD") == 0)
+        {
+          genomic_info_found = 1;
+          gn_co[a].strand = strtok_r(NULL, " ",&saveptr)[0];
+        }
+        else
+        {
+          if (strcmp(tag, "ST") == 0)
+          {
+            genomic_info_found = 1;
+            gn_co[a].start = atoi(strtok_r(NULL, " ",&saveptr))-1;
+          }
+          else
+          {
+            if (strcmp(tag, "EN") == 0)
+            {
+              genomic_info_found = 1;
+              gn_co[a].end = atoi(strtok_r(NULL, " ",&saveptr))-1;
+            }
+            else
+            {
+              if (strcmp(tag, "SL") == 0)
+              {
+                genomic_info_found = 1;
+                gn_co[a].seg_len = atoi(strtok_r(NULL, " ",&saveptr));
+              }
+            }
+          }
+        }
+      }
+    }
+    ungetc(c, fp);
+  }
 
-	  }
 
-	else
-	{
-		vfree(gn_co);
-		*genome_co = NULL;
-	}
+  if (genomic_info_found)
+  {
+    *genome_co = gn_co;
 
-	vfclose (fp);
-	vfree (sequence);
-	return 1;
+  }
+
+  else
+  {
+    vfree(gn_co);
+    *genome_co = NULL;
+  }
+
+  vfclose (fp);
+  vfree (sequence);
+  return 1;
 }
 
 
@@ -3090,7 +3091,7 @@ int save_contact_constraint_list (Constraint_list *CL, char *name)
 FILE * save_constraint_list ( Constraint_list *CL,int start, int len, char *fname, FILE *fp,char *mode, Sequence *S)
 {
 	int a, b;
-	static int* translation;
+	static thread_local int* translation=NULL;
 
 
 	if ( fp==NULL)
@@ -3271,7 +3272,7 @@ Constraint_list * extend_constraint_list ( Constraint_list *CL)
   int a,e,b;
 	int s1, r1, s2, r2,w2, s3, r3, w3;
 
-	static int *entry;
+	static thread_local int *entry=NULL;
 	if (!CL || !CL->residue_index || !CL->S)return CL;
 	S=CL->S;
 
@@ -3480,8 +3481,8 @@ Constraint_list * fork_relax_constraint_list (Constraint_list *CL, int njobs,int
   Sequence *S;
   int in;
 
-  static int **hasch;
-  static int max_len;
+  int **hasch=NULL;
+  int max_len=0;
 
   //   HERE ("%d", nproc);
   if (!CL || !CL->residue_index)return CL;
@@ -3496,16 +3497,13 @@ Constraint_list * fork_relax_constraint_list (Constraint_list *CL, int njobs,int
 
   S=CL->S;
   in=CL->ne;
-
   sl=n2splits (njobs, (CL->S)->nseq);
   pid_tmpfile=(char**)vcalloc (njobs, sizeof (char*));
   std::vector<int> thread_indexes;
   for (sjobs=0,j=0;j<njobs; j++)
   {
     pid_tmpfile[j]=vtmpnam(NULL);
-
-    int thread_index = start_thread( [=]{
-      fork_relax_constraint_list_task( j, CL, pid_tmpfile, sl, S, hasch ); } );
+    int thread_index = start_thread( [=]{ fork_relax_constraint_list_task( j, CL, pid_tmpfile, sl, S, hasch ); } );
     thread_indexes.push_back( thread_index );
     sjobs++;
   }
@@ -3696,7 +3694,7 @@ Constraint_list * nfork_relax_constraint_list_4gp (Constraint_list *CL)
 {
 	int s, r, a, t_s, t_r;
 	int th=0;
-	static int *entry;
+	static thread_local int *entry=NULL;
 	char *tmp;
 	Sequence *S=CL->S;
 	FILE *fp;
@@ -4621,296 +4619,296 @@ Distance_matrix* cl2distance_matrix    (Constraint_list *CL, Alignment *A, char 
 
 Distance_matrix *seq2distance_matrix (Constraint_list *CL, Alignment *A,char *mode, char *sim_mode, int print)
 {
-	/*Compute the distance matrix associated with the Constraint List and the sequences*/
-	/*Computation only occurs if the similiraty matrix is undefined : CL->similarity_matrix*/
-	/*Undefine  CL->similarity_matrix to force computation*/
+  /*Compute the distance matrix associated with the Constraint List and the sequences*/
+  /*Computation only occurs if the similiraty matrix is undefined : CL->similarity_matrix*/
+  /*Undefine  CL->similarity_matrix to force computation*/
 
-	int a, b;
-	Alignment *B;
-	Constraint_list *NCL;
-	float score=0;
-	int *ns;
-	int **l_s;
-	float id;
-	int max_name=0;
-	int  id_score;
-	static float **g_matrix;
-	float ref=0;
-	int n_coor=0;
-	Distance_matrix *DM;
-	int **sim_table=NULL;
+  int a, b;
+  Alignment *B;
+  Constraint_list *NCL;
+  float score=0;
+  int *ns;
+  int **l_s;
+  float id;
+  int max_name=0;
+  int  id_score;
+  static thread_local float **g_matrix=NULL;
+  float ref=0;
+  int n_coor=0;
+  Distance_matrix *DM;
+  int **sim_table=NULL;
 
-	//mode: computation mode
-	//sim_mode: mode for computing the similarity
+  //mode: computation mode
+  //sim_mode: mode for computing the similarity
 
-	//Composite modes
+  //Composite modes
 
-	if (strm (mode, "ktup2"))
-	  {
-	    B=seq2aln ( CL->S, NULL, 1);
-	    B=very_fast_aln (B, B->nseq,NULL);
-	    sprintf ( CL->distance_matrix_mode, "aln");
-	    DM=cl2distance_matrix (CL, B, NULL, NULL, 1);
-	    sprintf ( CL->distance_matrix_mode, "ktup2");
-	    sprintf ( DM->mode, "%s", mode);
-	    sprintf ( DM->sim_mode, "%s", sim_mode);
-	    free_aln (B);
-	    return DM;
-	  }
+  if (strm (mode, "ktup2"))
+  {
+    B=seq2aln ( CL->S, NULL, 1);
+    B=very_fast_aln (B, B->nseq,NULL);
+    sprintf ( CL->distance_matrix_mode, "aln");
+    DM=cl2distance_matrix (CL, B, NULL, NULL, 1);
+    sprintf ( CL->distance_matrix_mode, "ktup2");
+    sprintf ( DM->mode, "%s", mode);
+    sprintf ( DM->sim_mode, "%s", sim_mode);
+    free_aln (B);
+    return DM;
+  }
 
-	if ( !CL) return NULL;
-	else
-	  {
-	    for ( max_name=0,a=0; a<  (CL->S)->nseq; a++)max_name=MAX(strlen ((CL->S)->name[a]), max_name);
-
-
-	    if ( CL->DM)DM=CL->DM;
-	    else
-	      {
-		DM=(Distance_matrix*)vcalloc ( 1, sizeof (Distance_matrix));
-		DM->nseq=(CL->S)->nseq;
-		DM->similarity_matrix=declare_int ( (CL->S)->nseq, (CL->S)->nseq);
-		DM->distance_matrix  =declare_int ( (CL->S)->nseq, (CL->S)->nseq);
-		DM->score_similarity_matrix=declare_int ( (CL->S)->nseq, (CL->S)->nseq);
-		}
-
-	    sprintf ( DM->mode, "%s", mode);
-	    sprintf ( DM->sim_mode, "%s", sim_mode);
-
-	    NCL=duplicate_constraint_list_soft (CL);
-	    NCL->pw_parameters_set=1;
-
-	    if (!A)
-	      {
-		if ( CL->tree_aln)B=CL->tree_aln;
-		else B=seq2aln ( NCL->S, NULL, 1);
-	      }
-	    else
-	      {
-		B=copy_aln (A, NULL);
-		B=reorder_aln (B, (CL->S)->name, (CL->S)->nseq);
-	      }
-
-	    if ( strm (mode, "very_fast"))
-	      {
-		sprintf ( NCL->dp_mode, "very_fast_pair_wise");
-		NCL->evaluate_residue_pair=evaluate_matrix_score;
-		if ( strm ((CL->S)->type, "DNA") ||strm ((CL->S)->type, "RNA")  )
-		  {
-				NCL->M=read_matrice ("idmat");
-				NCL->gop=-10;
-				NCL->gep=-1;
-				CL->ktup=6;
-		  }
-		else
-		  {
-		    NCL->M=read_matrice ("blosum62mt");
-		    NCL->gop=get_avg_matrix_mm (NCL->M, AA_ALPHABET)*10;
-		    NCL->gep=-1;
-		    CL->ktup=2;
-		  }
-		NCL->use_fragments=1;
-		CL->diagonal_threshold=6;
-	      }
-
-	    else if ( strm (mode, "ktup"))
-	      {
-
-		NCL->ktup=6;
-		sim_table=ktup_dist_mat((CL->S)->seq,(CL->S)->nseq,NCL->ktup, (CL->S)->type);
-	      }
+  if ( !CL) return NULL;
+  else
+  {
+    for ( max_name=0,a=0; a<  (CL->S)->nseq; a++)max_name=MAX(strlen ((CL->S)->name[a]), max_name);
 
 
-	    else if (strm (mode, "aln"))
-	      {
+    if ( CL->DM)DM=CL->DM;
+    else
+    {
+      DM=(Distance_matrix*)vcalloc ( 1, sizeof (Distance_matrix));
+      DM->nseq=(CL->S)->nseq;
+      DM->similarity_matrix=declare_int ( (CL->S)->nseq, (CL->S)->nseq);
+      DM->distance_matrix  =declare_int ( (CL->S)->nseq, (CL->S)->nseq);
+      DM->score_similarity_matrix=declare_int ( (CL->S)->nseq, (CL->S)->nseq);
+    }
 
-		sim_table=aln2sim_mat (A, sim_mode);
-	      }
-	    else if ( strm (mode, "fast") || strm ("idscore", mode))
-	      {
-		sprintf ( NCL->dp_mode, "myers_miller_pair_wise");
-		NCL->evaluate_residue_pair=evaluate_matrix_score;
-		if ( strm ((CL->S)->type, "DNA") || strm ((CL->S)->type, "RNA"))
-		  {
-		    NCL->M=read_matrice ("idmat");
-		    NCL->gop=-10;
-		    NCL->gep=-1;
-		  }
-		else
-		  {
-		    NCL->M=read_matrice ("blosum62mt");
-		    NCL->gop=get_avg_matrix_mm (NCL->M, AA_ALPHABET)*10;
-		    NCL->gep=-1;
-		  }
-	      }
+    sprintf ( DM->mode, "%s", mode);
+    sprintf ( DM->sim_mode, "%s", sim_mode);
 
-	    else if ( strm (mode, "cscore"))
-	      {
-		if (!CL || !CL->residue_index || CL->ne==0)
-		  return seq2distance_matrix (CL, A,"idscore",sim_mode, print);
-	      }
-	    else if ( strm (mode, "geometric") );
-	    else if (strm (mode, "slow"));
-	    else if (strm (mode, "clustalw"));
-	    else if (strm (mode, "no"))
-	      print=1;
-	    else if (strm (mode, "random"))
-	      print=1;
-	    else
-	      {
-			fprintf ( stderr, "\nError: %s is an unknown distance_matrix_mode [FATAL:%s]", mode,PROGRAM);
-			crash ("");
-	      }
+    NCL=duplicate_constraint_list_soft (CL);
+    NCL->pw_parameters_set=1;
 
-		//Special Geometric Mode
-	    if ( strm (NCL->distance_matrix_mode, "geometric"))
-	      {
-		free_arrayN(g_matrix, 2);
-		g_matrix=declare_float ((CL->S)->nseq, 3);
-		n_coor=MIN(3,((CL->S)->nseq));
+    if (!A)
+    {
+      if ( CL->tree_aln)B=CL->tree_aln;
+      else B=seq2aln ( NCL->S, NULL, 1);
+    }
+    else
+    {
+      B=copy_aln (A, NULL);
+      B=reorder_aln (B, (CL->S)->name, (CL->S)->nseq);
+    }
 
-		for ( a=0; a<(CL->S)->nseq; a++)
-			{
-			  for (b=0; b<n_coor; b++)
-			    {
-			      B=align_two_sequences ((CL->S)->seq[a], (CL->S)->seq[b], "pam250mt", -10, -1, "fasta_pair_wise");
-			      g_matrix[a][b]=get_seq_sim ( B->seq_al[0], B->seq_al[1], "-", NULL);
-			      free_aln(B);B=NULL;
-			    }
-			}
-		ref=(float)sqrt((double)(10000*n_coor));
-	      }
+    if ( strm (mode, "very_fast"))
+    {
+      sprintf ( NCL->dp_mode, "very_fast_pair_wise");
+      NCL->evaluate_residue_pair=evaluate_matrix_score;
+      if ( strm ((CL->S)->type, "DNA") ||strm ((CL->S)->type, "RNA")  )
+      {
+        NCL->M=read_matrice ("idmat");
+        NCL->gop=-10;
+        NCL->gep=-1;
+        CL->ktup=6;
+      }
+      else
+      {
+        NCL->M=read_matrice ("blosum62mt");
+        NCL->gop=get_avg_matrix_mm (NCL->M, AA_ALPHABET)*10;
+        NCL->gep=-1;
+        CL->ktup=2;
+      }
+      NCL->use_fragments=1;
+      CL->diagonal_threshold=6;
+    }
+
+    else if ( strm (mode, "ktup"))
+    {
+
+      NCL->ktup=6;
+      sim_table=ktup_dist_mat((CL->S)->seq,(CL->S)->nseq,NCL->ktup, (CL->S)->type);
+    }
 
 
-	    ns=(int*)vcalloc ( 2, sizeof(int));
-	    l_s=declare_int ( 2, 1);
-	    ns[0]=ns[1]=1;
-	    l_s[0][0]=0;
-	    l_s[1][0]=1;
+    else if (strm (mode, "aln"))
+    {
 
-	    if (CL->local_stderr && print>0)fprintf ( (CL->local_stderr), "\nCOMPUTE PAIRWISE SIMILARITY [dp_mode: %s] [distance_matrix_mode: %s][Similarity Measure: %s] \n", (NCL->dp_mode)?NCL->dp_mode:"NO_DP",mode, sim_mode);
+      sim_table=aln2sim_mat (A, sim_mode);
+    }
+    else if ( strm (mode, "fast") || strm ("idscore", mode))
+    {
+      sprintf ( NCL->dp_mode, "myers_miller_pair_wise");
+      NCL->evaluate_residue_pair=evaluate_matrix_score;
+      if ( strm ((CL->S)->type, "DNA") || strm ((CL->S)->type, "RNA"))
+      {
+        NCL->M=read_matrice ("idmat");
+        NCL->gop=-10;
+        NCL->gep=-1;
+      }
+      else
+      {
+        NCL->M=read_matrice ("blosum62mt");
+        NCL->gop=get_avg_matrix_mm (NCL->M, AA_ALPHABET)*10;
+        NCL->gep=-1;
+      }
+    }
 
-	    for (a=0; a< (CL->S)->nseq; a++)
-	      {
-		if (CL->local_stderr && print>0)fprintf ( (CL->local_stderr), "\r\tSeq: %5d %20s -- [%3d %%]",a, (CL->S)->name[a], (int)((a*100)/(CL->S)->nseq));
-		for ( b=a; b< (CL->S)->nseq; b++)
-		  {
-		    if ( b==a){DM->similarity_matrix[a][b]=MAXID;}
-		    else
-		      {
-			l_s[0][0]=a;
-			l_s[1][0]=b;
-			if ( !strm(mode, "ktup2") && ! strm (mode, "geometric"))
-			  {
-			    ungap ( B->seq_al[a]);
-			    ungap ( B->seq_al[b]);
-			  }
+    else if ( strm (mode, "cscore"))
+    {
+      if (!CL || !CL->residue_index || CL->ne==0)
+        return seq2distance_matrix (CL, A,"idscore",sim_mode, print);
+    }
+    else if ( strm (mode, "geometric") );
+    else if (strm (mode, "slow"));
+    else if (strm (mode, "clustalw"));
+    else if (strm (mode, "no"))
+      print=1;
+    else if (strm (mode, "random"))
+      print=1;
+    else
+    {
+      fprintf ( stderr, "\nError: %s is an unknown distance_matrix_mode [FATAL:%s]", mode,PROGRAM);
+      crash ("");
+    }
 
-			if ( strm (mode, "slow"))
-			  {
+    //Special Geometric Mode
+    if ( strm (NCL->distance_matrix_mode, "geometric"))
+    {
+      free_arrayN(g_matrix, 2);
+      g_matrix=declare_float ((CL->S)->nseq, 3);
+      n_coor=MIN(3,((CL->S)->nseq));
 
-			    B->score_aln=pair_wise (B, ns, l_s,NCL);
-
-			    id=get_seq_sim ( B->seq_al[a], B->seq_al[b], "-", sim_mode);
-			    if ( CL->residue_index)
-			      {
-				score=(int)(((float)B->score_aln)/(B->len_aln*SCORE_K));
-				score=(int)(CL->normalise)?((score*MAXID)/(CL->normalise)):(score);
-			      }
-				else if ( CL->M)score=id;
-
-
-			    if ( score>MAXID)score=(CL->residue_index)?sub_aln2sub_aln_score (B, CL, CL->evaluate_mode, ns, l_s):id;
-
-			  }
-			else if ( strm2 (mode,"fast", "very_fast"))
-			  {
-			    B->score_aln=pair_wise (B, ns, l_s,NCL);
-			    id=get_seq_sim ( B->seq_al[a], B->seq_al[b], "-", sim_mode);
-			    score=(int)(id)*SCORE_K;
-			  }
-			else if ( strm (mode, "cscore"))
-			  {
-			    ungap ( B->seq_al[a]);
-				ungap ( B->seq_al[b]);
-				score=(int)linked_pair_wise (B, ns, l_s, NCL);
-
-
-				score/=(B->len_aln*SCORE_K);
-				id=score/SCORE_K;
-			      }
-			    else if ( strm (mode, "idscore"))
-			      {
-				score=id=idscore_pairseq (B->seq_al[a], B->seq_al[b], NCL->gop, NCL->gep, NCL->M, sim_mode);
-				//HERE ("%s %d %d ->%d", sim_mode, a, b, (int)id);
-			      }
-			    else if (strm (mode, "ktup"))
-			      {
-				id=sim_table[a][b];
-				score=id*SCORE_K;
-
-			      }
-			    else if (strm (mode, "aln"))
-			      {
-				score=id=sim_table[a][b];
-				score*=SCORE_K;
-			      }
-
-			    else if ( strm (mode, "geometric"))
-			      {
-				id=get_geometric_distance (g_matrix,n_coor, a, b, "euclidian");
-				id=MAXID*(1-((id/ref)));
-				score=(int)(id)*SCORE_K;
-			      }
-			    else if ( strm (mode, "no"))
-			      {
-				id=100;
-				score=id*SCORE_K;
-			      }
-			    else if ( strm (mode, "random"))
-			      {
-				id=rand()%100;
-				score=id*SCORE_K;
-			      }
-			    else
-			      {
-				id=B->score_aln=pair_wise (B, ns, l_s,NCL);
-				score=id*SCORE_K;
-			      }
-			    /*Sim mat*/
-			    DM->similarity_matrix[a][b]=DM->similarity_matrix[b][a]=(int)(id);
-			    /*Dist mat*/
-			    DM->distance_matrix[a][b]=DM->distance_matrix[b][a]=MAXID-(int)(id);
-			    /*Score mat*/
+      for ( a=0; a<(CL->S)->nseq; a++)
+      {
+        for (b=0; b<n_coor; b++)
+        {
+          B=align_two_sequences ((CL->S)->seq[a], (CL->S)->seq[b], "pam250mt", -10, -1, "fasta_pair_wise");
+          g_matrix[a][b]=get_seq_sim ( B->seq_al[0], B->seq_al[1], "-", NULL);
+          free_aln(B);B=NULL;
+        }
+      }
+      ref=(float)sqrt((double)(10000*n_coor));
+    }
 
 
-			    DM->score_similarity_matrix[a][b]=DM->score_similarity_matrix[b][a]=(int)score;
-			    id_score=id;
-			    if (CL->local_stderr && print>1) fprintf (CL->local_stderr, "\n\t%-*s %-*s identity=%3d%% score=%3d [%3d %%]", max_name,(CL->S)->name[a], max_name,(CL->S)->name[b], id_score, (int)score,(int)((a*100)/(CL->S)->nseq));
-			  }
-		      }
-		  }
-		vfree (ns);
-		free_int(l_s, -1);
+    ns=(int*)vcalloc ( 2, sizeof(int));
+    l_s=declare_int ( 2, 1);
+    ns[0]=ns[1]=1;
+    l_s[0][0]=0;
+    l_s[1][0]=1;
 
-	}
+    if (CL->local_stderr && print>0)fprintf ( (CL->local_stderr), "\nCOMPUTE PAIRWISE SIMILARITY [dp_mode: %s] [distance_matrix_mode: %s][Similarity Measure: %s] \n", (NCL->dp_mode)?NCL->dp_mode:"NO_DP",mode, sim_mode);
+
+    for (a=0; a< (CL->S)->nseq; a++)
+    {
+      if (CL->local_stderr && print>0)fprintf ( (CL->local_stderr), "\r\tSeq: %5d %20s -- [%3d %%]",a, (CL->S)->name[a], (int)((a*100)/(CL->S)->nseq));
+      for ( b=a; b< (CL->S)->nseq; b++)
+      {
+        if ( b==a){DM->similarity_matrix[a][b]=MAXID;}
+        else
+        {
+          l_s[0][0]=a;
+          l_s[1][0]=b;
+          if ( !strm(mode, "ktup2") && ! strm (mode, "geometric"))
+          {
+            ungap ( B->seq_al[a]);
+            ungap ( B->seq_al[b]);
+          }
+
+          if ( strm (mode, "slow"))
+          {
+
+            B->score_aln=pair_wise (B, ns, l_s,NCL);
+
+            id=get_seq_sim ( B->seq_al[a], B->seq_al[b], "-", sim_mode);
+            if ( CL->residue_index)
+            {
+              score=(int)(((float)B->score_aln)/(B->len_aln*SCORE_K));
+              score=(int)(CL->normalise)?((score*MAXID)/(CL->normalise)):(score);
+            }
+            else if ( CL->M)score=id;
 
 
-	if (CL->local_stderr) fprintf (CL->local_stderr, "\n");
-	free_constraint_list (NCL);
+            if ( score>MAXID)score=(CL->residue_index)?sub_aln2sub_aln_score (B, CL, CL->evaluate_mode, ns, l_s):id;
+
+          }
+          else if ( strm2 (mode,"fast", "very_fast"))
+          {
+            B->score_aln=pair_wise (B, ns, l_s,NCL);
+            id=get_seq_sim ( B->seq_al[a], B->seq_al[b], "-", sim_mode);
+            score=(int)(id)*SCORE_K;
+          }
+          else if ( strm (mode, "cscore"))
+          {
+            ungap ( B->seq_al[a]);
+            ungap ( B->seq_al[b]);
+            score=(int)linked_pair_wise (B, ns, l_s, NCL);
 
 
+            score/=(B->len_aln*SCORE_K);
+            id=score/SCORE_K;
+          }
+          else if ( strm (mode, "idscore"))
+          {
+            score=id=idscore_pairseq (B->seq_al[a], B->seq_al[b], NCL->gop, NCL->gep, NCL->M, sim_mode);
+            //HERE ("%s %d %d ->%d", sim_mode, a, b, (int)id);
+          }
+          else if (strm (mode, "ktup"))
+          {
+            id=sim_table[a][b];
+            score=id*SCORE_K;
 
-	if (!CL->tree_aln)
-	{
-		free_aln (B);
-	}
+          }
+          else if (strm (mode, "aln"))
+          {
+            score=id=sim_table[a][b];
+            score*=SCORE_K;
+          }
 
-	free_int (sim_table, -1);
+          else if ( strm (mode, "geometric"))
+          {
+            id=get_geometric_distance (g_matrix,n_coor, a, b, "euclidian");
+            id=MAXID*(1-((id/ref)));
+            score=(int)(id)*SCORE_K;
+          }
+          else if ( strm (mode, "no"))
+          {
+            id=100;
+            score=id*SCORE_K;
+          }
+          else if ( strm (mode, "random"))
+          {
+            id=rand()%100;
+            score=id*SCORE_K;
+          }
+          else
+          {
+            id=B->score_aln=pair_wise (B, ns, l_s,NCL);
+            score=id*SCORE_K;
+          }
+          /*Sim mat*/
+          DM->similarity_matrix[a][b]=DM->similarity_matrix[b][a]=(int)(id);
+          /*Dist mat*/
+          DM->distance_matrix[a][b]=DM->distance_matrix[b][a]=MAXID-(int)(id);
+          /*Score mat*/
+
+
+          DM->score_similarity_matrix[a][b]=DM->score_similarity_matrix[b][a]=(int)score;
+          id_score=id;
+          if (CL->local_stderr && print>1) fprintf (CL->local_stderr, "\n\t%-*s %-*s identity=%3d%% score=%3d [%3d %%]", max_name,(CL->S)->name[a], max_name,(CL->S)->name[b], id_score, (int)score,(int)((a*100)/(CL->S)->nseq));
+        }
+      }
+    }
+    vfree (ns);
+    free_int(l_s, -1);
+
+  }
+
+
+  if (CL->local_stderr) fprintf (CL->local_stderr, "\n");
+  free_constraint_list (NCL);
 
 
 
-	return DM;
+  if (!CL->tree_aln)
+  {
+    free_aln (B);
+  }
+
+  free_int (sim_table, -1);
+
+
+
+  return DM;
 }
 /*********************************************************************/
 /*                                                                   */
@@ -4973,7 +4971,7 @@ Constraint_list * rna_lib_extension ( Constraint_list *CL, Constraint_list *R)
 	int *list1;
 	int *list2;
 	Sequence *S=CL->S;
-	static char *tmp;
+	static thread_local char *tmp=NULL;
 	FILE *fp;
 
 	list1=(int*)vcalloc ( 100, sizeof (int));
@@ -4982,42 +4980,42 @@ Constraint_list * rna_lib_extension ( Constraint_list *CL, Constraint_list *R)
 	if (!tmp) tmp=vtmpnam (NULL);
 	fp=vfopen (tmp, "w");
 	entry=(int*)vcalloc ( 100, sizeof (int));
-	for (s1=0; s1<S->nseq; s1++)
-	{
-		for (r1=1; r1<=S->len[s1]; r1++)
-		{
-			entry[SEQ1]=s1;
-			for (c=1; c<CL->residue_index[s1][r1][0]; c+=ICHUNK)
-			{
-				s2=CL->residue_index[s1][r1][c+SEQ2];
-				r2=CL->residue_index[s1][r1][c+R2];
-				w2=CL->residue_index[s1][r1][c+WE];
-				entry[SEQ2]=s2;
-				entry[WE]=w2;
+  for (s1=0; s1<S->nseq; s1++)
+  {
+    for (r1=1; r1<=S->len[s1]; r1++)
+    {
+      entry[SEQ1]=s1;
+      for (c=1; c<CL->residue_index[s1][r1][0]; c+=ICHUNK)
+      {
+        s2=CL->residue_index[s1][r1][c+SEQ2];
+        r2=CL->residue_index[s1][r1][c+R2];
+        w2=CL->residue_index[s1][r1][c+WE];
+        entry[SEQ2]=s2;
+        entry[WE]=w2;
 
-				n1=n2=0;
-				list1[n1++]=r1;
-				for (b=1; b<R->residue_index[s1][r1][0]; b+=ICHUNK)
-				{
-					list1[n1++]=R->residue_index[s1][r1][b+R2];
-				}
-				list2[n2++]=r2;
+        n1=n2=0;
+        list1[n1++]=r1;
+        for (b=1; b<R->residue_index[s1][r1][0]; b+=ICHUNK)
+        {
+          list1[n1++]=R->residue_index[s1][r1][b+R2];
+        }
+        list2[n2++]=r2;
 
-				for (b=1; b<R->residue_index[s2][r2][0]; b+=ICHUNK)
-				{
-					list2[n2++]=R->residue_index[s2][r2][b+R2];
-				}
+        for (b=1; b<R->residue_index[s2][r2][0]; b+=ICHUNK)
+        {
+          list2[n2++]=R->residue_index[s2][r2][b+R2];
+        }
 
-				for (b=1; b<n1; b++)
-					for (d=1; d<n2; d++)
-					{
-						entry[R1]=list1[b];
-						entry[R2]=list2[d];
-						for (e=0; e<CL->entry_len; e++) fprintf (fp, "%d ", entry[e]);
-					}
-			}
-		}
-	}
+        for (b=1; b<n1; b++)
+          for (d=1; d<n2; d++)
+          {
+            entry[R1]=list1[b];
+            entry[R2]=list2[d];
+            for (e=0; e<CL->entry_len; e++) fprintf (fp, "%d ", entry[e]);
+          }
+      }
+    }
+  }
 
 	vfclose (fp);
 	return undump_constraint_list (CL,tmp);
@@ -5025,7 +5023,7 @@ Constraint_list * rna_lib_extension ( Constraint_list *CL, Constraint_list *R)
 
 char *** produce_method_file ( char *method)
 {
-	static char ***list;
+	static thread_local char ***list=NULL;
 	int n=0;
 	FILE *fp;
 
@@ -5529,7 +5527,7 @@ char *** produce_method_file ( char *method)
 	//Intercept sap
 	if (method && strm (method, "sap_pair") && !check_program_is_installed (SAP_4_TCOFFEE,NULL,NULL,SAP_ADDRESS,INSTALL))
 	{
-		static int issued;
+		static thread_local int issued=0;
 		if (!issued)
 		{
 			add_warning (stderr, "\n******************** WARNING: ****************************************\nSAP is not installed\nTMalign will be used instead\ntmalign is FASTER than SAP and *almost* as accurate\n**********************************************************************\n");
@@ -6597,21 +6595,21 @@ int cl2worst_seq (Constraint_list *CL, int *list, int ns)
 }
 Constraint_list *add_seq2cl(int s, Constraint_list *CL)
 {
-  static char *master;
-  static char *seq;
-  static char *lib;
-  static int dumped;
+  static thread_local char *master=NULL;
+  static thread_local char *seq=NULL;
+  static thread_local char *lib=NULL;
+  static thread_local int dumped=0;
 
 
   if (!dumped)
-    {
-      int a;
-      seq   =vtmpnam(NULL);
+  {
+    int a;
+    seq   =vtmpnam(NULL);
 
-      for (a=0; a<(CL->S)->nseq; a++)
-	printf_file (seq, "a", ">%s\n%s\n", (CL->S)->name[a], (CL->S)->seq[a]);
-      dumped=1;
-    }
+    for (a=0; a<(CL->S)->nseq; a++)
+      printf_file (seq, "a", ">%s\n%s\n", (CL->S)->name[a], (CL->S)->seq[a]);
+    dumped=1;
+  }
   master=vtmpnam(NULL);
   lib   =vtmpnam(NULL);
   printf_file (master, "w", ">%s\n", (CL->S)->name[s]);

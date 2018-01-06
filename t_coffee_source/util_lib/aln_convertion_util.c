@@ -1913,56 +1913,57 @@ int ** seq2aln_pos      (Alignment *A, int *ns, int **l_s)
     }
 
 Alignment *local_maln2global_maln (char *seq, Alignment *A)
-    {
-      /*inputs a BLAST alignmnent where the master sequence may be partila
-	outputs the same alignment, while amkeing sure the profile is perfectly in sink with its master sequence
+{
+  /*inputs a BLAST alignmnent where the master sequence may be partila
+  outputs the same alignment, while amkeing sure the profile is perfectly in sink with its master sequence
       */
 
-      int a, b, c;
-      int start, end, rend;
-      char qname[100], *p;
-      Alignment *B=NULL;
+  int a, b, c;
+  int start, end, rend;
+  char qname[100], *p;
+  Alignment *B=NULL;
 
-      sprintf ( qname, "%s", A->name[0]);
-      p=strtok (qname, "_");
-      if ( !strm (p, "QUERY"))
-	   {
-	     fprintf ( stderr, "\nUnappropriate format for the alignment [%s:FATAL]", PROGRAM);
-	     myexit (EXIT_FAILURE);
-	   }
+  sprintf ( qname, "%s", A->name[0]);
+  char *saveptr;
+  p=strtok_r (qname, "_",&saveptr);
+  if ( !strm (p, "QUERY"))
+  {
+    fprintf ( stderr, "\nUnappropriate format for the alignment [%s:FATAL]", PROGRAM);
+    myexit (EXIT_FAILURE);
+  }
 
-      start=atoi(strtok (NULL, "_"));
-      end=atoi(strtok (NULL, "_"));
-      rend=strlen (seq);
+  start=atoi(strtok_r (NULL, "_",&saveptr));
+  end=atoi(strtok_r (NULL, "_",&saveptr));
+  rend=strlen (seq);
 
-      B=copy_aln (A,NULL);
-      if ( start>1 || end<rend )A=realloc_aln (A,rend+1);
+  B=copy_aln (A,NULL);
+  if ( start>1 || end<rend )A=realloc_aln (A,rend+1);
 
-      for (a=0; a<start-1; a++)
-	{
-	  A->seq_al[0][a]=seq[a];
-	  for ( b=1; b< A->nseq; b++)A->seq_al[b][a]='-';
-	}
+  for (a=0; a<start-1; a++)
+  {
+    A->seq_al[0][a]=seq[a];
+    for ( b=1; b< A->nseq; b++)A->seq_al[b][a]='-';
+  }
 
-      for (c=0,a=start-1; a< end; a++, c++)
-	{
-	  A->seq_al[0][a]=seq[a];
-	  for ( b=1; b< A->nseq; b++)
-	    {
-	      A->seq_al[b][a]=B->seq_al[b][c];
-	    }
-	}
-      for ( a=end; a<rend; a++)
-	{
-	  A->seq_al[0][a]=seq[a];
-	  for ( b=1; b< A->nseq; b++)A->seq_al[b][a]='-';
-	}
-      for ( a=0; a< A->nseq; a++) A->seq_al[a][rend]='\0';
-      free_aln (B);
-
-      A->len_aln=rend;
-      return A;
+  for (c=0,a=start-1; a< end; a++, c++)
+  {
+    A->seq_al[0][a]=seq[a];
+    for ( b=1; b< A->nseq; b++)
+    {
+      A->seq_al[b][a]=B->seq_al[b][c];
     }
+  }
+  for ( a=end; a<rend; a++)
+  {
+    A->seq_al[0][a]=seq[a];
+    for ( b=1; b< A->nseq; b++)A->seq_al[b][a]='-';
+  }
+  for ( a=0; a< A->nseq; a++) A->seq_al[a][rend]='\0';
+  free_aln (B);
+
+  A->len_aln=rend;
+  return A;
+}
 
 
 int ** aln2inv_pos ( Alignment *A)
@@ -2452,63 +2453,63 @@ Alignment * probabilistic_rm_aa ( Alignment *A, int pos, int len)
 }
 
 Alignment * remove_gap_column ( Alignment *A, char *mode)
+{
+  int   a, b;
+  char *p;
+  int  *seq_list;
+  int   nseq=0;
+  int keep_col, cl;
+  char *saveptr;
+
+  seq_list =(int*)vcalloc ( A->nseq, sizeof (int));
+  while (  (p=strtok_r(mode, ":",&saveptr)))
   {
-    int   a, b;
-    char *p;
-    int  *seq_list;
-    int   nseq=0;
-    int keep_col, cl;
-
-
-    seq_list =(int*)vcalloc ( A->nseq, sizeof (int));
-    while (  (p=strtok(mode, ":")))
-      {
-	mode=NULL;
-	if (p[0]=='#')
-	  {
-	    seq_list[nseq++]=atoi(p+1)-1;
-	  }
-	else if ( (a=name_is_in_list (p, A->name, A->nseq, 100))!=-1)
-	  {
-	    seq_list[nseq++]=a;
-	  }
-      }
-
-    if ( nseq==0)
-      {
-	for ( a=0; a< A->nseq; a++)seq_list[a]=a;
-	nseq=A->nseq;
-      }
-
-    for ( cl=0,a=0; a<=A->len_aln; a++)
-      {
-	for (keep_col=1, b=0; b< nseq && keep_col; b++)
-	  {
-	    keep_col=(is_gap(A->seq_al[seq_list[b]][a]))?0:keep_col;
-	  }
-
-	if ( keep_col)
-	  {
-	    for ( b=0; b< A->nseq; b++)
-	      {
-		A->seq_al[b][cl]=A->seq_al[b][a];
-	      }
-	    cl++;
-	  }
-	else
-	  {
-	    for ( b=0; b< A->nseq; b++)
-	      {
-		A->seq_al[b][cl]='-';
-	      }
-	    cl++;
-	  }
-      }
-    A->len_aln=cl;
-    vfree (seq_list);
-
-    return A;
+    mode=NULL;
+    if (p[0]=='#')
+    {
+      seq_list[nseq++]=atoi(p+1)-1;
+    }
+    else if ( (a=name_is_in_list (p, A->name, A->nseq, 100))!=-1)
+    {
+      seq_list[nseq++]=a;
+    }
   }
+
+  if ( nseq==0)
+  {
+    for ( a=0; a< A->nseq; a++)seq_list[a]=a;
+    nseq=A->nseq;
+  }
+
+  for ( cl=0,a=0; a<=A->len_aln; a++)
+  {
+    for (keep_col=1, b=0; b< nseq && keep_col; b++)
+    {
+      keep_col=(is_gap(A->seq_al[seq_list[b]][a]))?0:keep_col;
+    }
+
+    if ( keep_col)
+    {
+      for ( b=0; b< A->nseq; b++)
+      {
+        A->seq_al[b][cl]=A->seq_al[b][a];
+      }
+      cl++;
+    }
+    else
+    {
+      for ( b=0; b< A->nseq; b++)
+      {
+        A->seq_al[b][cl]='-';
+      }
+      cl++;
+    }
+  }
+  A->len_aln=cl;
+  vfree (seq_list);
+
+  return A;
+}
 
 
 Alignment * ungap_sub_aln (Alignment *A, int ns, int *ls)
@@ -4572,61 +4573,62 @@ int  seq_list2in_file ( TC_method *M, Sequence *S, char *list, char *file)
 }
 
 int  seq_list2fasta_file( Sequence *S,  char *list, char *file, char *outmode)
-        {
-	FILE *fp;
-	int n, a, s;
-	static char *buf;
-	static int blen;
-	int l;
-	//out_mode: names can only be re-converted when out mode is aln
+{
+  FILE *fp;
+  int n, a;
+  static char *buf=NULL;
+  static int blen=0;
+  int l;
+  char *saveptr;
+  //out_mode: names can only be re-converted when out mode is aln
 
-	/*Buf is used because cmalloced functions cannot go through strtok*/
-	if ( !S)return 0;
-	else
-	  {
-	    fp=vfopen ( file, "w");
-	    if ( !list)
-	      {
-		for ( a=0; a<S->nseq; a++)
-		  {
-		    if (outmode && strm (outmode, "aln"))fprintf ( fp, ">%s %s\n%s\n", decode_name (S->name[a], CODE),S->name[a], S->seq[a]);
-		    else fprintf ( fp, ">%s %s\n%s\n", S->name[a],S->name[a], S->seq[a]);
-		  }
-	      }
-	    else
-	      {
-		int **list2;
-		int max;
+  /*Buf is used because cmalloced functions cannot go through strtok_r*/
+  if ( !S)return 0;
+  else
+  {
+    fp=vfopen ( file, "w");
+    if ( !list)
+    {
+      for ( a=0; a<S->nseq; a++)
+      {
+        if (outmode && strm (outmode, "aln"))fprintf ( fp, ">%s %s\n%s\n", decode_name (S->name[a], CODE),S->name[a], S->seq[a]);
+        else fprintf ( fp, ">%s %s\n%s\n", S->name[a],S->name[a], S->seq[a]);
+      }
+    }
+    else
+    {
+      int **list2;
+      int max;
 
-		l=strlen (list);
-		if ( l>blen)
-		  {
-		    if (buf)vfree(buf);
-		    buf=(char*)vcalloc ( strlen (list)+1, sizeof (char));
-		    sprintf ( buf, "%s", list);
-		    blen=l;
-		  }
-		n=atoi(strtok (list,SEPARATORS));
+      l=strlen (list);
+      if ( l>blen)
+      {
+        if (buf)vfree(buf);
+        buf=(char*)vcalloc ( strlen (list)+1, sizeof (char));
+        sprintf ( buf, "%s", list);
+        blen=l;
+      }
+      n=atoi(strtok_r (list,SEPARATORS,&saveptr));
 
-		list2=declare_int (n, 2);
-		max=n*1000;
-		for ( a=0; a<n; a++)
-		  {
-		    list2[a][0]=atoi(strtok (NULL, SEPARATORS));
-		    list2[a][1]=rand()%max;
-		  }
-		if ( atoigetenv ("HoT_4_TCOFFEE"))sort_int ( list2,2, 1, 0, n-1);
-		for ( a=0; a< n; a++)
-		  {
-		    int i=list2[a][0];
-		    if (outmode && strm (outmode, "aln"))fprintf ( fp, ">%s %s\n%s\n", decode_name (S->name[i], CODE), S->name[a],S->seq[i]);
-		    else fprintf ( fp, ">%s %s\n%s\n", S->name[a], S->name[a],S->seq[i]);
-		  }
-	      }
-	    vfclose (fp);
-	  }
-	return 1;
-	}
+      list2=declare_int (n, 2);
+      max=n*1000;
+      for ( a=0; a<n; a++)
+      {
+        list2[a][0]=atoi(strtok_r (NULL, SEPARATORS,&saveptr));
+        list2[a][1]=rand()%max;
+      }
+      if ( atoigetenv ("HoT_4_TCOFFEE"))sort_int ( list2,2, 1, 0, n-1);
+      for ( a=0; a< n; a++)
+      {
+        int i=list2[a][0];
+        if (outmode && strm (outmode, "aln"))fprintf ( fp, ">%s %s\n%s\n", decode_name (S->name[i], CODE), S->name[a],S->seq[i]);
+        else fprintf ( fp, ">%s %s\n%s\n", S->name[a], S->name[a],S->seq[i]);
+      }
+    }
+    vfclose (fp);
+  }
+  return 1;
+}
 Structure * seq2struc ( Sequence *S, Structure *ST)
         {
 	int a, b;
@@ -9967,57 +9969,57 @@ char *aln2random_seq (Alignment *A, int pn1, int pn2, int pn3, int gn)
 /*                                                                  */
 /********************************************************************/
 Alignment * master_trimseq( Alignment *A, Sequence *S,char *mode)
-     {
-       Alignment *NA;
-       char *p;
-       int a, b;
-       int use_aln=0, upper_sim=0, min_nseq=0, lower_sim=0;
-       float f_upper_sim, f_lower_sim;
-       char weight_mode[1000];
-       char method[1000];
-       int statistics=0;
-       int trim_direction=TOP;
-       float **sim_weight;
-       int *seq_list;
-       int table=0;
+{
+  Alignment *NA;
+  char *p;
+  int a, b;
+  int use_aln=0, upper_sim=0, min_nseq=0, lower_sim=0;
+  float f_upper_sim, f_lower_sim;
+  char weight_mode[1000];
+  char method[1000];
+  int statistics=0;
+  int trim_direction=TOP;
+  float **sim_weight;
+  int *seq_list;
+  int table=0;
 
 
 
 
-     /*
+  /*
        mode:
            (trim)_<seq or aln>_%<percentage of tot weight to keep>_n<number of seq to keep>_w<weight mode>
      */
 
 
 
-     seq_list=(int*)vcalloc ( S->nseq, sizeof (int));
-     for ( a=0; a< A->nseq; a++)
-       {
-	 seq_list[a]=1;
-       }
+  seq_list=(int*)vcalloc ( S->nseq, sizeof (int));
+  for ( a=0; a< A->nseq; a++)
+  {
+    seq_list[a]=1;
+  }
 
 
-     use_aln=aln_is_aligned(A);
+  use_aln=aln_is_aligned(A);
 
-     if ( mode[0]=='\0')
-       {
+  if ( mode[0]=='\0')
+  {
 
-	 upper_sim=50;
-	 lower_sim=0;
-	 min_nseq=0;
-	 sprintf (weight_mode, "pwsim");
-	 sprintf ( method, "clustering2");
-       }
-     else
-       {
+    upper_sim=50;
+    lower_sim=0;
+    min_nseq=0;
+    sprintf (weight_mode, "pwsim");
+    sprintf ( method, "clustering2");
+  }
+  else
+  {
 
-	 upper_sim=lower_sim=min_nseq;
-	 sprintf (weight_mode, "pwsim");
-	 sprintf ( method, "clustering2");
-       }
+    upper_sim=lower_sim=min_nseq;
+    sprintf (weight_mode, "pwsim");
+    sprintf ( method, "clustering2");
+  }
 
-     /*
+  /*
       U or % (deprecated) Upper bound for pairwise similarity
       L or m (depercated) Lower  bound for pairwise similarity
       n max number of sequences
@@ -10027,96 +10029,96 @@ Alignment * master_trimseq( Alignment *A, Sequence *S,char *mode)
      */
 
 
+  char *saveptr;
+  while ( (p=strtok_r(mode, "_",&saveptr)))
+  {
+    mode=NULL;
+    if (strm (p, "seq"))use_aln=0;
+    else if ( strm(p,"aln"))use_aln=1;
+    else if  (p[0]=='s')statistics=1;
+    else if  (p[0]=='t')table=1;
+    else if  (p[0]=='U')upper_sim=atoi(p+1);
+    else if  (p[0]=='L')lower_sim=atoi(p+1);
+    else if  (p[0]=='n')min_nseq=atoi(p+1);
+    else if  (p[0]=='N')min_nseq=atoi(p+1)*-1;
+    else if  (p[0]=='B')trim_direction=BOTTOM;
+    else if  (p[0]=='T')trim_direction=TOP;
+    else if  (p[0]=='W')sprintf (weight_mode, "%s", p+1);
+    else if  (p[0]=='M')sprintf (method, "%s", p+1);
+    else if  (p[0]=='K')
+    {
 
-     while ( (p=strtok(mode, "_")))
-	   {
-	     mode=NULL;
-	     if (strm (p, "seq"))use_aln=0;
-	     else if ( strm(p,"aln"))use_aln=1;
-	     else if  (p[0]=='s')statistics=1;
-	     else if  (p[0]=='t')table=1;
-	     else if  (p[0]=='U')upper_sim=atoi(p+1);
-	     else if  (p[0]=='L')lower_sim=atoi(p+1);
-	     else if  (p[0]=='n')min_nseq=atoi(p+1);
-	     else if  (p[0]=='N')min_nseq=atoi(p+1)*-1;
-	     else if  (p[0]=='B')trim_direction=BOTTOM;
-	     else if  (p[0]=='T')trim_direction=TOP;
-	     else if  (p[0]=='W')sprintf (weight_mode, "%s", p+1);
-	     else if  (p[0]=='M')sprintf (method, "%s", p+1);
-	     else if  (p[0]=='K')
-	       {
+      while ((p=strtok_r(NULL, ":",&saveptr)))
+      {
 
-		 while ((p=strtok(NULL, ":")))
-		   {
+        if ( p[0]=='#')
+        {
+          seq_list[atoi(p+1)-1]=2;
+        }
+        else if ( (a=name_is_in_list (p, A->name, A->nseq, 100))!=-1)
 
-		     if ( p[0]=='#')
-		       {
-			 seq_list[atoi(p+1)-1]=2;
-		       }
-		     else if ( (a=name_is_in_list (p, A->name, A->nseq, 100))!=-1)
+        {
+          seq_list[a]=2;
+        }
+      }
+    }
+  }
 
-		       {
-			 seq_list[a]=2;
-		       }
-		   }
-	       }
-	   }
-
-     if ( !upper_sim && !min_nseq && !lower_sim)upper_sim=50;
-
-
-
-     if  (!S)
-       {
-	 fprintf ( stderr, "\ntrimseq requires a set of sequences[FATAL:%s]\n", PROGRAM);
-	 crash("");
-       }
-
-     else if ( min_nseq> S->nseq)
-       {
-	 min_nseq=S->nseq;
-       }
-     else if ( min_nseq<0)
-       {
-	 if ( min_nseq<-100)
-	   {
-	     add_warning ( stderr, "\nWARNING: trimseq: Nseq(N)  max_val=100%% [Automatic reset]\n");
-	     min_nseq=-100;
-	   }
-
-	 min_nseq=(int)((float)S->nseq*((float)min_nseq/100)*-1);
-       }
+  if ( !upper_sim && !min_nseq && !lower_sim)upper_sim=50;
 
 
-     NA=seq2subseq3 (A, S,use_aln,lower_sim,upper_sim,min_nseq,trim_direction, weight_mode,&sim_weight, seq_list );
 
-     if ( table)
-       {
-	 fprintf ( stderr, "\nSIMILARITY MATRIX\n");
-	 for ( a=0; a< A->nseq-1; a++)
-	   for ( b=a+1; b< A->nseq; b++)
-	     {
-	       fprintf ( stderr, "%15s Vs %15s : %3.2f %% id\n", A->name[a], A->name[b], 100-sim_weight[a][b]);
-	     }
-       }
-     if ( statistics)
-       {
-	 f_upper_sim=(upper_sim>100)?((float)upper_sim/(float)100):upper_sim;
-	 f_lower_sim=(upper_sim>100)?((float)lower_sim/(float)100):lower_sim;
+  if  (!S)
+  {
+    fprintf ( stderr, "\ntrimseq requires a set of sequences[FATAL:%s]\n", PROGRAM);
+    crash("");
+  }
 
-	 fprintf ( stderr, "\nTRIM Informations:\n");
-	 fprintf ( stderr, "\tUse...........: %s\n",(use_aln)?"multiple_aln":"pairwise_aln");
-	 fprintf ( stderr, "\tcluster_mode..: %s\n"  ,method);
-	 fprintf ( stderr, "\tsim_mode......: %s\n"  ,weight_mode);
-	 fprintf ( stderr, "\tlower_id_bound: %.2f%%\n"  ,(f_lower_sim==0)?-1:f_lower_sim);
-	 fprintf ( stderr, "\tupper_id_bound: %.2f%%\n",(f_upper_sim==0)?-1:f_upper_sim);
-	 fprintf ( stderr, "\tnseq_kept.....: %d (out of %d)\n"  ,NA->nseq, S->nseq);
-	 fprintf ( stderr, "\treduction.....: %d%% of original set\n"  ,(NA->nseq*100)/S->nseq);
-	 fprintf ( stderr, "\tTrim_direction: From %s \n"  ,(trim_direction==BOTTOM)?"Bottom":"Top");
-       }
+  else if ( min_nseq> S->nseq)
+  {
+    min_nseq=S->nseq;
+  }
+  else if ( min_nseq<0)
+  {
+    if ( min_nseq<-100)
+    {
+      add_warning ( stderr, "\nWARNING: trimseq: Nseq(N)  max_val=100%% [Automatic reset]\n");
+      min_nseq=-100;
+    }
 
-     return NA;
-   }
+    min_nseq=(int)((float)S->nseq*((float)min_nseq/100)*-1);
+  }
+
+
+  NA=seq2subseq3 (A, S,use_aln,lower_sim,upper_sim,min_nseq,trim_direction, weight_mode,&sim_weight, seq_list );
+
+  if ( table)
+  {
+    fprintf ( stderr, "\nSIMILARITY MATRIX\n");
+    for ( a=0; a< A->nseq-1; a++)
+      for ( b=a+1; b< A->nseq; b++)
+      {
+        fprintf ( stderr, "%15s Vs %15s : %3.2f %% id\n", A->name[a], A->name[b], 100-sim_weight[a][b]);
+      }
+  }
+  if ( statistics)
+  {
+    f_upper_sim=(upper_sim>100)?((float)upper_sim/(float)100):upper_sim;
+    f_lower_sim=(upper_sim>100)?((float)lower_sim/(float)100):lower_sim;
+
+    fprintf ( stderr, "\nTRIM Informations:\n");
+    fprintf ( stderr, "\tUse...........: %s\n",(use_aln)?"multiple_aln":"pairwise_aln");
+    fprintf ( stderr, "\tcluster_mode..: %s\n"  ,method);
+    fprintf ( stderr, "\tsim_mode......: %s\n"  ,weight_mode);
+    fprintf ( stderr, "\tlower_id_bound: %.2f%%\n"  ,(f_lower_sim==0)?-1:f_lower_sim);
+    fprintf ( stderr, "\tupper_id_bound: %.2f%%\n",(f_upper_sim==0)?-1:f_upper_sim);
+    fprintf ( stderr, "\tnseq_kept.....: %d (out of %d)\n"  ,NA->nseq, S->nseq);
+    fprintf ( stderr, "\treduction.....: %d%% of original set\n"  ,(NA->nseq*100)/S->nseq);
+    fprintf ( stderr, "\tTrim_direction: From %s \n"  ,(trim_direction==BOTTOM)?"Bottom":"Top");
+  }
+
+  return NA;
+}
 
 Alignment *sim_filter (Alignment *A, char *in_mode, char *seq)
 {
@@ -10925,58 +10927,58 @@ int find_worst_seq_old ( int **sim, int n, int *keep,int max,int direction)
 
 
 Alignment * trimseq( Alignment *A, Sequence *S,char *mode)
-   {
-     Alignment *NA;
-     char *p;
-     int a, b;
-     int use_aln=0, upper_sim=0, min_nseq=0, lower_sim=0;
-     char weight_mode[1000];
-     char method[1000];
-     int statistics=0;
-     int trim_direction=TOP;
-     float **sim_weight;
-     int *seq_list;
-     int table=0;
-     int print_name=0;
-     float f_lower_sim, f_upper_sim;
+{
+  Alignment *NA;
+  char *p;
+  int a, b;
+  int use_aln=0, upper_sim=0, min_nseq=0, lower_sim=0;
+  char weight_mode[1000];
+  char method[1000];
+  int statistics=0;
+  int trim_direction=TOP;
+  float **sim_weight;
+  int *seq_list;
+  int table=0;
+  int print_name=0;
+  float f_lower_sim, f_upper_sim;
 
 
 
-     /*
+  /*
        mode:
            (trim)_<seq or aln>_%<percentage of tot weight to keep>_n<number of seq to keep>_w<weight mode>
      */
 
 
 
-     seq_list=(int*)vcalloc ( S->nseq, sizeof (int));
-     for ( a=0; a< A->nseq; a++)
-       {
-	 seq_list[a]=1;
-       }
+  seq_list=(int*)vcalloc ( S->nseq, sizeof (int));
+  for ( a=0; a< A->nseq; a++)
+  {
+    seq_list[a]=1;
+  }
 
 
-     use_aln=aln_is_aligned(A);
+  use_aln=aln_is_aligned(A);
 
 
-     if ( mode[0]=='\0')
-       {
+  if ( mode[0]=='\0')
+  {
 
-	 upper_sim=50;
-	 lower_sim=0;
-	 min_nseq=0;
-	 sprintf (weight_mode, "pwsim_fragment");
-	 sprintf ( method, "clustering2");
-       }
-     else
-       {
+    upper_sim=50;
+    lower_sim=0;
+    min_nseq=0;
+    sprintf (weight_mode, "pwsim_fragment");
+    sprintf ( method, "clustering2");
+  }
+  else
+  {
 
-	 upper_sim=lower_sim=min_nseq;
-	 sprintf (weight_mode, "pwsim_fragment");
-	 sprintf ( method, "clustering2");
-       }
+    upper_sim=lower_sim=min_nseq;
+    sprintf (weight_mode, "pwsim_fragment");
+    sprintf ( method, "clustering2");
+  }
 
-     /*
+  /*
       U or % (deprecated) Upper bound for pairwise similarity
       L or m (depercated) Lower  bound for pairwise similarity
       n max number of sequences
@@ -10986,210 +10988,210 @@ Alignment * trimseq( Alignment *A, Sequence *S,char *mode)
      */
 
 
+  char *saveptr;
+  while ( (p=strtok_r(mode, "_",&saveptr)))
+  {
+    mode=NULL;
+    if (strm (p, "seq"))use_aln=0;
+    else if ( strm(p,"aln"))use_aln=1;
+    else if  (p[0]=='s')statistics=1;
+    else if  (p[0]=='t')table=1;
+    else if  (p[0]=='p')print_name=1;
+    else if  (p[0]=='U')upper_sim=atoi(p+1);
+    else if  (p[0]=='L')lower_sim=atoi(p+1);
+    else if  (p[0]=='n')min_nseq=atoi(p+1);
+    else if  (p[0]=='N')min_nseq=atoi(p+1)*-1;
+    else if  (p[0]=='B')trim_direction=BOTTOM;
+    else if  (p[0]=='T')trim_direction=TOP;
+    else if  (p[0]=='W')sprintf (weight_mode, "%s", p+1);
+    else if  (p[0]=='M')sprintf (method, "%s", p+1);
+    else if  (p[0]=='K')
+    {
 
-     while ( (p=strtok(mode, "_")))
-	   {
-	     mode=NULL;
-	     if (strm (p, "seq"))use_aln=0;
-	     else if ( strm(p,"aln"))use_aln=1;
-	     else if  (p[0]=='s')statistics=1;
-	     else if  (p[0]=='t')table=1;
-	     else if  (p[0]=='p')print_name=1;
-	     else if  (p[0]=='U')upper_sim=atoi(p+1);
-	     else if  (p[0]=='L')lower_sim=atoi(p+1);
-	     else if  (p[0]=='n')min_nseq=atoi(p+1);
-	     else if  (p[0]=='N')min_nseq=atoi(p+1)*-1;
-	     else if  (p[0]=='B')trim_direction=BOTTOM;
-	     else if  (p[0]=='T')trim_direction=TOP;
-	     else if  (p[0]=='W')sprintf (weight_mode, "%s", p+1);
-	     else if  (p[0]=='M')sprintf (method, "%s", p+1);
-	     else if  (p[0]=='K')
-	       {
+      while ((p=strtok_r(NULL, ":",&saveptr)))
+      {
 
-		 while ((p=strtok(NULL, ":")))
-		   {
+        if ( (a=name_is_in_list (p, A->name, A->nseq, 100))!=-1)
+        {
+          seq_list[a]=2;
+        }
+      }
+    }
+  }
 
-		     if ( (a=name_is_in_list (p, A->name, A->nseq, 100))!=-1)
-		       {
-			 seq_list[a]=2;
-		       }
-		   }
-	       }
-	   }
-
-     if ( !upper_sim && !min_nseq && !lower_sim)upper_sim=50;
-
-
-
-     if  (!S)
-       {
-	 fprintf ( stderr, "\ntrimseq requires a set of sequences[FATAL:%s]\n", PROGRAM);
-	 crash("");
-       }
-
-     else if ( min_nseq> S->nseq)
-       {
-	 min_nseq=S->nseq;
-       }
-     else if ( min_nseq<0)
-       {
-	 if ( min_nseq<-100)
-	   {
-	     add_warning ( stderr, "\nWARNING: trimseq: Nseq(N)  max_val=100%% [Automatic reset]\n");
-	     min_nseq=-100;
-	   }
-
-	 min_nseq=(int)((float)S->nseq*((float)min_nseq/100)*-1);
-       }
+  if ( !upper_sim && !min_nseq && !lower_sim)upper_sim=50;
 
 
-     NA=seq2subseq2 (A, S,use_aln,lower_sim,upper_sim,min_nseq,trim_direction, weight_mode,&sim_weight, seq_list );
 
-     if ( table)
-       {
-	 fprintf ( stderr, "\nSIMILARITY MATRIX\n");
-	 for ( a=0; a< A->nseq-1; a++)
-	   for ( b=a+1; b< A->nseq; b++)
-	     {
-	       fprintf ( stderr, "%15s Vs %15s : %3.2f %% id\n", A->name[a], A->name[b], 100-sim_weight[a][b]);
-	     }
-       }
+  if  (!S)
+  {
+    fprintf ( stderr, "\ntrimseq requires a set of sequences[FATAL:%s]\n", PROGRAM);
+    crash("");
+  }
 
-     NA=seq_name2removed_seq_name(S, NA,sim_weight);
+  else if ( min_nseq> S->nseq)
+  {
+    min_nseq=S->nseq;
+  }
+  else if ( min_nseq<0)
+  {
+    if ( min_nseq<-100)
+    {
+      add_warning ( stderr, "\nWARNING: trimseq: Nseq(N)  max_val=100%% [Automatic reset]\n");
+      min_nseq=-100;
+    }
 
-     if ( print_name)
-       {
-	 fprintf ( stderr, "\nList of sequences with their closest removed neighbors\n");
-	 for ( a=0; a< NA->nseq; a++)fprintf ( stderr, "\n%s: %s\n", NA->name[a], NA->seq_comment[a]);
-       }
+    min_nseq=(int)((float)S->nseq*((float)min_nseq/100)*-1);
+  }
 
-     if ( statistics)
-       {
-	 f_lower_sim=(lower_sim>100)?(float)lower_sim/100:lower_sim;
-	 f_upper_sim=(upper_sim>100)?(float)upper_sim/100:upper_sim;
 
-	 fprintf ( stderr, "\nTRIM seq Informations:\n");
-	 fprintf ( stderr, "\tUse...........: %s\n",(use_aln)?"multiple_aln":"pairwise_aln");
-	 fprintf ( stderr, "\tcluster_mode..: %s\n"  ,method);
-	 fprintf ( stderr, "\tsim_mode......: %s\n"  ,weight_mode);
-	 fprintf ( stderr, "\tlower_id_bound: %.2f%%\n"  ,(f_lower_sim==0)?-1:f_lower_sim);
-	 fprintf ( stderr, "\tupper_id_bound: %.2f%%\n",(f_upper_sim==0)?-1:f_upper_sim);
-	 fprintf ( stderr, "\tnseq_kept.....: %d (out of %d)\n"  ,NA->nseq, S->nseq);
-	 fprintf ( stderr, "\treduction.....: %d%% of original set\n"  ,(NA->nseq*100)/S->nseq);
-	 fprintf ( stderr, "\tTrim_direction: From %s \n"  ,(trim_direction==BOTTOM)?"Bottom":"Top");
-       }
+  NA=seq2subseq2 (A, S,use_aln,lower_sim,upper_sim,min_nseq,trim_direction, weight_mode,&sim_weight, seq_list );
 
-     return NA;
-   }
+  if ( table)
+  {
+    fprintf ( stderr, "\nSIMILARITY MATRIX\n");
+    for ( a=0; a< A->nseq-1; a++)
+      for ( b=a+1; b< A->nseq; b++)
+      {
+        fprintf ( stderr, "%15s Vs %15s : %3.2f %% id\n", A->name[a], A->name[b], 100-sim_weight[a][b]);
+      }
+  }
+
+  NA=seq_name2removed_seq_name(S, NA,sim_weight);
+
+  if ( print_name)
+  {
+    fprintf ( stderr, "\nList of sequences with their closest removed neighbors\n");
+    for ( a=0; a< NA->nseq; a++)fprintf ( stderr, "\n%s: %s\n", NA->name[a], NA->seq_comment[a]);
+  }
+
+  if ( statistics)
+  {
+    f_lower_sim=(lower_sim>100)?(float)lower_sim/100:lower_sim;
+    f_upper_sim=(upper_sim>100)?(float)upper_sim/100:upper_sim;
+
+    fprintf ( stderr, "\nTRIM seq Informations:\n");
+    fprintf ( stderr, "\tUse...........: %s\n",(use_aln)?"multiple_aln":"pairwise_aln");
+    fprintf ( stderr, "\tcluster_mode..: %s\n"  ,method);
+    fprintf ( stderr, "\tsim_mode......: %s\n"  ,weight_mode);
+    fprintf ( stderr, "\tlower_id_bound: %.2f%%\n"  ,(f_lower_sim==0)?-1:f_lower_sim);
+    fprintf ( stderr, "\tupper_id_bound: %.2f%%\n",(f_upper_sim==0)?-1:f_upper_sim);
+    fprintf ( stderr, "\tnseq_kept.....: %d (out of %d)\n"  ,NA->nseq, S->nseq);
+    fprintf ( stderr, "\treduction.....: %d%% of original set\n"  ,(NA->nseq*100)/S->nseq);
+    fprintf ( stderr, "\tTrim_direction: From %s \n"  ,(trim_direction==BOTTOM)?"Bottom":"Top");
+  }
+
+  return NA;
+}
 
 Alignment * tc_trimseq( Alignment *A, Sequence *S,char *mode)
-   {
-     Alignment *NA;
-     Sequence  *TS;
-     char *trimfile, *alnfile;
-     int *seq_list;
-     int a, nseq=0, sim=0;
-     char *p;
-     char command[100000];
-     char keep_list[10000];
+{
+  Alignment *NA;
+  Sequence  *TS;
+  char *trimfile, *alnfile;
+  int *seq_list;
+  int a, nseq=0, sim=0;
+  char *p;
+  char command[100000];
+  char keep_list[10000];
 
-     int top, bottom, middle, pmiddle;
+  int top, bottom, middle, pmiddle;
 
-     keep_list[0]='\0';
+  keep_list[0]='\0';
 
-     seq_list=(int*)vcalloc ( S->nseq, sizeof (int));
-     for ( a=0; a< A->nseq; a++)
-       {
-	 seq_list[a]=1;
-       }
+  seq_list=(int*)vcalloc ( S->nseq, sizeof (int));
+  for ( a=0; a< A->nseq; a++)
+  {
+    seq_list[a]=1;
+  }
 
-     trimfile=vtmpnam (NULL);
-     alnfile=vtmpnam (NULL);
-     if ( !aln_is_aligned (A))
-       {
-	 fprintf ( stderr, "\ntrimTC: computation of an Approximate MSA  [");
-	 A=compute_tcoffee_aln_quick ( A, NULL);
-	 fprintf ( stderr, "DONE]\n");
-       }
-     output_clustal_aln (alnfile, A);
+  trimfile=vtmpnam (NULL);
+  alnfile=vtmpnam (NULL);
+  if ( !aln_is_aligned (A))
+  {
+    fprintf ( stderr, "\ntrimTC: computation of an Approximate MSA  [");
+    A=compute_tcoffee_aln_quick ( A, NULL);
+    fprintf ( stderr, "DONE]\n");
+  }
+  output_clustal_aln (alnfile, A);
+
+  char *saveptr;
+  while ( (p=strtok_r(mode, "#",&saveptr)))
+  {
+    mode=NULL;
 
 
-     while ( (p=strtok(mode, "#")))
-	   {
-	     mode=NULL;
+    if (p[0]=='%' || p[0]=='S')sim=(p[1]=='%')?atoi(p+2):atoi(p+1);
+    else if  (p[0]=='n' || p[0]=='N')nseq=atoi(p+1);
+    else if  (p[0]=='K')
+    {
+      if ( (a=name_is_in_list (p+1, A->name, A->nseq, 100))!=-1)
+      {
+        seq_list[a]=2;
+      }
 
+    }
+  }
+  if ( nseq ==0 && sim ==0)
+  {
+    fprintf ( stderr, "\nERROR: trimTC\nIndicate the maximum number of sequences Nnseq\nOR the maximum average similarity of the chosen sequencesSx\nEX: +trimTC S20 OR +trimTC N5");
+    fprintf ( stderr, "\n[FATAL:%s]", PROGRAM);
+    myexit (EXIT_FAILURE);
+  }
 
-	     if (p[0]=='%' || p[0]=='S')sim=(p[1]=='%')?atoi(p+2):atoi(p+1);
-	     else if  (p[0]=='n' || p[0]=='N')nseq=atoi(p+1);
-	     else if  (p[0]=='K')
-	       {
-		 if ( (a=name_is_in_list (p+1, A->name, A->nseq, 100))!=-1)
-		   {
-		     seq_list[a]=2;
-		   }
+  for ( a=0; a<A->nseq; a++)if (seq_list[a]==2){strcat ( keep_list, A->name[a]);strcat ( keep_list," ");}
 
-	       }
-	   }
-     if ( nseq ==0 && sim ==0)
-       {
-	 fprintf ( stderr, "\nERROR: trimTC\nIndicate the maximum number of sequences Nnseq\nOR the maximum average similarity of the chosen sequencesSx\nEX: +trimTC S20 OR +trimTC N5");
-	 fprintf ( stderr, "\n[FATAL:%s]", PROGRAM);
-	 myexit (EXIT_FAILURE);
-       }
+  if ( sim)
+  {
+    sprintf ( command , "%s -infile %s -trim  -trimfile=%s  -split_score_thres %d -convert -iterate 0 ",get_string_variable("t_coffee"), alnfile, trimfile,sim);
+    if ( keep_list[0]){strcat ( command, " -seq_to_keep ");strcat ( command, keep_list);}
+    my_system ( command);
+    TS=read_sequences (trimfile);
+  }
+  else if ( nseq && A->nseq>nseq)
+  {
 
-     for ( a=0; a<A->nseq; a++)if (seq_list[a]==2){strcat ( keep_list, A->name[a]);strcat ( keep_list," ");}
+    top=100;bottom=0;
+    pmiddle=0;middle=50;
 
-     if ( sim)
-       {
-	 sprintf ( command , "%s -infile %s -trim  -trimfile=%s  -split_score_thres %d -convert -iterate 0 ",get_string_variable("t_coffee"), alnfile, trimfile,sim);
-	 if ( keep_list[0]){strcat ( command, " -seq_to_keep ");strcat ( command, keep_list);}
-	 my_system ( command);
-	 TS=read_sequences (trimfile);
-       }
-     else if ( nseq && A->nseq>nseq)
-       {
+    sprintf ( command , "%s -infile %s -trim  -trimfile=%s  -split_score_thres %d -convert -iterate 0",get_string_variable("t_coffee"), alnfile, trimfile,middle);
+    if ( keep_list[0]){strcat ( command, " -seq_to_keep ");strcat ( command, keep_list);}
+    my_system ( command);
 
-	 top=100;bottom=0;
-	 pmiddle=0;middle=50;
+    TS=read_sequences (trimfile);
+    fprintf ( stderr, "\n\tTrimTC: Sim %d Nseq %d\t",middle, TS->nseq);
 
-	 sprintf ( command , "%s -infile %s -trim  -trimfile=%s  -split_score_thres %d -convert -iterate 0",get_string_variable("t_coffee"), alnfile, trimfile,middle);
-	 if ( keep_list[0]){strcat ( command, " -seq_to_keep ");strcat ( command, keep_list);}
-	 my_system ( command);
+    if ( TS->nseq>nseq)top=middle;
+    else if ( TS->nseq<nseq)bottom=middle;
+    pmiddle=middle;
+    middle=(top-bottom)/2+bottom;
 
-	 TS=read_sequences (trimfile);
-	 fprintf ( stderr, "\n\tTrimTC: Sim %d Nseq %d\t",middle, TS->nseq);
+    while (TS->nseq!=nseq && pmiddle!=middle)
+    {
 
-	 if ( TS->nseq>nseq)top=middle;
-	 else if ( TS->nseq<nseq)bottom=middle;
-	 pmiddle=middle;
-	 middle=(top-bottom)/2+bottom;
+      sprintf ( command , "%s -infile %s -trim  -trimfile=%s  -split_score_thres %d -convert -iterate 0 ",get_string_variable("t_coffee"), alnfile, trimfile,middle);
+      if ( keep_list[0]){strcat ( command, " -seq_to_keep ");strcat ( command, keep_list);}
+      my_system ( command);
+      free_sequence (TS, -1);
+      TS=read_sequences (trimfile);
+      fprintf ( stderr, "\n\tTrimTC: Sim %d Nseq %d\t", middle, TS->nseq);
 
-	 while (TS->nseq!=nseq && pmiddle!=middle)
-	   {
+      if ( TS->nseq>nseq)top=middle;
+      else if ( TS->nseq<nseq)bottom=middle;
+      pmiddle=middle;
+      middle=(top-bottom)/2+bottom;
+    }
+  }
+  else
+  {
+    TS=aln2seq (A);
+  }
+  NA=seq2aln (TS, NULL, 1);
+  vremove ( alnfile);
+  fprintf ( stderr, "\n");
 
-	     sprintf ( command , "%s -infile %s -trim  -trimfile=%s  -split_score_thres %d -convert -iterate 0 ",get_string_variable("t_coffee"), alnfile, trimfile,middle);
-	     if ( keep_list[0]){strcat ( command, " -seq_to_keep ");strcat ( command, keep_list);}
-	     my_system ( command);
-	     free_sequence (TS, -1);
-	     TS=read_sequences (trimfile);
-	     fprintf ( stderr, "\n\tTrimTC: Sim %d Nseq %d\t", middle, TS->nseq);
-
-	     if ( TS->nseq>nseq)top=middle;
-	     else if ( TS->nseq<nseq)bottom=middle;
-	     pmiddle=middle;
-	     middle=(top-bottom)/2+bottom;
-	   }
-       }
-     else
-       {
-	 TS=aln2seq (A);
-       }
-     NA=seq2aln (TS, NULL, 1);
-     vremove ( alnfile);
-     fprintf ( stderr, "\n");
-
-     return NA;
-   }
+  return NA;
+}
 
 Alignment* seq2subseq3( Alignment *A, Sequence *S,int use_aln, int int_lower_sim,int int_upper_sim, int min_nseq, int trim_direction, char *weight_mode, float ***sim_weight, int *seq_list)
 {

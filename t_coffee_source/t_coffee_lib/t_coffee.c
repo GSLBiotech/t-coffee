@@ -173,6 +173,7 @@ int main (int argc, char *argv[])
   }
 
   join();
+
   return r;
 }
 

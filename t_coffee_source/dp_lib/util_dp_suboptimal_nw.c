@@ -228,7 +228,7 @@ int suboptimal_pair_wise ( Alignment *A, int *ns, int **ls, Constraint_list *CL,
   s2=name_is_in_list (A->name[ls[1][0]], (CL->S)->name, (CL->S)->nseq, 100);
 
   id=idscore_pairseq(seqI,seqJ,-12, -1, CL->M, "idmat");
-  
+
   entry=(int*)vcalloc ( CL->entry_len+1, CL->el_size);
   entry[SEQ1]=s1;entry[SEQ2]=s2;
 
@@ -648,273 +648,273 @@ Constraint_list *ProbaMatrix2CL (Alignment *A, int *ns, int **ls, int NumMatrixT
 
 int proba_pair_wise ( Alignment *A, int *ns, int **ls, Constraint_list *CL)
 {
-   static int NumMatrixTypes;
-   static int NumInsertStates;
-   static float **transMat, **insProb, **matchProb, *initialDistribution, **transProb, **emitPairs, *emitSingle, ***TinsProb, *TmatchProb;
-   static int TinsProb_ml, TmatchProb_ml;
-   int i, j,I, J;
-   float *F, *B;
+  static thread_local int NumMatrixTypes;
+  static thread_local int NumInsertStates;
+  static thread_local float **transMat=NULL, **insProb=NULL, **matchProb=NULL, *initialDistribution=NULL, **transProb=NULL, **emitPairs=NULL, *emitSingle=NULL, ***TinsProb=NULL, *TmatchProb=NULL;
+  static thread_local int TinsProb_ml, TmatchProb_ml;
+  int i, j,I, J;
+  float *F, *B;
 
-   int l;
-   float thr=0.01;//ProbCons Default
-   char *alphabet;
-
-
-   //Free all the memory
-   if (A==NULL)
-     {
-       free_float (transMat, -1);transMat=NULL;
-       free_float (insProb, -1);insProb=NULL;
-       free_float (matchProb, -1);matchProb=NULL;
-       vfree (initialDistribution); initialDistribution=NULL;
-       free_float (transProb, -1);transProb=NULL;
-       free_float (emitPairs, -1);emitPairs=NULL;
-       vfree (emitSingle);emitSingle=NULL;
+  int l;
+  float thr=0.01;//ProbCons Default
+  char *alphabet;
 
 
-       free_arrayN((void***)TinsProb, 3);TinsProb=NULL;
-       vfree (TmatchProb);TmatchProb=NULL;
-       TinsProb_ml=0; TmatchProb_ml=0;
-
-       forward_proba_pair_wise (NULL, NULL, 0,0,NULL,NULL,NULL,NULL,NULL);
-       backward_proba_pair_wise (NULL, NULL, 0,0,NULL,NULL,NULL,NULL,NULL);
-       ProbaMatrix2CL(NULL, NULL, NULL, 0, 0, NULL, NULL, 0, NULL);
-       return 0;
-     }
-
-   if (!transMat && (strm (retrieve_seq_type(), "DNA")))
-     {
-     static float **p;
-     static float *s;
-     NumInsertStates=1;
-     NumMatrixTypes=3;
-     if (!p)
-       {
-	 int l,a,b;
-	 l=strlen (DNAalphabetDefault);
-	 p=declare_float (l,l);
-	 s=(float*)vcalloc (l, sizeof (float));
-	 for (a=0; a<l; a++)
-	   {
-	     s[a]=DNAemitSingleDefault[a];
-	     for (b=0; b<l; b++)
-	       p[a][b]=RNAemitPairsDefault[a][b];
-	   }
-       }
-     p=get_emitPairs (CL->method_matrix, DNAalphabetDefault,p,s);
-     alphabet=RNAalphabetDefault;
-     emitPairs=declare_float (256, 256);
-     emitSingle=(float*)vcalloc (256, sizeof (float));
-     for (i=0; i<256; i++)
-       {
-	 emitSingle[i]=1e-5;
-	 for (j=0; j<256; j++)
-	   emitPairs[i][j]=1e-10;
-       }
-     l=strlen (alphabet);
-
-     for (i=0; i<l; i++)
-       {
-	 int C1,c1, C2,c2;
-	 c1=tolower(alphabet[i]);
-	 C1=toupper(alphabet[i]);
-	 emitSingle[c1]=s[i];
-	 emitSingle[C1]=s[i];
-	 for (j=0; j<=i; j++)
-	   {
-	     c2=tolower(alphabet[j]);
-	     C2=toupper(alphabet[j]);
-
-	     emitPairs[c1][c2]=p[i][j];
-	     emitPairs[C1][c2]=p[i][j];
-	     emitPairs[C1][C2]=p[i][j];
-	     emitPairs[c1][C2]=p[i][j];
-	     emitPairs[c2][c1]=p[i][j];
-	     emitPairs[C2][c1]=p[i][j];
-	     emitPairs[C2][C1]=p[i][j];
-	     emitPairs[c2][C1]=p[i][j];
-	   }
-       }
+  //Free all the memory
+  if (A==NULL)
+  {
+    free_float (transMat, -1);transMat=NULL;
+    free_float (insProb, -1);insProb=NULL;
+    free_float (matchProb, -1);matchProb=NULL;
+    vfree (initialDistribution); initialDistribution=NULL;
+    free_float (transProb, -1);transProb=NULL;
+    free_float (emitPairs, -1);emitPairs=NULL;
+    vfree (emitSingle);emitSingle=NULL;
 
 
-     transMat=declare_float (2*NumInsertStates+1, 2*NumInsertStates+1);
-     transProb=declare_float (2*NumInsertStates+1,2* NumInsertStates+1);
-     insProb=declare_float (256,NumMatrixTypes);
-     matchProb=declare_float (256, 256);
-     initialDistribution=(float*)vcalloc (2*NumMatrixTypes+1, sizeof (float));
+    free_arrayN((void***)TinsProb, 3);TinsProb=NULL;
+    vfree (TmatchProb);TmatchProb=NULL;
+    TinsProb_ml=0; TmatchProb_ml=0;
 
-     ProbabilisticModel (NumMatrixTypes,NumInsertStates,initDistrib2Default, emitSingle,emitPairs,DNAgapOpen2Default,DNAgapExtend2Default, transMat,initialDistribution,matchProb, insProb,transProb);
+    forward_proba_pair_wise (NULL, NULL, 0,0,NULL,NULL,NULL,NULL,NULL);
+    backward_proba_pair_wise (NULL, NULL, 0,0,NULL,NULL,NULL,NULL,NULL);
+    ProbaMatrix2CL(NULL, NULL, NULL, 0, 0, NULL, NULL, 0, NULL);
+    return 0;
+  }
 
-     }
-   else if (!transMat && (strm (retrieve_seq_type(), "RNA")))
-     {
-       static float **p;
-       static float *s;
-       NumInsertStates=2;
-       NumMatrixTypes=5;
+  if (!transMat && (strm (retrieve_seq_type(), "DNA")))
+  {
+    static thread_local float **p=NULL;
+    static thread_local float *s=NULL;
+    NumInsertStates=1;
+    NumMatrixTypes=3;
+    if (!p)
+    {
+      int l,a,b;
+      l=strlen (DNAalphabetDefault);
+      p=declare_float (l,l);
+      s=(float*)vcalloc (l, sizeof (float));
+      for (a=0; a<l; a++)
+      {
+        s[a]=DNAemitSingleDefault[a];
+        for (b=0; b<l; b++)
+          p[a][b]=RNAemitPairsDefault[a][b];
+      }
+    }
+    p=get_emitPairs (CL->method_matrix, DNAalphabetDefault,p,s);
+    alphabet=RNAalphabetDefault;
+    emitPairs=declare_float (256, 256);
+    emitSingle=(float*)vcalloc (256, sizeof (float));
+    for (i=0; i<256; i++)
+    {
+      emitSingle[i]=1e-5;
+      for (j=0; j<256; j++)
+        emitPairs[i][j]=1e-10;
+    }
+    l=strlen (alphabet);
 
-       if (!p)
-	 {
-	   int l,a,b;
-	   l=strlen (RNAalphabetDefault);
-	   p=declare_float (l,l);
-	   s=(float*)vcalloc (l, sizeof (float));
-	   for (a=0; a<l; a++)
-	     {
-	       s[a]=RNAemitSingleDefault[a];
-	       for (b=0; b<l; b++)
-		 p[a][b]=RNAemitPairsDefault[a][b];
-	     }
-	 }
-       p=get_emitPairs (CL->method_matrix, RNAalphabetDefault,p,s);
-       alphabet=RNAalphabetDefault;
-       emitPairs=declare_float (256, 256);
-       emitSingle=(float*)vcalloc (256, sizeof (float));
-       for (i=0; i<256; i++)
-	 {
-	   emitSingle[i]=1e-5;
-	   for (j=0; j<256; j++)
-	     emitPairs[i][j]=1e-10;
-	 }
-       l=strlen (alphabet);
+    for (i=0; i<l; i++)
+    {
+      int C1,c1, C2,c2;
+      c1=tolower(alphabet[i]);
+      C1=toupper(alphabet[i]);
+      emitSingle[c1]=s[i];
+      emitSingle[C1]=s[i];
+      for (j=0; j<=i; j++)
+      {
+        c2=tolower(alphabet[j]);
+        C2=toupper(alphabet[j]);
 
-       for (i=0; i<l; i++)
-	 {
-	   int C1,c1, C2,c2;
-	   c1=tolower(alphabet[i]);
-	   C1=toupper(alphabet[i]);
-	   emitSingle[c1]=s[i];
-	   emitSingle[C1]=s[i];
-	   for (j=0; j<=i; j++)
-	     {
-	       c2=tolower(alphabet[j]);
-	       C2=toupper(alphabet[j]);
-
-	       emitPairs[c1][c2]=p[i][j];
-	       emitPairs[C1][c2]=p[i][j];
-	       emitPairs[C1][C2]=p[i][j];
-	       emitPairs[c1][C2]=p[i][j];
-	       emitPairs[c2][c1]=p[i][j];
-	       emitPairs[C2][c1]=p[i][j];
-	       emitPairs[C2][C1]=p[i][j];
-	       emitPairs[c2][C1]=p[i][j];
-	     }
-	 }
-
-
-       transMat=declare_float (2*NumInsertStates+1, 2*NumInsertStates+1);
-       transProb=declare_float (2*NumInsertStates+1,2* NumInsertStates+1);
-       insProb=declare_float (256,NumMatrixTypes);
-       matchProb=declare_float (256, 256);
-       initialDistribution=(float*)vcalloc (2*NumMatrixTypes+1, sizeof (float));
-
-       ProbabilisticModel (NumMatrixTypes,NumInsertStates,initDistrib2Default, emitSingle,emitPairs,RNAgapOpen2Default,RNAgapExtend2Default, transMat,initialDistribution,matchProb, insProb,transProb);
-     }
-   else if ( !transMat && strm (retrieve_seq_type(), "PROTEIN"))
-     {
-       static float **p;
-       static float *s;
-       NumInsertStates=2;
-       NumMatrixTypes=5;
-       if (atoigetenv ("NOBIPHASIC"))
-	 {
-	   NumInsertStates=1;
-	   NumMatrixTypes=3;
-	 }
-       if (!p)
-	 {
-	   int l,a,b;
-	   l=strlen (alphabetDefault);
-	   p=declare_float (l,l);
-	   s=(float*)vcalloc (l, sizeof (float));
-	   for (a=0; a<l; a++)
-	     {
-	       s[a]=emitSingleDefault[a];
-	       for (b=0; b<l; b++)
-		 p[a][b]=emitPairsDefault[a][b];
-	     }
-	 }
-       p=get_emitPairs (CL->method_matrix, alphabetDefault,p,s);
-       alphabet=alphabetDefault;
-       emitPairs=declare_float (256, 256);
-       emitSingle=(float*)vcalloc (256, sizeof (float));
-       for (i=0; i<256; i++)
-	 {
-	   //emitSingle[i]=1e-5;
-	   emitSingle[i]=1;
-	   for (j=0; j<256; j++)
-	     //emitPairs[i][j]=1e-10;
-	     emitPairs[i][j]=1;
-
-	 }
-       l=strlen (alphabet);
-
-       for (i=0; i<l; i++)
-	 {
-	   int C1,c1, C2,c2;
-	   c1=tolower(alphabet[i]);
-	   C1=toupper(alphabet[i]);
-	   emitSingle[c1]=s[i];
-	   emitSingle[C1]=s[i];
-	   for (j=0; j<=i; j++)
-	     {
-	       c2=tolower(alphabet[j]);
-	       C2=toupper(alphabet[j]);
-
-	       emitPairs[c1][c2]=p[i][j];
-	       emitPairs[C1][c2]=p[i][j];
-	       emitPairs[C1][C2]=p[i][j];
-	       emitPairs[c1][C2]=p[i][j];
-	       emitPairs[c2][c1]=p[i][j];
-	       emitPairs[C2][c1]=p[i][j];
-	       emitPairs[C2][C1]=p[i][j];
-	       emitPairs[c2][C1]=p[i][j];
-
-	     }
-	 }
+        emitPairs[c1][c2]=p[i][j];
+        emitPairs[C1][c2]=p[i][j];
+        emitPairs[C1][C2]=p[i][j];
+        emitPairs[c1][C2]=p[i][j];
+        emitPairs[c2][c1]=p[i][j];
+        emitPairs[C2][c1]=p[i][j];
+        emitPairs[C2][C1]=p[i][j];
+        emitPairs[c2][C1]=p[i][j];
+      }
+    }
 
 
-       transMat=declare_float (2*NumInsertStates+1, 2*NumInsertStates+1);
-       transProb=declare_float (2*NumInsertStates+1,2* NumInsertStates+1);
-       insProb=declare_float (256,NumMatrixTypes);
-       matchProb=declare_float (256, 256);
-       initialDistribution=(float*)vcalloc (2*NumMatrixTypes+1, sizeof (float));
-       if (atoigetenv ("NOBIPHASIC"))
-	 ProbabilisticModel (NumMatrixTypes,NumInsertStates,initDistrib1Default, emitSingle,emitPairs,gapOpen1Default,gapExtend1Default, transMat,initialDistribution,matchProb, insProb,transProb);
-       else
-	 ProbabilisticModel (NumMatrixTypes,NumInsertStates,initDistrib2Default, emitSingle,emitPairs,gapOpen2Default,gapExtend2Default, transMat,initialDistribution,matchProb, insProb,transProb);
-     }
+    transMat=declare_float (2*NumInsertStates+1, 2*NumInsertStates+1);
+    transProb=declare_float (2*NumInsertStates+1,2* NumInsertStates+1);
+    insProb=declare_float (256,NumMatrixTypes);
+    matchProb=declare_float (256, 256);
+    initialDistribution=(float*)vcalloc (2*NumMatrixTypes+1, sizeof (float));
 
-   I=strlen (A->seq_al[ls[0][0]]);
-   J=strlen (A->seq_al[ls[1][0]]);
-   //TmatchProb=vcalloc ((I+1)*(J+1), sizeof (float));
-   //TinsProb=declare_arrayN (3, sizeof (float),2,NumMatrixTypes,MAX(I,J)+1);
+    ProbabilisticModel (NumMatrixTypes,NumInsertStates,initDistrib2Default, emitSingle,emitPairs,DNAgapOpen2Default,DNAgapExtend2Default, transMat,initialDistribution,matchProb, insProb,transProb);
 
-   l=(I+1)*(J+1);
-   if (l>TmatchProb_ml)
-     {
-       TmatchProb_ml=l;
-       if (TmatchProb)TmatchProb=(float*)vrealloc(TmatchProb,TmatchProb_ml*sizeof (float));
-       else TmatchProb=(float*)vcalloc ( l, sizeof (float));
-     }
-   l=MAX(I,J)+1;
-   if ( l>TinsProb_ml)
-     {
-       TinsProb_ml=l;
-       if (TinsProb)free_arrayN (TinsProb, 3);
-       TinsProb=(float***)declare_arrayN (3, sizeof (float),2,NumMatrixTypes,TinsProb_ml);
-     }
-   if (strm (retrieve_seq_type(), "RNA"))
-     get_tot_prob (A,A, ns,ls,NumMatrixTypes, matchProb, insProb,TmatchProb,TinsProb, CL, SEQUENCE);
-   else
-     get_tot_prob2 (A,A, ns,ls,NumMatrixTypes, matchProb, insProb,TmatchProb,TinsProb, CL, SEQUENCE);
-   F=forward_proba_pair_wise (A->seq_al[ls[0][0]], A->seq_al[ls[1][0]], NumMatrixTypes,NumInsertStates,transMat, initialDistribution,TmatchProb,TinsProb, transProb);
-   B=backward_proba_pair_wise (A->seq_al[ls[0][0]], A->seq_al[ls[1][0]], NumMatrixTypes,NumInsertStates,transMat, initialDistribution,TmatchProb,TinsProb, transProb);
-   A->CL=ProbaMatrix2CL(A,ns, ls,NumMatrixTypes,NumInsertStates, F, B, thr,CL);
+  }
+  else if (!transMat && (strm (retrieve_seq_type(), "RNA")))
+  {
+    static thread_local float **p=NULL;
+    static thread_local float *s=NULL;
+    NumInsertStates=2;
+    NumMatrixTypes=5;
 
-   //free_proba_pair_wise();
-   return 1;
-   }
+    if (!p)
+    {
+      int l,a,b;
+      l=strlen (RNAalphabetDefault);
+      p=declare_float (l,l);
+      s=(float*)vcalloc (l, sizeof (float));
+      for (a=0; a<l; a++)
+      {
+        s[a]=RNAemitSingleDefault[a];
+        for (b=0; b<l; b++)
+          p[a][b]=RNAemitPairsDefault[a][b];
+      }
+    }
+    p=get_emitPairs (CL->method_matrix, RNAalphabetDefault,p,s);
+    alphabet=RNAalphabetDefault;
+    emitPairs=declare_float (256, 256);
+    emitSingle=(float*)vcalloc (256, sizeof (float));
+    for (i=0; i<256; i++)
+    {
+      emitSingle[i]=1e-5;
+      for (j=0; j<256; j++)
+        emitPairs[i][j]=1e-10;
+    }
+    l=strlen (alphabet);
+
+    for (i=0; i<l; i++)
+    {
+      int C1,c1, C2,c2;
+      c1=tolower(alphabet[i]);
+      C1=toupper(alphabet[i]);
+      emitSingle[c1]=s[i];
+      emitSingle[C1]=s[i];
+      for (j=0; j<=i; j++)
+      {
+        c2=tolower(alphabet[j]);
+        C2=toupper(alphabet[j]);
+
+        emitPairs[c1][c2]=p[i][j];
+        emitPairs[C1][c2]=p[i][j];
+        emitPairs[C1][C2]=p[i][j];
+        emitPairs[c1][C2]=p[i][j];
+        emitPairs[c2][c1]=p[i][j];
+        emitPairs[C2][c1]=p[i][j];
+        emitPairs[C2][C1]=p[i][j];
+        emitPairs[c2][C1]=p[i][j];
+      }
+    }
+
+
+    transMat=declare_float (2*NumInsertStates+1, 2*NumInsertStates+1);
+    transProb=declare_float (2*NumInsertStates+1,2* NumInsertStates+1);
+    insProb=declare_float (256,NumMatrixTypes);
+    matchProb=declare_float (256, 256);
+    initialDistribution=(float*)vcalloc (2*NumMatrixTypes+1, sizeof (float));
+
+    ProbabilisticModel (NumMatrixTypes,NumInsertStates,initDistrib2Default, emitSingle,emitPairs,RNAgapOpen2Default,RNAgapExtend2Default, transMat,initialDistribution,matchProb, insProb,transProb);
+  }
+  else if ( !transMat && strm (retrieve_seq_type(), "PROTEIN"))
+  {
+    static thread_local float **p=NULL;
+    static thread_local float *s=NULL;
+    NumInsertStates=2;
+    NumMatrixTypes=5;
+    if (atoigetenv ("NOBIPHASIC"))
+    {
+      NumInsertStates=1;
+      NumMatrixTypes=3;
+    }
+    if (!p)
+    {
+      int l,a,b;
+      l=strlen (alphabetDefault);
+      p=declare_float (l,l);
+      s=(float*)vcalloc (l, sizeof (float));
+      for (a=0; a<l; a++)
+      {
+        s[a]=emitSingleDefault[a];
+        for (b=0; b<l; b++)
+          p[a][b]=emitPairsDefault[a][b];
+      }
+    }
+    p=get_emitPairs (CL->method_matrix, alphabetDefault,p,s);
+    alphabet=alphabetDefault;
+    emitPairs=declare_float (256, 256);
+    emitSingle=(float*)vcalloc (256, sizeof (float));
+    for (i=0; i<256; i++)
+    {
+      //emitSingle[i]=1e-5;
+      emitSingle[i]=1;
+      for (j=0; j<256; j++)
+        //emitPairs[i][j]=1e-10;
+        emitPairs[i][j]=1;
+
+    }
+    l=strlen (alphabet);
+
+    for (i=0; i<l; i++)
+    {
+      int C1,c1, C2,c2;
+      c1=tolower(alphabet[i]);
+      C1=toupper(alphabet[i]);
+      emitSingle[c1]=s[i];
+      emitSingle[C1]=s[i];
+      for (j=0; j<=i; j++)
+      {
+        c2=tolower(alphabet[j]);
+        C2=toupper(alphabet[j]);
+
+        emitPairs[c1][c2]=p[i][j];
+        emitPairs[C1][c2]=p[i][j];
+        emitPairs[C1][C2]=p[i][j];
+        emitPairs[c1][C2]=p[i][j];
+        emitPairs[c2][c1]=p[i][j];
+        emitPairs[C2][c1]=p[i][j];
+        emitPairs[C2][C1]=p[i][j];
+        emitPairs[c2][C1]=p[i][j];
+
+      }
+    }
+
+
+    transMat=declare_float (2*NumInsertStates+1, 2*NumInsertStates+1);
+    transProb=declare_float (2*NumInsertStates+1,2* NumInsertStates+1);
+    insProb=declare_float (256,NumMatrixTypes);
+    matchProb=declare_float (256, 256);
+    initialDistribution=(float*)vcalloc (2*NumMatrixTypes+1, sizeof (float));
+    if (atoigetenv ("NOBIPHASIC"))
+      ProbabilisticModel (NumMatrixTypes,NumInsertStates,initDistrib1Default, emitSingle,emitPairs,gapOpen1Default,gapExtend1Default, transMat,initialDistribution,matchProb, insProb,transProb);
+    else
+      ProbabilisticModel (NumMatrixTypes,NumInsertStates,initDistrib2Default, emitSingle,emitPairs,gapOpen2Default,gapExtend2Default, transMat,initialDistribution,matchProb, insProb,transProb);
+  }
+
+  I=strlen (A->seq_al[ls[0][0]]);
+  J=strlen (A->seq_al[ls[1][0]]);
+  //TmatchProb=vcalloc ((I+1)*(J+1), sizeof (float));
+  //TinsProb=declare_arrayN (3, sizeof (float),2,NumMatrixTypes,MAX(I,J)+1);
+
+  l=(I+1)*(J+1);
+  if (l>TmatchProb_ml)
+  {
+    TmatchProb_ml=l;
+    if (TmatchProb)TmatchProb=(float*)vrealloc(TmatchProb,TmatchProb_ml*sizeof (float));
+    else TmatchProb=(float*)vcalloc ( l, sizeof (float));
+  }
+  l=MAX(I,J)+1;
+  if ( l>TinsProb_ml)
+  {
+    TinsProb_ml=l;
+    if (TinsProb)free_arrayN (TinsProb, 3);
+    TinsProb=(float***)declare_arrayN (3, sizeof (float),2,NumMatrixTypes,TinsProb_ml);
+  }
+  if (strm (retrieve_seq_type(), "RNA"))
+    get_tot_prob (A,A, ns,ls,NumMatrixTypes, matchProb, insProb,TmatchProb,TinsProb, CL, SEQUENCE);
+  else
+    get_tot_prob2 (A,A, ns,ls,NumMatrixTypes, matchProb, insProb,TmatchProb,TinsProb, CL, SEQUENCE);
+  F=forward_proba_pair_wise (A->seq_al[ls[0][0]], A->seq_al[ls[1][0]], NumMatrixTypes,NumInsertStates,transMat, initialDistribution,TmatchProb,TinsProb, transProb);
+  B=backward_proba_pair_wise (A->seq_al[ls[0][0]], A->seq_al[ls[1][0]], NumMatrixTypes,NumInsertStates,transMat, initialDistribution,TmatchProb,TinsProb, transProb);
+  A->CL=ProbaMatrix2CL(A,ns, ls,NumMatrixTypes,NumInsertStates, F, B, thr,CL);
+
+  //free_proba_pair_wise();
+  return 1;
+}
 
 void free_proba_pair_wise ()
 {
@@ -930,7 +930,6 @@ int get_tot_prob (Alignment *A1,Alignment *A2, int *ns, int **ls, int nstates, f
   char *ss1=NULL;
   char *ss2=NULL;
   int uss=0;
-  static int gtp=0;
   //Pre-computation of the pairwise scores in order to use potential profiles
   //The profiles are vectorized AND Compressed so that the actual alphabet size (proteins/DNA) does not need to be considered
 
@@ -1135,256 +1134,256 @@ int get_tot_prob (Alignment *A1,Alignment *A2, int *ns, int **ls, int nstates, f
 }
 int get_tot_prob2 (Alignment *A1,Alignment *A2, int *ns, int **ls, int nstates, float **matchProb, float **insProb, float *TmatchProb, float ***TinsProb, Constraint_list *CL, int mode)
 {
-  static double **prf1;
-  static double **prf2;
-  int i, I, j, J, k, ij,r,r1,r2; 
+  static thread_local double **prf1=NULL;
+  static thread_local double **prf2=NULL;
+  int i, I, j, J, k, ij,r,r1,r2;
   int *lu;
-   
+
   if (mode==SEQUENCE)
+  {
+    int s1, s2, a;
+    int *nns, **nls;
+    Alignment *NA1, *NA2;
+    char *sst1;
+    char *sst2;
+
+
+    nns=(int*)vcalloc ( 2, sizeof (int));
+    nls=(int**)vcalloc (2, sizeof (int*));
+
+    s1=A1->order[ls[0][0]][0];
+    s2=A2->order[ls[1][0]][0];
+    NA1=seq2R_template_profile (CL->S,s1);
+    NA2=seq2R_template_profile (CL->S,s2);
+
+    sst1=seq2T_template_string((CL->S),s1);
+    sst2=seq2T_template_string((CL->S),s2);
+
+
+    if (NA1 || NA2)
     {
-      int s1, s2, a;
-      int *nns, **nls;
-      Alignment *NA1, *NA2;
-      char *sst1;
-      char *sst2;
+      if (NA1)
+      {
+        nns[0]=NA1->nseq;
+        nls[0]=(int*)vcalloc (NA1->nseq, sizeof (int));
+        for (a=0; a<NA1->nseq; a++)
+          nls[0][a]=a;
+        NA1->seq_al[NA1->nseq]=sst1;
+        sprintf (NA1->name[NA1->nseq], "sst1");
+      }
+      else
+      {
+        NA1=A1;
+        nns[0]=ns[0];
+        nls[0]=(int*)vcalloc (ns[0], sizeof (int));
+        for (a=0; a<ns[0]; a++)
+          nls[0][a]=ls[0][a];
+      }
 
+      if (NA2)
+      {
+        nns[1]=NA2->nseq;
+        nls[1]=(int*)vcalloc (NA2->nseq, sizeof (int));
+        for (a=0; a<NA2->nseq; a++)
+          nls[1][a]=a;
+        NA2->seq_al[NA2->nseq]=sst2;
+        sprintf (NA2->name[NA2->nseq], "sst2");
+      }
+      else
+      {
+        NA2=A2;
+        nns[1]=ns[1];
+        nls[1]=(int*)vcalloc (ns[1], sizeof (int));
+        for (a=0; a<ns[1]; a++)
+          nls[1][a]=ls[1][a];
+      }
 
-      nns=(int*)vcalloc ( 2, sizeof (int));
-      nls=(int**)vcalloc (2, sizeof (int*));
-
-      s1=A1->order[ls[0][0]][0];
-      s2=A2->order[ls[1][0]][0];
-      NA1=seq2R_template_profile (CL->S,s1);
-      NA2=seq2R_template_profile (CL->S,s2);
-
-      sst1=seq2T_template_string((CL->S),s1);
-      sst2=seq2T_template_string((CL->S),s2);
-
-
-      if (NA1 || NA2)
-	{
-	  if (NA1)
-	    {
-	      nns[0]=NA1->nseq;
-	      nls[0]=(int*)vcalloc (NA1->nseq, sizeof (int));
-	      for (a=0; a<NA1->nseq; a++)
-		nls[0][a]=a;
-	      NA1->seq_al[NA1->nseq]=sst1;
-	      sprintf (NA1->name[NA1->nseq], "sst1");
-	    }
-	  else
-	    {
-	    NA1=A1;
-	    nns[0]=ns[0];
-	    nls[0]=(int*)vcalloc (ns[0], sizeof (int));
-	    for (a=0; a<ns[0]; a++)
-	      nls[0][a]=ls[0][a];
-	    }
-
-	  if (NA2)
-	    {
-	      nns[1]=NA2->nseq;
-	      nls[1]=(int*)vcalloc (NA2->nseq, sizeof (int));
-	      for (a=0; a<NA2->nseq; a++)
-		nls[1][a]=a;
-	      NA2->seq_al[NA2->nseq]=sst2;
-	      sprintf (NA2->name[NA2->nseq], "sst2");
-	    }
-	  else
-	    {
-	      NA2=A2;
-	      nns[1]=ns[1];
-	      nls[1]=(int*)vcalloc (ns[1], sizeof (int));
-	      for (a=0; a<ns[1]; a++)
-		nls[1][a]=ls[1][a];
-	    }
-
-	  get_tot_prob2 (NA1, NA2, nns, nls, nstates, matchProb, insProb, TmatchProb, TinsProb, CL,PROFILE);
-	  vfree (nns); free_int (nls,-1);
-	  return 1;
-	}
+      get_tot_prob2 (NA1, NA2, nns, nls, nstates, matchProb, insProb, TmatchProb, TinsProb, CL,PROFILE);
+      vfree (nns); free_int (nls,-1);
+      return 1;
     }
-  
+  }
+
   I=strlen (A1->seq_al[ls[0][0]]);
   J=strlen (A2->seq_al[ls[1][0]]);
-     
+
   lu=dirichlet_code2aa_lu();
-  
+
   prf1=aln2prf (A1, ns[0], ls[0], I, prf1);
   prf2=aln2prf (A2, ns[1], ls[1], J, prf2);
 
-    
+
   //get Ins for I
   for (i=1; i<=I; i++)
+  {
+    for (k=0; k<nstates; k++)
     {
-      for (k=0; k<nstates; k++)
-	{
-	  TinsProb[0][k][i]=0;
-	  for (r=0; r<20; r++)
-	    {
-	      TinsProb[0][k][i]+=(float)prf1[i-1][r]*insProb[lu[r]][k];
-	    }
-	}
+      TinsProb[0][k][i]=0;
+      for (r=0; r<20; r++)
+      {
+        TinsProb[0][k][i]+=(float)prf1[i-1][r]*insProb[lu[r]][k];
+      }
     }
-  
+  }
 
-  
-  
+
+
+
   //Get Ins for J
   for (j=1; j<=J; j++)
+  {
+    for (k=0; k<nstates; k++)
     {
-      for (k=0; k<nstates; k++)
-	{
-	  TinsProb[1][k][j]=0;
-	  for (r=0; r<20; r++)
-	    {
-	      TinsProb[1][k][j]+=(float)prf2[j-1][r]*insProb[lu[r]][k]; 
-	    }
-	}
+      TinsProb[1][k][j]=0;
+      for (r=0; r<20; r++)
+      {
+        TinsProb[1][k][j]+=(float)prf2[j-1][r]*insProb[lu[r]][k];
+      }
     }
+  }
   for (ij=0,i=0; i<=I; i++)
     for (j=0; j<=J; j++, ij++)
+    {
+      float tot=0,f;
+      if (i==0 || j==0)continue;
+      TmatchProb[ij]=0;
+      for (tot=0,r1=0; r1<20; r1++)
       {
-	float tot=0,f;
-	if (i==0 || j==0)continue;
-	TmatchProb[ij]=0;
-	for (tot=0,r1=0; r1<20; r1++)
-	  {
-	    for (r2=0; r2<20; r2++)
-	      {
-		f=(float)prf1[i-1][r1]*(float)prf2[j-1][r2];
-		TmatchProb[ij]+=matchProb[lu[r1]][lu[r2]]*f;
-	      }
-	  }
+        for (r2=0; r2<20; r2++)
+        {
+          f=(float)prf1[i-1][r1]*(float)prf2[j-1][r2];
+          TmatchProb[ij]+=matchProb[lu[r1]][lu[r2]]*f;
+        }
       }
-  
+    }
+
   return 1;
 }
 int get_tot_prob3 (Alignment *A1,Alignment *A2, int *ns, int **ls, int nstates, float **matchProb, float **insProb, float *TmatchProb, float ***TinsProb, Constraint_list *CL, int mode)
 {
-  static double **prf1;
-  static double **prf2;
-  static double **dmx1;
-  static double **dmx2;
-  
-  int i, I, j, J, k, ij,r,r1,r2; 
+  double **prf1;
+  double **prf2;
+  double **dmx1;
+  double **dmx2;
+
+  int i, I, j, J, k, ij,r,r1,r2;
   int *lu;
-   
+
   if (mode==SEQUENCE)
+  {
+    int s1, s2, a;
+    int *nns, **nls;
+    Alignment *NA1, *NA2;
+    char *sst1;
+    char *sst2;
+
+
+    nns=(int*)vcalloc ( 2, sizeof (int));
+    nls=(int**)vcalloc (2, sizeof (int*));
+
+    s1=A1->order[ls[0][0]][0];
+    s2=A2->order[ls[1][0]][0];
+    NA1=seq2R_template_profile (CL->S,s1);
+    NA2=seq2R_template_profile (CL->S,s2);
+
+    sst1=seq2T_template_string((CL->S),s1);
+    sst2=seq2T_template_string((CL->S),s2);
+
+
+    if (NA1 || NA2)
     {
-      int s1, s2, a;
-      int *nns, **nls;
-      Alignment *NA1, *NA2;
-      char *sst1;
-      char *sst2;
+      if (NA1)
+      {
+        nns[0]=NA1->nseq;
+        nls[0]=(int*)vcalloc (NA1->nseq, sizeof (int));
+        for (a=0; a<NA1->nseq; a++)
+          nls[0][a]=a;
+        NA1->seq_al[NA1->nseq]=sst1;
+        sprintf (NA1->name[NA1->nseq], "sst1");
+      }
+      else
+      {
+        NA1=A1;
+        nns[0]=ns[0];
+        nls[0]=(int*)vcalloc (ns[0], sizeof (int));
+        for (a=0; a<ns[0]; a++)
+          nls[0][a]=ls[0][a];
+      }
 
+      if (NA2)
+      {
+        nns[1]=NA2->nseq;
+        nls[1]=(int*)vcalloc (NA2->nseq, sizeof (int));
+        for (a=0; a<NA2->nseq; a++)
+          nls[1][a]=a;
+        NA2->seq_al[NA2->nseq]=sst2;
+        sprintf (NA2->name[NA2->nseq], "sst2");
+      }
+      else
+      {
+        NA2=A2;
+        nns[1]=ns[1];
+        nls[1]=(int*)vcalloc (ns[1], sizeof (int));
+        for (a=0; a<ns[1]; a++)
+          nls[1][a]=ls[1][a];
+      }
 
-      nns=(int*)vcalloc ( 2, sizeof (int));
-      nls=(int**)vcalloc (2, sizeof (int*));
-
-      s1=A1->order[ls[0][0]][0];
-      s2=A2->order[ls[1][0]][0];
-      NA1=seq2R_template_profile (CL->S,s1);
-      NA2=seq2R_template_profile (CL->S,s2);
-
-      sst1=seq2T_template_string((CL->S),s1);
-      sst2=seq2T_template_string((CL->S),s2);
-
-
-      if (NA1 || NA2)
-	{
-	  if (NA1)
-	    {
-	      nns[0]=NA1->nseq;
-	      nls[0]=(int*)vcalloc (NA1->nseq, sizeof (int));
-	      for (a=0; a<NA1->nseq; a++)
-		nls[0][a]=a;
-	      NA1->seq_al[NA1->nseq]=sst1;
-	      sprintf (NA1->name[NA1->nseq], "sst1");
-	    }
-	  else
-	    {
-	    NA1=A1;
-	    nns[0]=ns[0];
-	    nls[0]=(int*)vcalloc (ns[0], sizeof (int));
-	    for (a=0; a<ns[0]; a++)
-	      nls[0][a]=ls[0][a];
-	    }
-
-	  if (NA2)
-	    {
-	      nns[1]=NA2->nseq;
-	      nls[1]=(int*)vcalloc (NA2->nseq, sizeof (int));
-	      for (a=0; a<NA2->nseq; a++)
-		nls[1][a]=a;
-	      NA2->seq_al[NA2->nseq]=sst2;
-	      sprintf (NA2->name[NA2->nseq], "sst2");
-	    }
-	  else
-	    {
-	      NA2=A2;
-	      nns[1]=ns[1];
-	      nls[1]=(int*)vcalloc (ns[1], sizeof (int));
-	      for (a=0; a<ns[1]; a++)
-		nls[1][a]=ls[1][a];
-	    }
-
-	  get_tot_prob3 (NA1, NA2, nns, nls, nstates, matchProb, insProb, TmatchProb, TinsProb, CL,PROFILE);
-	  vfree (nns); free_int (nls,-1);
-	  return 1;
-	}
+      get_tot_prob3 (NA1, NA2, nns, nls, nstates, matchProb, insProb, TmatchProb, TinsProb, CL,PROFILE);
+      vfree (nns); free_int (nls,-1);
+      return 1;
     }
-  
+  }
+
   I=strlen (A1->seq_al[ls[0][0]]);
   J=strlen (A2->seq_al[ls[1][0]]);
-     
+
   lu=dirichlet_code2aa_lu();
-  
+
   prf1=aln2prf (A1, ns[0], ls[0], I, prf1);
   dmx1=prf2dmx (prf1, dmx1, I);
   prf2=aln2prf (A2, ns[1], ls[1], J, prf2);
   dmx2=prf2dmx (prf2, dmx2, J);
-  
-    
+
+
   //get Ins for I
   for (i=1; i<=I; i++)
+  {
+    for (k=0; k<nstates; k++)
     {
-      for (k=0; k<nstates; k++)
-	{
-	  TinsProb[0][k][i]=0;
-	  for (r=0; r<20; r++)
-	    {
-	      TinsProb[0][k][i]+=(float)prf1[i-1][r]*insProb[lu[r]][k];
-	    }
-	}
+      TinsProb[0][k][i]=0;
+      for (r=0; r<20; r++)
+      {
+        TinsProb[0][k][i]+=(float)prf1[i-1][r]*insProb[lu[r]][k];
+      }
     }
-  
+  }
+
   //Get Ins for J
   for (j=1; j<=J; j++)
+  {
+    for (k=0; k<nstates; k++)
     {
-      for (k=0; k<nstates; k++)
-	{
-	  TinsProb[1][k][j]=0;
-	  for (r=0; r<20; r++)
-	    {
-	      TinsProb[1][k][j]+=(float)prf2[j-1][r]*insProb[lu[r]][k];
-	    }
-	}
+      TinsProb[1][k][j]=0;
+      for (r=0; r<20; r++)
+      {
+        TinsProb[1][k][j]+=(float)prf2[j-1][r]*insProb[lu[r]][k];
+      }
     }
-  
+  }
+
   for (ij=0,i=0; i<=I; i++)
     for (j=0; j<=J; j++, ij++)
-      {
-	if (i==0 || j==0)continue;
-	TmatchProb[ij]=0;
-	for (r1=0; r1<20; r1++)
-	  for (r2=0; r2<20; r2++)
-	    {
-	      TmatchProb[ij]+=(prf1[i-1][r1]*prf2[j-1][r2])*(dmx2[j-1][r1]+dmx1[i-1][r2]);
-	    }
-	
-      }
-  
+    {
+      if (i==0 || j==0)continue;
+      TmatchProb[ij]=0;
+      for (r1=0; r1<20; r1++)
+        for (r2=0; r2<20; r2++)
+        {
+          TmatchProb[ij]+=(prf1[i-1][r1]*prf2[j-1][r2])*(dmx2[j-1][r1]+dmx1[i-1][r2]);
+        }
+
+    }
+
   return 1;
 }
 
@@ -1393,26 +1392,25 @@ int get_tot_prob3 (Alignment *A1,Alignment *A2, int *ns, int **ls, int nstates, 
 Constraint_list *ProbaMatrix2CL (Alignment *A, int *ns, int **ls, int NumMatrixTypes, int NumInsertStates, float *forward, float *backward, float thr, Constraint_list *CL)
 {
   float totalProb;
-  int ij, i, j,k, I, J, s1, s2;
-  static int *entry;
-  static int **list;
-  static int list_max;
-  int sim;
+  int ij, i, j, I, J, s1, s2;
+  static thread_local int *entry=NULL;
+  static thread_local int **list=NULL;
+  static thread_local int list_max=0;
   int list_size;
   int list_n;
   int old_n=0;
   double v;
-  static float F=4; //potential number of full suboptimal alignmnents incorporated in the library
-  static int tot_old, tot_new;
+  static thread_local float F=4; //potential number of full suboptimal alignmnents incorporated in the library
+  static thread_local int tot_old=0, tot_new=0;
 
   if (!A)
-    {
-      free_int (list, -1);list=NULL;
-      list_max=0;
+  {
+    free_int (list, -1);list=NULL;
+    list_max=0;
 
-      vfree(entry); entry=NULL;
-      return NULL;
-    }
+    vfree(entry); entry=NULL;
+    return NULL;
+  }
 
   I=strlen (A->seq_al[ls[0][0]]);
   J=strlen (A->seq_al[ls[1][0]]);
@@ -1422,46 +1420,46 @@ Constraint_list *ProbaMatrix2CL (Alignment *A, int *ns, int **ls, int NumMatrixT
   list_size=I*J;
 
   if ( list_max<list_size)
-    {
-      free_int (list, -1);
-      list_max=list_size;
-      list=declare_int (list_max, 3);
-    }
+  {
+    free_int (list, -1);
+    list_max=list_size;
+    list=declare_int (list_max, 3);
+  }
 
 
   totalProb = ComputeTotalProbability (I,J,NumMatrixTypes, NumInsertStates,forward, backward);
 
   ij = 0;
   for (list_n=0,ij=0,i =0; i <= I; i++)
+  {
+    for (j =0; j <= J; j++, ij+=NumMatrixTypes)
     {
-      for (j =0; j <= J; j++, ij+=NumMatrixTypes)
-	{
-	  v= EXP (MIN(LOG_ONE,(forward[ij] + backward[ij] - totalProb)));
-	  if (v>thr)//Conservative reduction of the list size to speed up the sorting
-	    {
-	      list[list_n][0]=i;
-	      list[list_n][1]=j;
-	      list[list_n][2]=(int)((float)v*(float)NORM_F);
-	      list_n++;
-	    }
-	  if (v>0.01)old_n++;
-	}
+      v= EXP (MIN(LOG_ONE,(forward[ij] + backward[ij] - totalProb)));
+      if (v>thr)//Conservative reduction of the list size to speed up the sorting
+      {
+        list[list_n][0]=i;
+        list[list_n][1]=j;
+        list[list_n][2]=(int)((float)v*(float)NORM_F);
+        list_n++;
+      }
+      if (v>0.01)old_n++;
     }
+  }
 
   sort_int_inv (list, 3, 2, 0, list_n-1);
   if (!entry)entry=(int*)vcalloc ( CL->entry_len+1, CL->el_size);
 
   list_n=MIN(list_n,(F*MIN(I,J)));
   for (i=0; i<list_n; i++)
-    {
-       entry[SEQ1]=s1;
-       entry[SEQ2]=s2;
-       entry[R1]  =list[i][0];
-       entry[R2]  =list[i][1];
-       entry[WE]  =list[i][2];
-       entry[CONS]=1;
-       add_entry2list (entry,A->CL);
-    }
+  {
+    entry[SEQ1]=s1;
+    entry[SEQ2]=s2;
+    entry[R1]  =list[i][0];
+    entry[R2]  =list[i][1];
+    entry[WE]  =list[i][2];
+    entry[CONS]=1;
+    add_entry2list (entry,A->CL);
+  }
   tot_new+=list_n;
   tot_old+=old_n;
   // HERE ("LIB_SIZE NEW: %d (new) %d (old) [%.2f]", list_n, old_n, (float)tot_new/(float)tot_old);
@@ -1489,15 +1487,15 @@ float ComputeTotalProbability (int seq1Length, int seq2Length,int NumMatrixTypes
       LOG_PLUS_EQUALS (&totalBackwardProb,forward[2*k+1 + NumMatrixTypes * (1 * (seq2Length+1) + 0)] +backward[2*k+1 + NumMatrixTypes * (1 * (seq2Length+1) + 0)]);
       LOG_PLUS_EQUALS (&totalBackwardProb,forward[2*k+2 + NumMatrixTypes * (0 * (seq2Length+1) + 1)] +backward[2*k+2 + NumMatrixTypes * (0 * (seq2Length+1) + 1)]);
       }
-    
+
     return (totalForwardProb + totalBackwardProb) / 2;
   }
 
 
 float * backward_proba_pair_wise ( char *seq1, char *seq2, int NumMatrixTypes, int NumInsertStates, float **transMat, float *initialDistribution,float *matchProb, float ***insProb, float **transProb)
 {
-  static float *backward;
-  static int max_l;
+  static thread_local float *backward=NULL;
+  static thread_local int max_l=0;
 
 
   int k, i, j,ij, i1j1, i1j, ij1,a, l, seq1Length, seq2Length, m;
@@ -1532,7 +1530,7 @@ float * backward_proba_pair_wise ( char *seq1, char *seq2, int NumMatrixTypes, i
 
   for (k = 0; k < NumMatrixTypes; k++)
     backward[NumMatrixTypes * ((seq1Length+1) * (seq2Length+1) - 1) + k] = initialDistribution[k];
-  
+
   //Difference with Probcons: this emission is not added to the bward
   backward[NumMatrixTypes * ((seq1Length+1) * (seq2Length+1) - 1) + 0]+=matchProb[(seq1Length+1) * (seq2Length+1) - 1];
   // remember offset for each index combination
@@ -1589,14 +1587,14 @@ float * backward_proba_pair_wise ( char *seq1, char *seq2, int NumMatrixTypes, i
         i1j1 -= NumMatrixTypes;
 	}
     }
- 
+
   return backward;
 }
 
 float * forward_proba_pair_wise ( char *seq1, char *seq2, int NumMatrixTypes, int NumInsertStates, float **transMat, float *initialDistribution,float *matchProb, float ***insProb, float **transProb)
 {
-  static float *forward;
-  static int max_l;
+  static thread_local float *forward=NULL;
+  static thread_local int max_l=0;
   int k, i, j,ij, i1j1, i1j, ij1, seq1Length, seq2Length, m;
   char *iter1, *iter2;
   int l,a;
@@ -1748,7 +1746,7 @@ int viterbi_pair_wise ( Alignment *A, int *ns, int **ls, Constraint_list *CL)
   int NumInsertStates=2;
   int *traceback;
   float bestProb;
-  static float **transMat, **insProb, **matchProb, *initialDistribution, **transProb, **emitPairs, *emitSingle, *TmatchProb, ***TinsProb;
+  static thread_local float **transMat=NULL, **insProb, **matchProb, *initialDistribution, **transProb, **emitPairs, *emitSingle, *TmatchProb, ***TinsProb;
   float *viterbi;
 
   ungap_sub_aln (A, ns[0],ls[0]);
@@ -1759,206 +1757,206 @@ int viterbi_pair_wise ( Alignment *A, int *ns, int **ls, Constraint_list *CL)
 
 
   if (!transMat)
+  {
+    alphabet=alphabetDefault;
+    emitPairs=declare_float (256, 256);
+    emitSingle=(float*)vcalloc (256, sizeof (float));
+    for (i=0; i<256; i++)
     {
-       alphabet=alphabetDefault;
-       emitPairs=declare_float (256, 256);
-       emitSingle=(float*)vcalloc (256, sizeof (float));
-       for (i=0; i<256; i++)
-	 {
-	   emitSingle[i]=1e-5;
-	   for (j=0; j<256; j++)
-	     emitPairs[i][j]=1e-10;
-	 }
-       l=strlen (alphabet);
+      emitSingle[i]=1e-5;
+      for (j=0; j<256; j++)
+        emitPairs[i][j]=1e-10;
+    }
+    l=strlen (alphabet);
 
-       for (i=0; i<l; i++)
-	 {
+    for (i=0; i<l; i++)
+    {
 
-	   c1=tolower(alphabet[i]);
-	   C1=toupper(alphabet[i]);
-	   emitSingle[c1]=emitSingleDefault[i];
-	   emitSingle[C1]=emitSingleDefault[i];
-	   for (j=0; j<=i; j++)
-	     {
-	       c2=tolower(alphabet[j]);
-	       C2=toupper(alphabet[j]);
+      c1=tolower(alphabet[i]);
+      C1=toupper(alphabet[i]);
+      emitSingle[c1]=emitSingleDefault[i];
+      emitSingle[C1]=emitSingleDefault[i];
+      for (j=0; j<=i; j++)
+      {
+        c2=tolower(alphabet[j]);
+        C2=toupper(alphabet[j]);
 
-	       emitPairs[c1][c2]=emitPairsDefault[i][j];
-	       emitPairs[C1][c2]=emitPairsDefault[i][j];
-	       emitPairs[C1][C2]=emitPairsDefault[i][j];
-	       emitPairs[c1][C2]=emitPairsDefault[i][j];
-	       emitPairs[c2][c1]=emitPairsDefault[i][j];
-	       emitPairs[C2][c1]=emitPairsDefault[i][j];
-	       emitPairs[C2][C1]=emitPairsDefault[i][j];
-	       emitPairs[c2][C1]=emitPairsDefault[i][j];
-	     }
-	 }
+        emitPairs[c1][c2]=emitPairsDefault[i][j];
+        emitPairs[C1][c2]=emitPairsDefault[i][j];
+        emitPairs[C1][C2]=emitPairsDefault[i][j];
+        emitPairs[c1][C2]=emitPairsDefault[i][j];
+        emitPairs[c2][c1]=emitPairsDefault[i][j];
+        emitPairs[C2][c1]=emitPairsDefault[i][j];
+        emitPairs[C2][C1]=emitPairsDefault[i][j];
+        emitPairs[c2][C1]=emitPairsDefault[i][j];
+      }
+    }
 
 
-       transMat=declare_float (2*NumInsertStates+1, 2*NumInsertStates+1);
-       transProb=declare_float (2*NumInsertStates+1,2* NumInsertStates+1);
-       insProb=declare_float (256,NumMatrixTypes);
-       matchProb=declare_float (256, 256);
-       initialDistribution=(float*)vcalloc (2*NumMatrixTypes+1, sizeof (float));
+    transMat=declare_float (2*NumInsertStates+1, 2*NumInsertStates+1);
+    transProb=declare_float (2*NumInsertStates+1,2* NumInsertStates+1);
+    insProb=declare_float (256,NumMatrixTypes);
+    matchProb=declare_float (256, 256);
+    initialDistribution=(float*)vcalloc (2*NumMatrixTypes+1, sizeof (float));
 
-       ProbabilisticModel (NumMatrixTypes,NumInsertStates,initDistrib2Default, emitSingle,emitPairs,gapOpen2Default,gapExtend2Default, transMat,initialDistribution,matchProb, insProb,transProb);
-     }
+    ProbabilisticModel (NumMatrixTypes,NumInsertStates,initDistrib2Default, emitSingle,emitPairs,gapOpen2Default,gapExtend2Default, transMat,initialDistribution,matchProb, insProb,transProb);
+  }
 
 
-   TmatchProb=(float*)vcalloc ((I+1)*(J+1), sizeof (float));
-   TinsProb=(float***)declare_arrayN (3, sizeof (float),2,NumMatrixTypes,MAX(I,J)+1);
-   get_tot_prob2 (A,A, ns,ls,NumMatrixTypes, matchProb, insProb,TmatchProb,TinsProb, CL,SEQUENCE);
+  TmatchProb=(float*)vcalloc ((I+1)*(J+1), sizeof (float));
+  TinsProb=(float***)declare_arrayN (3, sizeof (float),2,NumMatrixTypes,MAX(I,J)+1);
+  get_tot_prob2 (A,A, ns,ls,NumMatrixTypes, matchProb, insProb,TmatchProb,TinsProb, CL,SEQUENCE);
 
-   // create viterbi matrix
-   l=NumMatrixTypes * (seq1Length+1) * (seq2Length+1);
-   viterbi =(float*)vcalloc (l, sizeof (float));
-   for (a=0; a<l; a++)viterbi[a]=LOG_ZERO;
-   traceback=(int*)vcalloc (l, sizeof (int));
-   for (a=0; a<l; a++)traceback[a]=-1;
+  // create viterbi matrix
+  l=NumMatrixTypes * (seq1Length+1) * (seq2Length+1);
+  viterbi =(float*)vcalloc (l, sizeof (float));
+  for (a=0; a<l; a++)viterbi[a]=LOG_ZERO;
+  traceback=(int*)vcalloc (l, sizeof (int));
+  for (a=0; a<l; a++)traceback[a]=-1;
 
-   // initialization condition
-   for (k = 0; k < NumMatrixTypes; k++)
-     viterbi[k] = initialDistribution[k];
+  // initialization condition
+  for (k = 0; k < NumMatrixTypes; k++)
+    viterbi[k] = initialDistribution[k];
 
-   // remember offset for each index combination
-   ij = 0;
-   i1j = -seq2Length - 1;
-   ij1 = -1;
-   i1j1 = -seq2Length - 2;
+  // remember offset for each index combination
+  ij = 0;
+  i1j = -seq2Length - 1;
+  ij1 = -1;
+  i1j1 = -seq2Length - 2;
 
-   ij *= NumMatrixTypes;
-   i1j *= NumMatrixTypes;
-   ij1 *= NumMatrixTypes;
-   i1j1 *= NumMatrixTypes;
+  ij *= NumMatrixTypes;
+  i1j *= NumMatrixTypes;
+  ij1 *= NumMatrixTypes;
+  i1j1 *= NumMatrixTypes;
 
-   // compute viterbi scores
-   for (m=0,i = 0; i <= seq1Length; i++)
-     {
-       for ( j = 0; j <= seq2Length; j++, m++)
-	 {
-	   if (i > 0 && j > 0)
-	     {
-	       for (k = 0; k < NumMatrixTypes; k++)
-		 {
-		   float newVal = viterbi[k + i1j1] + transProb[k][0] + TmatchProb[m];
-		   if (viterbi[0 + ij] < newVal)
-		     {
-		       viterbi[0 + ij] = newVal;
-		       traceback[0 + ij] = k;
-		     }
-		 }
-	     }
-	   if (i > 0)
-	     {
-	       for (k = 0; k < NumInsertStates; k++)
-		 {
-		   float valFromMatch = TinsProb[0][k][i] + viterbi[0 + i1j] + transProb[0][2*k+1];
-		   float valFromIns = TinsProb[0][k][i] + viterbi[2*k+1 + i1j] + transProb[2*k+1][2*k+1];
-		   if (valFromMatch >= valFromIns){
-		     viterbi[2*k+1 + ij] = valFromMatch;
-		     traceback[2*k+1 + ij] = 0;
-		   }
-		   else {
-		     viterbi[2*k+1 + ij] = valFromIns;
-		     traceback[2*k+1 + ij] = 2*k+1;
-		   }
-		 }
-	     }
-	   if (j > 0)
-	     {
-	       for (k = 0; k < NumInsertStates; k++){
-		 float valFromMatch = TinsProb[1][k][j] + viterbi[0 + ij1] + transProb[0][2*k+2];
-		 float valFromIns = TinsProb[1][k][j] + viterbi[2*k+2 + ij1] + transProb[2*k+2][2*k+2];
-		 if (valFromMatch >= valFromIns){
-		   viterbi[2*k+2 + ij] = valFromMatch;
-		   traceback[2*k+2 + ij] = 0;
-		 }
-		 else
-		   {
-		     viterbi[2*k+2 + ij] = valFromIns;
-		     traceback[2*k+2 + ij] = 2*k+2;
-		   }
-	       }
-	     }
+  // compute viterbi scores
+  for (m=0,i = 0; i <= seq1Length; i++)
+  {
+    for ( j = 0; j <= seq2Length; j++, m++)
+    {
+      if (i > 0 && j > 0)
+      {
+        for (k = 0; k < NumMatrixTypes; k++)
+        {
+          float newVal = viterbi[k + i1j1] + transProb[k][0] + TmatchProb[m];
+          if (viterbi[0 + ij] < newVal)
+          {
+            viterbi[0 + ij] = newVal;
+            traceback[0 + ij] = k;
+          }
+        }
+      }
+      if (i > 0)
+      {
+        for (k = 0; k < NumInsertStates; k++)
+        {
+          float valFromMatch = TinsProb[0][k][i] + viterbi[0 + i1j] + transProb[0][2*k+1];
+          float valFromIns = TinsProb[0][k][i] + viterbi[2*k+1 + i1j] + transProb[2*k+1][2*k+1];
+          if (valFromMatch >= valFromIns){
+            viterbi[2*k+1 + ij] = valFromMatch;
+            traceback[2*k+1 + ij] = 0;
+          }
+          else {
+            viterbi[2*k+1 + ij] = valFromIns;
+            traceback[2*k+1 + ij] = 2*k+1;
+          }
+        }
+      }
+      if (j > 0)
+      {
+        for (k = 0; k < NumInsertStates; k++){
+          float valFromMatch = TinsProb[1][k][j] + viterbi[0 + ij1] + transProb[0][2*k+2];
+          float valFromIns = TinsProb[1][k][j] + viterbi[2*k+2 + ij1] + transProb[2*k+2][2*k+2];
+          if (valFromMatch >= valFromIns){
+            viterbi[2*k+2 + ij] = valFromMatch;
+            traceback[2*k+2 + ij] = 0;
+          }
+          else
+          {
+            viterbi[2*k+2 + ij] = valFromIns;
+            traceback[2*k+2 + ij] = 2*k+2;
+          }
+        }
+      }
 
-	   ij += NumMatrixTypes;
-	   i1j += NumMatrixTypes;
-	   ij1 += NumMatrixTypes;
-	   i1j1 += NumMatrixTypes;
-	 }
-     }
+      ij += NumMatrixTypes;
+      i1j += NumMatrixTypes;
+      ij1 += NumMatrixTypes;
+      i1j1 += NumMatrixTypes;
+    }
+  }
 
-   // figure out best terminating cell
-   bestProb = LOG_ZERO;
-   state = -1;
-   for (k = 0; k < NumMatrixTypes; k++)
-     {
-       float thisProb = viterbi[k + NumMatrixTypes * ((seq1Length+1)*(seq2Length+1) - 1)] + initialDistribution[k];
-       if (bestProb < thisProb)
-	 {
-	   bestProb = thisProb;
-	   state = k;
-	 }
-     }
+  // figure out best terminating cell
+  bestProb = LOG_ZERO;
+  state = -1;
+  for (k = 0; k < NumMatrixTypes; k++)
+  {
+    float thisProb = viterbi[k + NumMatrixTypes * ((seq1Length+1)*(seq2Length+1) - 1)] + initialDistribution[k];
+    if (bestProb < thisProb)
+    {
+      bestProb = thisProb;
+      state = k;
+    }
+  }
 
 
 
-   // compute traceback
-   al=declare_char(2,seq1Length+seq2Length);
-   LEN=0;
-   r = seq1Length, c = seq2Length;
-   while (r != 0 || c != 0)
-     {
-       int newState = traceback[state + NumMatrixTypes * (r * (seq2Length+1) + c)];
+  // compute traceback
+  al=declare_char(2,seq1Length+seq2Length);
+  LEN=0;
+  r = seq1Length, c = seq2Length;
+  while (r != 0 || c != 0)
+  {
+    int newState = traceback[state + NumMatrixTypes * (r * (seq2Length+1) + c)];
 
-       if (state == 0){ c--; r--; al[0][LEN]=1;al[1][LEN]=1;}
-       else if (state % 2 == 1) {r--; al[0][LEN]=1;al[1][LEN]=0;}
-       else { c--; al[0][LEN]=0;al[1][LEN]=1;}
-       LEN++;
-       state = newState;
-     }
-
-
-   invert_list_char ( al[0], LEN);
-   invert_list_char ( al[1], LEN);
-   if ( A->declared_len<=LEN)A=realloc_aln2  ( A,A->max_n_seq, 2*LEN);
-   aln=A->seq_al;
-   char_buf=(char*) vcalloc (LEN+1, sizeof (char));
-   for ( c=0; c< 2; c++)
-     {
-       for ( a=0; a< ns[c]; a++)
-	 {
-	   int ch=0;
-	   for ( b=0; b< LEN; b++)
-	     {
-	       if (al[c][b]==1)
-		 char_buf[b]=aln[ls[c][a]][ch++];
-	       else
-		 char_buf[b]='-';
-	     }
-	   char_buf[b]='\0';
-	   sprintf (aln[ls[c][a]],"%s", char_buf);
-	 }
-     }
+    if (state == 0){ c--; r--; al[0][LEN]=1;al[1][LEN]=1;}
+    else if (state % 2 == 1) {r--; al[0][LEN]=1;al[1][LEN]=0;}
+    else { c--; al[0][LEN]=0;al[1][LEN]=1;}
+    LEN++;
+    state = newState;
+  }
 
 
-   A->len_aln=LEN;
-   A->nseq=ns[0]+ns[1];
-   vfree (char_buf);
-   free_char (al, -1);
+  invert_list_char ( al[0], LEN);
+  invert_list_char ( al[1], LEN);
+  if ( A->declared_len<=LEN)A=realloc_aln2  ( A,A->max_n_seq, 2*LEN);
+  aln=A->seq_al;
+  char_buf=(char*) vcalloc (LEN+1, sizeof (char));
+  for ( c=0; c< 2; c++)
+  {
+    for ( a=0; a< ns[c]; a++)
+    {
+      int ch=0;
+      for ( b=0; b< LEN; b++)
+      {
+        if (al[c][b]==1)
+          char_buf[b]=aln[ls[c][a]][ch++];
+        else
+          char_buf[b]='-';
+      }
+      char_buf[b]='\0';
+      sprintf (aln[ls[c][a]],"%s", char_buf);
+    }
+  }
+
+
+  A->len_aln=LEN;
+  A->nseq=ns[0]+ns[1];
+  vfree (char_buf);
+  free_char (al, -1);
 
 
 
 
 
-   return (int)(bestProb*(float)1000);
+  return (int)(bestProb*(float)1000);
 }
 
 float ** get_emitPairs (char *mat, char *alp, float **p, float *s)
   {
-    static char *rmat;
+    static thread_local char *rmat=NULL;
     float k=0, t=0;
-    int a, b, c, l;
+    int a, b, l;
     int **M;
 
     if (!rmat)rmat=(char*)vcalloc (100, sizeof (char));
@@ -2001,20 +1999,20 @@ float ** get_emitPairs (char *mat, char *alp, float **p, float *s)
 
 float * forward_proba_pair_wise_test ( char *seq1, char *seq2, int NumMatrixTypes, int NumInsertStates, float **transMat, float *initialDistribution,float *matchProb, float ***insProb, float **transProb)
 {
-  static float *forward;
-  static int max_l;
+  static thread_local float *forward=NULL;
+  static thread_local int max_l=0;
   int k, i, j,ij, i1j1, i1j, ij1, seq1Length, seq2Length, m;
   char *iter1, *iter2;
   int l,a;
 
- 
+
 
   if (!seq1)
-    {
-      vfree (forward);
-      forward=NULL; max_l=0;
-      return NULL;
-    }
+  {
+    vfree (forward);
+    forward=NULL; max_l=0;
+    return NULL;
+  }
   iter1=seq1-1;
   iter2=seq2-1;
   seq1Length=strlen (seq1);
@@ -2022,79 +2020,79 @@ float * forward_proba_pair_wise_test ( char *seq1, char *seq2, int NumMatrixType
   l=(seq1Length+1)*(seq2Length+1)*NumMatrixTypes;
 
   if (!forward)
-    {
-      forward=(float*)vcalloc (l, sizeof (float));
-      max_l=l;
-    }
+  {
+    forward=(float*)vcalloc (l, sizeof (float));
+    max_l=l;
+  }
   else if (max_l<l)
-    {
-      forward=(float*)vrealloc (forward, l*sizeof(float));
-      max_l=l;
-    }
+  {
+    forward=(float*)vrealloc (forward, l*sizeof(float));
+    max_l=l;
+  }
   for (a=0; a<l; a++)forward[a]=LOG_ZERO;
 
   //f[1][1][0]
   forward[0 + NumMatrixTypes * (1 * (seq2Length+1) + 1)] = initialDistribution[0] + matchProb[seq2Length+2];
   for (k = 0; k < NumInsertStates; k++)
-    {
-      //forward[1][0][k]
-      forward[2*k+1 + NumMatrixTypes * (1 * (seq2Length+1) + 0)] = initialDistribution[2*k+1] + insProb[0][k][1];
-      //forward[1][0][k]
-      forward[2*k+2 + NumMatrixTypes * (0 * (seq2Length+1) + 1)] = initialDistribution[2*k+2] + insProb[1][k][1];
-    }
+  {
+    //forward[1][0][k]
+    forward[2*k+1 + NumMatrixTypes * (1 * (seq2Length+1) + 0)] = initialDistribution[2*k+1] + insProb[0][k][1];
+    //forward[1][0][k]
+    forward[2*k+2 + NumMatrixTypes * (0 * (seq2Length+1) + 1)] = initialDistribution[2*k+2] + insProb[1][k][1];
+  }
 
   // remember offset for each index combination
   ij = 0;                //f[i][j]
   i1j = -seq2Length - 1; //f[i-1][j]
   ij1 = -1;              //f[i][j-1]
   i1j1 = -seq2Length - 2;//f[i-1][j-1]
-  
+
   ij *= NumMatrixTypes;
   i1j *= NumMatrixTypes;
   ij1 *= NumMatrixTypes;
   i1j1 *= NumMatrixTypes;
-  
+
 
   // compute forward scores
   for (m=0,i = 0; i <= seq1Length; i++)
+  {
+    for (j = 0; j <= seq2Length; j++, m++)
     {
-      for (j = 0; j <= seq2Length; j++, m++)
-	{
-	  if (i > 1 || j > 1)
-	    {
-	      if (i > 0 && j > 0)
-		{
-		  //Sum over all possible alignments
-		  forward[0 + ij] = forward[0 + i1j1] + transProb[0][0];
-		  for (k = 1; k < NumMatrixTypes; k++)
-		    {
-		      LOG_PLUS_EQUALS (&forward[0 + ij], forward[k + i1j1] + transProb[k][0]);
-		    }
-		  forward[0 + ij] += matchProb[m];
-		}
-	      if ( i > 0)
-		{
-		  for (k = 0; k < NumInsertStates; k++)
-		    {
-		      forward[2*k+1 + ij] = insProb[0][k][i] + LOG_ADD (forward[0 + i1j] + transProb[0][2*k+1],forward[2*k+1 + i1j] + transProb[2*k+1][2*k+1]);
-		    }
-		}
-	      if (j > 0)
-		{
-		  for (k = 0; k < NumInsertStates; k++)
-		    {
-		      forward[2*k+2 + ij] = insProb[1][k][j] +LOG_ADD (forward[0 + ij1] + transProb[0][2*k+2],forward[2*k+2 + ij1] + transProb[2*k+2][2*k+2]);
-		    }
-		}
-	    }
-	  
-	  ij += NumMatrixTypes;
-	  i1j += NumMatrixTypes;
-	  ij1 += NumMatrixTypes;
-	  i1j1 += NumMatrixTypes;
-	}
-      
+      if (i > 1 || j > 1)
+      {
+        if (i > 0 && j > 0)
+        {
+          //Sum over all possible alignments
+          forward[0 + ij] = forward[0 + i1j1] + transProb[0][0];
+          for (k = 1; k < NumMatrixTypes; k++)
+          {
+            LOG_PLUS_EQUALS (&forward[0 + ij], forward[k + i1j1] + transProb[k][0]);
+          }
+          forward[0 + ij] += matchProb[m];
+        }
+        if ( i > 0)
+        {
+          for (k = 0; k < NumInsertStates; k++)
+          {
+            forward[2*k+1 + ij] = insProb[0][k][i] + LOG_ADD (forward[0 + i1j] + transProb[0][2*k+1],forward[2*k+1 + i1j] + transProb[2*k+1][2*k+1]);
+          }
+        }
+        if (j > 0)
+        {
+          for (k = 0; k < NumInsertStates; k++)
+          {
+            forward[2*k+2 + ij] = insProb[1][k][j] +LOG_ADD (forward[0 + ij1] + transProb[0][2*k+2],forward[2*k+2 + ij1] + transProb[2*k+2][2*k+2]);
+          }
+        }
+      }
+
+      ij += NumMatrixTypes;
+      i1j += NumMatrixTypes;
+      ij1 += NumMatrixTypes;
+      i1j1 += NumMatrixTypes;
     }
+
+  }
   return forward;
 }
 //old
@@ -2104,14 +2102,13 @@ float * forward_proba_pair_wise_test ( char *seq1, char *seq2, int NumMatrixType
 
 float * backward_proba_pair_wise_test ( char *seq1, char *seq2, int NumMatrixTypes, int NumInsertStates, float **transMat, float *initialDistribution,float *imatchProb, float ***insProb, float **transProb)
 {
-  static float *backward;
-  static int max_l;
+  static thread_local float *backward=NULL;
+  static thread_local int max_l=0;
   float ***bw;
   float **matchProb;
   int l1, l2, ns;
-  
-  int k, i, j,ij, i1j1, i1j, ij1,a, l, seq1Length, seq2Length, m;
-  char c1, c2;
+
+  int k, i, j, a, l, seq1Length, seq2Length, m;
   char *iter1, *iter2;
 
   if (!seq1)
@@ -2127,8 +2124,8 @@ float * backward_proba_pair_wise_test ( char *seq1, char *seq2, int NumMatrixTyp
   l2=seq2Length=strlen (seq2);
   l=(seq1Length+1)*(seq2Length+1)*NumMatrixTypes;
   ns=NumMatrixTypes;
-  
- 
+
+
   if (!backward)
     {
       backward=(float*)vcalloc (l, sizeof (float));
@@ -2140,7 +2137,7 @@ float * backward_proba_pair_wise_test ( char *seq1, char *seq2, int NumMatrixTyp
       max_l=l;
     }
   for (a=0; a<l; a++)backward[a]=LOG_ZERO;
-  
+
   bw=(float***)vcalloc (ns, sizeof (float**));
   for (k=0; k<ns; k++)
     {
@@ -2153,8 +2150,8 @@ float * backward_proba_pair_wise_test ( char *seq1, char *seq2, int NumMatrixTyp
   for (m=0,i=0; i<=l1; i++)
     for (j=0; j<=l2; j++)
       matchProb[i][j]=imatchProb[m++];
-  
-  
+
+
   bw[0][l1][l2]=initialDistribution[0]+matchProb[l1][l2];
   for (k = 0; k < NumInsertStates; k++)
     {
@@ -2183,7 +2180,7 @@ float * backward_proba_pair_wise_test ( char *seq1, char *seq2, int NumMatrixTyp
 		      bw[2*k+1][i][j] = insProb[0][k][i] + LOG_ADD (bw[0][i+1][j] + transProb[0][2*k+1],bw[2*k+1][i+1][j] + transProb[2*k+1][2*k+1]);
 		    }
 		}
-	      
+
 	      if (j <l2+1)
 		{
 		  for (k = 0; k < NumInsertStates; k++)
@@ -2194,7 +2191,7 @@ float * backward_proba_pair_wise_test ( char *seq1, char *seq2, int NumMatrixTyp
 	    }
 	}
     }
- 
+
   //resize backward to make it compatible with forward
   for (m=0,i=0; i<=l1; i++)
     for (j=0; j<=l2; j++)
@@ -2204,31 +2201,30 @@ float * backward_proba_pair_wise_test ( char *seq1, char *seq2, int NumMatrixTyp
 	    backward[m++]=bw[k][i][j];
 	  }
       }
-  
+
   return backward;
 }
 
 
 Constraint_list *ProbaMatrix2CL_test (Alignment *A, int *ns, int **ls, int NumMatrixTypes, int NumInsertStates, float *forward, float *backward, float thr, Constraint_list *CL)
 {
-  float totalProb;
+  float totalProb=0;
   int ij, i, j,k, I, J, s1, s2;
-  static int *entry;
-  static int **list;
-  static int list_max;
-  int sim;
-  int list_size;
-  int list_n;
+  static thread_local int *entry=NULL;
+  static thread_local int **list=NULL;
+  static thread_local int list_max=0;
+  int list_size=0;
+  int list_n=0;
   int old_n=0;
   double v;
-  static float F=4; //potential number of full suboptimal alignmnents incorporated in the library
-  static int tot_old, tot_new;
+  static thread_local float F=4; //potential number of full suboptimal alignmnents incorporated in the library
+  static thread_local int tot_old=0, tot_new=0;
   float ***fw, tfw;
   float ***bw, tbw;
 
-  
-  
-  
+
+
+
   if (!A)
     {
       free_int (list, -1);list=NULL;
@@ -2238,25 +2234,25 @@ Constraint_list *ProbaMatrix2CL_test (Alignment *A, int *ns, int **ls, int NumMa
       return NULL;
     }
 
-  
-  
+
+
   I=strlen (A->seq_al[ls[0][0]]);
   J=strlen (A->seq_al[ls[1][0]]);
   s1=name_is_in_list (A->name[ls[0][0]], (CL->S)->name, (CL->S)->nseq, 100);
   s2=name_is_in_list (A->name[ls[1][0]], (CL->S)->name, (CL->S)->nseq, 100);
 
   list_size=I*J;
-  
+
   fw=(float***)vcalloc (NumMatrixTypes, sizeof (float**));
   bw=(float***)vcalloc (NumMatrixTypes, sizeof (float**));
-  
+
   for (k=0; k<NumMatrixTypes; k++)
     {
       fw[k]=declare_float (I+1, J+1);
       bw[k]=declare_float (I+1, J+1);
     }
-  
-  
+
+
   if ( list_max<list_size)
      {
       free_int (list, -1);
@@ -2277,7 +2273,7 @@ Constraint_list *ProbaMatrix2CL_test (Alignment *A, int *ns, int **ls, int NumMa
 	      fw[k][i][j]=forward [k+ij];
 	      bw[k][i][j]=backward[k+ij];
 	    }
-	 
+
 	  v= EXP (MIN(LOG_ONE,(forward[ij] + backward[ij] - totalProb)));
 	  if (v>thr)//Conservative reduction of the list size to speed up the sorting
 	    {
@@ -2307,12 +2303,12 @@ Constraint_list *ProbaMatrix2CL_test (Alignment *A, int *ns, int **ls, int NumMa
     {
       //LOG_PLUS_EQUALS(&tbw, bw[k][1][1]);
       //LOG_PLUS_EQUALS(&tbw, fw[k][1][1]);
-      
+
       LOG_PLUS_EQUALS(&tfw, fw[k][I][J]);
       LOG_PLUS_EQUALS(&tfw, bw[k][I][J]);
     }
-      
-    
+
+
   sort_int_inv (list, 3, 2, 0, list_n-1);
   if (!entry)entry=(int*)vcalloc ( CL->entry_len+1, CL->el_size);
 
@@ -2339,7 +2335,7 @@ float ComputeTotalProbability_test (int seq1Length, int seq2Length,int NumMatrix
     float totalForwardProb = LOG_ZERO;
     float totalBackwardProb= LOG_ZERO;
     int k;
-   
+
     for (k = 0; k < NumMatrixTypes; k++)
       {
       LOG_PLUS_EQUALS (&totalForwardProb,forward[k + NumMatrixTypes * ((seq1Length+1) * (seq2Length+1) - 1)] + backward[k + NumMatrixTypes * ((seq1Length+1) * (seq2Length+1) - 1)]);

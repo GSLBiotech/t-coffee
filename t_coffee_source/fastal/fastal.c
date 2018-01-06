@@ -54,7 +54,7 @@
 
 
 // the following functions are defined in scoring.c
-int complete_agreement_score(char *aln_file_name, const char *ref_directory); 
+int complete_agreement_score(char *aln_file_name, const char *ref_directory);
 void compute_ref_alignments(char *seq_file_name, char* ref_directory, int num_alignments, int num_seq_in_aln);
 
 
@@ -1934,17 +1934,18 @@ seq_pair2blast_diagonal(char *seq_file_name1,
 	char delims[] = "\t";
 	int length, pos_q, pos_d;
 	int current_pos = 0;
+  char *saveptr;
 	while (fgets(line, 300, diag_f) != NULL)
 	{
-		strtok(line, delims);
-		strtok(NULL, delims);
-		strtok(NULL, delims);
-		length =  atoi(strtok(NULL, delims));
-		strtok(NULL, delims);
-		strtok(NULL, delims);
-		pos_q = atoi(strtok(NULL, delims))-1;
-		strtok(NULL, delims);
-		pos_d = atoi(strtok(NULL, delims))-1;
+		strtok_r(line, delims,&saveptr);
+		strtok_r(NULL, delims,&saveptr);
+		strtok_r(NULL, delims,&saveptr);
+		length =  atoi(strtok_r(NULL, delims,&saveptr));
+		strtok_r(NULL, delims,&saveptr);
+		strtok_r(NULL, delims,&saveptr);
+		pos_q = atoi(strtok_r(NULL, delims,&saveptr))-1;
+		strtok_r(NULL, delims,&saveptr);
+		pos_d = atoi(strtok_r(NULL, delims,&saveptr))-1;
 
 		if (current_pos >= *dig_length-20)
 		{
@@ -1983,17 +1984,18 @@ seq_pair2blast_diagonal(char *seq_file_name1,
 
 
 		char delims[] = "\t";
+    char *saveptr;
 		while (fgets(line, 300, diag_f) != NULL)
 		{
-			strtok(line, delims);
-			strtok(NULL, delims);
-			strtok(NULL, delims);
-			length =  atoi(strtok(NULL, delims));
-			strtok(NULL, delims);
-			strtok(NULL, delims);
-			pos_q = atoi(strtok(NULL, delims))-1;
-			strtok(NULL, delims);
-			pos_d = atoi(strtok(NULL, delims))-1;
+			strtok_r(line, delims,&saveptr);
+			strtok_r(NULL, delims,&saveptr);
+			strtok_r(NULL, delims,&saveptr);
+			length =  atoi(strtok_r(NULL, delims,&saveptr));
+			strtok_r(NULL, delims,&saveptr);
+			strtok_r(NULL, delims,&saveptr);
+			pos_q = atoi(strtok_r(NULL, delims,&saveptr))-1;
+			strtok_r(NULL, delims,&saveptr);
+			pos_d = atoi(strtok_r(NULL, delims,&saveptr))-1;
 
 			if (current_pos >= *dig_length-20)
 			{
@@ -2125,17 +2127,18 @@ seq_pair2blat_diagonal(char *seq_file_name1,
 	char delims[] = "\t";
 	int length, pos_q, pos_d;
 	int current_pos = 0;
+  char *saveptr;
 	while (fgets(line, 300, diag_f) != NULL)
 	{
-		strtok(line, delims);
-		strtok(NULL, delims);
-		strtok(NULL, delims);
-		length =  atoi(strtok(NULL, delims));
-		strtok(NULL, delims);
-		strtok(NULL, delims);
-		pos_q = atoi(strtok(NULL, delims))-1;
-		strtok(NULL, delims);
-		pos_d = atoi(strtok(NULL, delims))-1;
+		strtok_r(line, delims,&saveptr);
+		strtok_r(NULL, delims,&saveptr);
+		strtok_r(NULL, delims,&saveptr);
+		length =  atoi(strtok_r(NULL, delims,&saveptr));
+		strtok_r(NULL, delims,&saveptr);
+		strtok_r(NULL, delims,&saveptr);
+		pos_q = atoi(strtok_r(NULL, delims,&saveptr))-1;
+		strtok_r(NULL, delims,&saveptr);
+		pos_d = atoi(strtok_r(NULL, delims,&saveptr))-1;
 
 		if (current_pos >= *dig_length-20)
 		{
@@ -2268,6 +2271,7 @@ seq_pair2blastz_diagonal(char *seq_file_name1,
 // 	char *result = NULL;
 	int length, pos_q, pos_d;
 	int current_pos = 0;
+  char *saveptr;
 	while (fgets(line, 300, diag_f) != NULL)
 	{
 		if (line[0] == 'a')
@@ -2286,9 +2290,9 @@ seq_pair2blastz_diagonal(char *seq_file_name1,
 						(*dig_length) += 90;
 						diags = (int*) vrealloc(diags, sizeof(int)*(*dig_length));
 					}
-					pos_q = atoi(strtok(line_tmp, delims));
-					pos_d = atoi(strtok(NULL, delims));
-					length = atoi(strtok(NULL, delims) - pos_q);
+					pos_q = atoi(strtok_r(line_tmp, delims,&saveptr));
+					pos_d = atoi(strtok_r(NULL, delims,&saveptr));
+					length = atoi(strtok_r(NULL, delims,&saveptr) - pos_q);
 					if (diag[l1-(pos_q)+pos_d] == 0)
 					{
 						diag[l1-(pos_q)+pos_d] =1;
@@ -3344,19 +3348,19 @@ profile_file2profile(Fastal_profile *prof,	//structure to save the profile in
 	char *result_num = NULL;
 
 	int length = prof->length;
-
+  char *saveptr;
 	for (i = 0; i < length; ++i)
 	{
 		for(j = 0; j<alphabet_size; ++j )
 			prof->prf[j][i] = 0;
 		fgets(line, LINE_LENGTH , profile_f);
-		result = strtok( line, delims );
+		result = strtok_r( line, delims,&saveptr );
 
 		while( result != NULL)
 		{
 			result_num = &result[1];
 			prof->prf[aa2pos[(short)result[0]]][i] = atoi(result_num);
-			result = strtok( NULL, delims );
+			result = strtok_r( NULL, delims,&saveptr );
 		}
 	}
 }
@@ -3465,13 +3469,13 @@ profile2file(Fastal_profile *profile,	//the profile to save
 // 		for(j = 0; j<alphabet_size; ++j )
 // 			prof->prf[j][i] = 0;
 // 		fgets(line, LINE_LENGTH , profile_f);
-// 		result = strtok( line, delims );
+// 		result = strtok_r( line, delims );
 //
 // 		while( result != NULL)
 // 		{
 // 			result_num = &result[1];
 // 			prof->prf[aa2pos[(short)result[0]]][i] = atoi(result_num);
-// 			result = strtok( NULL, delims );
+// 			result = strtok_r( NULL, delims );
 // 		}
 // 	}
 // }
@@ -3920,12 +3924,13 @@ int fastal_main(int argc,		//number of arguments
 
 
 	//bottom-up traversal
+  char *saveptr;
 	while(fgets(line, LINE_LENGTH, tree_file)!=NULL)
 	{
 		//read profiles
-		node[0] = atoi(strtok(line,delims));
-		node[1] = atoi(strtok(NULL,delims));
-		node[2] = atoi(strtok(NULL,delims));
+		node[0] = atoi(strtok_r(line,delims,&saveptr));
+		node[1] = atoi(strtok_r(NULL,delims,&saveptr));
+		node[2] = atoi(strtok_r(NULL,delims,&saveptr));
 
 		//getting profile of second child
 		if (node[1] < number_of_sequences)

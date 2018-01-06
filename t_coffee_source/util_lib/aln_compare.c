@@ -40,7 +40,7 @@
 
 FILE * compare_al_to_lib ( Constraint_list *CL, int start, char *fname, Sequence *S)
 {
-    
+
 	int a, b, s1, s2, r1, r2;
 	int len;
 	static int* translation;
@@ -62,12 +62,12 @@ FILE * compare_al_to_lib ( Constraint_list *CL, int start, char *fname, Sequence
 			}
 		}
 
-	
+
 	fp=vfopen ( fname, "w");
 	fp=save_list_header (fp,CL);
-		
+
 	len=CL->ne;
-	
+
 	if (len==start && CL->cpu!=-1)
 	{
 		fprintf (fp, "! CPU %d\n",get_time());
@@ -138,21 +138,21 @@ FILE * compare_al_to_lib ( Constraint_list *CL, int start, char *fname, Sequence
 
 }
 //-----------END OF CHANGES------------//
- 
- 
- 
+
+
+
 int aln_compare ( int argc, char *argv[])
     {
     int a, b, c, f;
-	
+
     Alignment *A, *B;
     Sequence *SA, *SB, *TOT_SEQ=NULL;
     Sequence *defined_residueA;
     Sequence *defined_residueB;
     char **seq_list;
     int n_seq_file;
-    
-    
+
+
     Sequence  *S=NULL;
     Structure *ST=NULL;
     Result *R=NULL;
@@ -168,10 +168,10 @@ int aln_compare ( int argc, char *argv[])
     char *alignment2_file;
     //---Maria added this---
     char *lib_file; //---
-    
+
     char *pep1_file;
     char *pep2_file;
-    
+
     char io_format[STRING];
 
     int n_structure;
@@ -223,40 +223,40 @@ int aln_compare ( int argc, char *argv[])
     FILE *fp;
     int **aln_output_count;
     int **aln_output_tot;
-    
+
 /*Sims VARIABLES*/
     float **sim;
     float **sim_param;
     char sim_matrix[STRING];
-    
+
     int sim_n_categories;
     char ***sim_category;
     char *sim_category_list;
     int *sim_n_sub_categories;
-    
-    
+
+
     if ( argc==1|| strm6 ( argv[1], "h", "-h", "help", "-help", "-man", "?"))
       {
 	output_informations();
       }
-    
+
     argv=standard_initialisation (argv, &argc);
     /*Declarations and Initializations*/
     alignment1_file=(char*)vcalloc ( LONG_STRING, sizeof (char));
     alignment2_file=(char*)vcalloc ( LONG_STRING, sizeof (char));
     //---Maria added this---//
     lib_file=(char*)vcalloc ( LONG_STRING, sizeof (char));
-    
+
     pep1_file=(char*)vcalloc ( LONG_STRING, sizeof (char));
     pep2_file=(char*)vcalloc ( LONG_STRING, sizeof (char));
-    
+
 
     sprintf (compare_mode, "sp");
     count=0;
     pep_compare=0;
     aln_compare=1;
 
-    
+
     grep_list=(char***)vcalloc ( STRING, sizeof (char**));
     for ( a=0; a< STRING; a++)grep_list[a]=declare_char (3, STRING);
     n_greps=0;
@@ -264,21 +264,21 @@ int aln_compare ( int argc, char *argv[])
     n_structure=0;
     struct_file=declare_char ( MAX_N_STRUC, LONG_STRING);
     struct_format=declare_char (MAX_N_STRUC, STRING);
-    
+
     n_symbol=(int*)vcalloc ( MAX_N_STRUC, sizeof (int));
     symbol_list=(char***)vcalloc (MAX_N_STRUC, sizeof (char**));
     for ( a=0; a< MAX_N_STRUC; a++)symbol_list[a]=declare_char ( 100, 100);
-    
 
-   
-    
+
+
+
     n_categories=1;
     category=(char***)vcalloc ( MAX_N_CATEGORIES, sizeof (char**));
     for ( a=0; a< MAX_N_CATEGORIES; a++)category[a]=declare_char(100, STRING);
     n_sub_categories=(int*)vcalloc ( 100, sizeof (int));
     category_list=(char*)vcalloc ( LONG_STRING, sizeof (char));
     sprintf ( category_list, "[*][*]=[ALL]");
-    
+
 
     sim_n_categories=1;
     sim_category=(char***)vcalloc ( MAX_N_CATEGORIES, sizeof (char**));
@@ -289,7 +289,7 @@ int aln_compare ( int argc, char *argv[])
     sprintf ( sim_aln, "al1");
     sim_matrix[0]='\0';
     sprintf ( sim_category_list, "[*][*]=[ALL]");
-    
+
     sprintf ( io_format, "ht");
     sprintf ( io_file, "stdout");
     sep_l='[';
@@ -302,10 +302,10 @@ int aln_compare ( int argc, char *argv[])
     sprintf ( output_aln_format, "clustalw");
     sprintf ( output_aln_modif, "lower");
 /*END OF INITIALIZATION*/
-    
-   
 
-    
+
+
+
 /*PARAMETERS INPUT*/
 
     for ( a=1; a< argc; a++)
@@ -327,14 +327,14 @@ int aln_compare ( int argc, char *argv[])
 		sprintf ( compare_mode, "%s", argv[++a]);
 		}
 	else if ( strcmp ( argv[a], "-sim_cat")==0)
-		{	
+		{
 		if ( argv[++a][0]!='[')
 		   {
 		   if ( strcmp ( argv[a], "3d_ali")==0)sprintf ( sim_category_list, "[b][b]+[h][h]=[struc]");
 		   else
 		       {
 		       fprintf ( stderr, "\n%s: Unknown category for distance measure", argv[a]);
-		       } 
+		       }
 		   }
 		else
 		   {
@@ -346,32 +346,32 @@ int aln_compare ( int argc, char *argv[])
     		sprintf ( grep_list[n_greps][0], "%s", argv[++a]);
 		sprintf ( grep_list[n_greps][1], "%s", argv[++a]);
     		n_greps++;
-	     
+
     		}
 	//----- Maria added this----
 	else if ( strcmp ( argv[a], "-lib")==0)
     		{
     		sprintf ( lib_file, "%s", argv[++a]);
-		
-		}	
+
+		}
 	else if ( strcmp ( argv[a], "-al")==0)
 		{
-    		
+
     		sprintf ( alignment2_file, "%s", argv[++a]);
-		
-		}	
+
+		}
 	//-----END of changes-----
 	else if ( strcmp ( argv[a], "-al1")==0)
     		{
-    		
+
     		sprintf ( alignment1_file, "%s", argv[++a]);
-		
-		}	
+
+		}
 	else if ( strcmp ( argv[a], "-al2")==0)
 		{
-    		
+
     		sprintf ( alignment2_file, "%s", argv[++a]);
-		
+
 		}
 	else if (  strcmp ( argv[a], "-pep1")==0)
 	        {
@@ -394,11 +394,11 @@ int aln_compare ( int argc, char *argv[])
 	else if (  strcmp ( argv[a], "-print_pair")==0)
 	        {
 		print_pair=1;
-		}		
+		}
 	else if (  strcmp ( argv[a], "-output_aln")==0)
 	        {
 		output_aln=1;
-		}		
+		}
 	else if (  strcmp ( argv[a], "-output_aln_threshold")==0)
 	        {
 		output_aln_threshold=atoi(argv[++a]);
@@ -422,14 +422,14 @@ int aln_compare ( int argc, char *argv[])
 		    sprintf ( struct_format[n_structure], "%s", argv[++a]);
 		else
 		    sprintf ( struct_format[n_structure], "%s", "pep");
-		
+
 		if ( !NEXT_ARG_IS_FLAG && strcmp ( argv[a+1], "conv")==0)
 		   {
 		   a++;
 		   while(!NEXT_ARG_IS_FLAG)
-		         { 
+		         {
 			 sprintf ( symbol_list[n_structure][n_symbol[n_structure]], "%s", argv[++a]);
-			 n_symbol[n_structure]++; 
+			 n_symbol[n_structure]++;
 			 }
 		   }
 		else if (!NEXT_ARG_IS_FLAG)
@@ -437,13 +437,13 @@ int aln_compare ( int argc, char *argv[])
 			 symbol_list[n_structure]=make_symbols ( argv[++a], &n_symbol[n_structure]);
 			 }
 
-		else 
+		else
 		         {
                          symbol_list[n_structure]=make_symbols ( "any", &n_symbol[n_structure]);
 			 }
-		
+
 	  	n_structure++;
-		
+
 		}
 	else if ( strcmp  (argv[a], "-sep")==0)
 	        {
@@ -473,13 +473,13 @@ int aln_compare ( int argc, char *argv[])
 		myexit (EXIT_FAILURE);
 		}
 	}
- 
+
 /*PARAMETER PROCESSING*/
  //---Maria added this---//
        CL=NULL;
 
 if ( pep_compare==1 || count==1)aln_compare=0;
-if ( aln_compare==1)pep_compare=0; 
+if ( aln_compare==1)pep_compare=0;
 
 /*READ THE TOTAL SEQUENCES*/
        seq_list=declare_char ( 100,STRING);
@@ -489,7 +489,7 @@ if ( aln_compare==1)pep_compare=0;
 	 {
 	   fprintf (stderr, "\nERROR: %s DOES NOT EXIST[FATAL:%s]\n",  alignment1_file, PROGRAM);
 	   myexit(EXIT_FAILURE);
-	 } 
+	 }
 	if (  alignment2_file[0] && !check_file_exists ( alignment2_file))
 	 {
 	   fprintf (stderr, "\nERROR: %s DOES NOT EXIST[FATAL:%s]\n",  alignment2_file, PROGRAM);
@@ -505,25 +505,25 @@ if ( aln_compare==1)pep_compare=0;
 	   fprintf (stderr, "\nERROR: %s DOES NOT EXIST[FATAL:%s]\n",  pep2_file, PROGRAM);
 	   myexit(EXIT_FAILURE);
 	 }
-	
+
        if ( alignment1_file[0])sprintf ( seq_list[n_seq_file++], "A%s", alignment1_file);
        if ( alignment2_file[0])sprintf ( seq_list[n_seq_file++], "A%s", alignment2_file);
        if ( pep1_file[0])sprintf ( seq_list[n_seq_file++], "S%s", pep1_file);
        if ( pep2_file[0])sprintf ( seq_list[n_seq_file++], "S%s", pep2_file);
-       if ( lib_file[0]){		 //----------------Maria added this-----------------// 
-	   
+       if ( lib_file[0]){		 //----------------Maria added this-----------------//
+
 	  int *entry, *aln_pos;
 	  char **tmp_pos;
 	  int tot_we=0, al_we=0, len, i, j;
 	  double comp_Score=0;
-	
+
 	  CL=read_constraint_list_file( CL, lib_file);
 	  printf("%s  %s\n",lib_file, alignment2_file);
-	  
+
 	  TOT_SEQ=read_seq_in_n_list ( seq_list, n_seq_file, NULL, NULL);
 	  B=declare_aln (TOT_SEQ);
 	  main_read_aln ( alignment2_file, B);
-	  
+
 	  tmp_pos= (char **) malloc ( CL->S->nseq * sizeof(char *) );
 	  for (i=0; i< B->nseq; i++){
 	    for (j=0; j< CL->S->nseq; j++){
@@ -534,86 +534,86 @@ if ( aln_compare==1)pep_compare=0;
 	    }
 	  }
 	  B->seq_al = tmp_pos;								//printf("\n");   for (i=0; i< B->nseq; i++){ printf(" %s   \n", B->seq_al[i]);  }
-	    
+
 	  SB=aln2seq ( B);
-	  CL_B=declare_constraint_list ( SB, NULL, NULL, 0, NULL, NULL);	  
+	  CL_B=declare_constraint_list ( SB, NULL, NULL, 0, NULL, NULL);
 	  CL_B=aln2constraint_list_full (B,CL_B, "1");
-	  
+
 	  while ( ( entry=extract_entry (CL) ) ){ tot_we+=entry[WE]; }
-	 
+
 	  while ( ( entry=extract_entry (CL_B) ) ){
-	   
-	      if ((main_search_in_list_constraint (entry,&pos_in_clist,4,CL))!=NULL){   //printf ("-%d- S1:%d  S2:%d    R1:%d R2:%d", ++c, entry[SEQ1], entry[SEQ2], entry[R1], entry[R2]); 
-		
+
+	      if ((main_search_in_list_constraint (entry,&pos_in_clist,4,CL))!=NULL){   //printf ("-%d- S1:%d  S2:%d    R1:%d R2:%d", ++c, entry[SEQ1], entry[SEQ2], entry[R1], entry[R2]);
+
 		len=CL->residue_index[ entry[SEQ1] ][ entry[R1] ][0];
 		i=0;
 		while ((i<len) && (CL->residue_index[ entry[SEQ1] ][ entry[R1] ][1+(i*5)])!=entry[SEQ2])
 		  ++i;
-		
+
 		if (i<len)
 		{									 //printf("     %d\n", CL->residue_index[ entry[SEQ1] ][ entry[R1] ][(i*5)+3]);
 		    al_we+= (CL->residue_index[ entry[SEQ1] ][ entry[R1] ][(i*5)+3]);
-		} 
-	      } 
+		}
+	      }
 	  }
-	  
-	  comp_Score=(double)al_we/tot_we; 
+
+	  comp_Score=(double)al_we/tot_we;
 	  printf("SCORE:  %d   %d    %.3lf\n", al_we, tot_we, comp_Score );
        }
        //--------------------------------------------------------------------------------//
-       
+
        else{
-       
+
        TOT_SEQ=read_seq_in_n_list ( seq_list, n_seq_file, NULL, NULL);
-             
+
        A=declare_aln (TOT_SEQ);
        B=declare_aln (TOT_SEQ);
 
 /*1 COMPARISON OF THE SEQUENCES*/
     if ( pep_compare==1 || count==1)
        {
-       f=0; 
+       f=0;
 
        if ( pep1_file[0]!='\0')SA=main_read_seq (pep1_file);
-       else if (alignment1_file[0]!='\0')  
-           {	       
+       else if (alignment1_file[0]!='\0')
+           {
 	   main_read_aln ( alignment1_file, A);
 	   SA=aln2seq ( A);
 	   }
-       else 
+       else
 	   {
 	   main_read_aln ("stdin", A);
 	   sprintf ( alignment1_file, "stdin");
 	   SA=aln2seq ( A);
 	   }
        if ( pep2_file[0]!='\0')SB=main_read_seq (pep2_file);
-       else if (alignment2_file[0]!='\0') 
+       else if (alignment2_file[0]!='\0')
            {
 	   main_read_aln ( alignment2_file, B);
-	   
+
 	   SB=aln2seq (B);
 	   }
-       else 
+       else
            {
 	   SB=SA;
 	   sprintf ( alignment2_file, "%s", alignment1_file );
 	   }
        buf1=(pep1_file[0]!='\0')?pep1_file: alignment1_file;
        buf2=(pep2_file[0]!='\0')?pep2_file: alignment2_file;
-       /*Output of the Results*/    
+       /*Output of the Results*/
 
-       fp=vfopen ( io_file, "w");      
-       
+       fp=vfopen ( io_file, "w");
+
 
        if ( count==1)
           {
 	  fprintf (fp, "Number of seq: %d %d\n", SA->nseq,SA->nseq);
 	  for ( a=0; a< SA->nseq; a++) fprintf (fp, "%-15s %d %d\n", SA->name[a], (int)strlen (SA->seq[a]), (int)strlen (SA->seq[a]));
 	  }
-	      
+
        if (SA->nseq!=SB->nseq)
 	   {
-	   
+
 	   fprintf ( fp, "DIFFERENCE TYPE 1: Different number of sequences %3d/%3d",SA->nseq,SB->nseq);
 	   f=1;
 	   }
@@ -626,7 +626,7 @@ if ( aln_compare==1)pep_compare=0;
 	   ungap ( SA->seq[a]);
 	   ungap ( SB->seq[a]);
 
-	   if ( strcmp ( SA->seq[a], SB->seq[a])!=0) 
+	   if ( strcmp ( SA->seq[a], SB->seq[a])!=0)
 	       {
 	       fprintf ( fp, "DIFFERENCE TYPE 2: %s is different in the 2 files\n", SA->name[a]);
 	       f=1;
@@ -652,37 +652,37 @@ if ( aln_compare==1)pep_compare=0;
        fclose (fp);
        }
 
-/*2 COMPARISON OF THE ALIGNMENTS*/			 
+/*2 COMPARISON OF THE ALIGNMENTS*/
     else if ( aln_compare==1)
        {
 
        n_categories=parse_category_list ( category_list, category, n_sub_categories);
        sim_n_categories=parse_category_list ( sim_category_list, sim_category, sim_n_sub_categories);
-       
+
        main_read_aln ( alignment1_file, A);
        main_read_aln ( alignment2_file, B);
        CLS=trim_aln_seq ( A, B);
-       
-       
+
+
        defined_residueA=get_defined_residues (A);
        defined_residueB=get_defined_residues (B);
-       
+
 
        A=thread_defined_residues_on_aln(A, defined_residueA);
        A=thread_defined_residues_on_aln(A, defined_residueB);
        B=thread_defined_residues_on_aln(B, defined_residueA);
        B=thread_defined_residues_on_aln(B, defined_residueB);
-      
-     
+
+
        CL_A=declare_constraint_list ( CLS, NULL, NULL, 0, NULL, NULL);
        CL_B=declare_constraint_list ( CLS, NULL, NULL, 0, NULL, NULL);
-             
-      
+
+
        CL_A=aln2constraint_list_full (A,CL_A, "sim");
        CL_B=aln2constraint_list_full (B,CL_B, "sim");
-       
-       
-       
+
+
+
        glob=(int*)vcalloc ( A->nseq+1, sizeof (int));
        pw_glob=declare_int ( A->nseq+1, A->nseq+1);
 
@@ -701,10 +701,10 @@ if ( aln_compare==1)pep_compare=0;
 		  pw_glob[s1][s2]++;
 		  pw_glob[s2][s1]++;
 		  entry[MISC]=1;
-		  
+
 		  if ((main_search_in_list_constraint (entry,&pos_in_clist,4,CL_B))!=NULL)
 		    add_entry2list (entry,CL_A);
-		  
+
 		}
 	    }
        else if ( strm( compare_mode, "column") )
@@ -716,7 +716,7 @@ if ( aln_compare==1)pep_compare=0;
 	      for ( a=0; a< A->len_aln; a++)
 		for ( b=0; b<B->len_aln; b++)
 		  {
-		    is_same=compare_pos_column(posA, a, posB, b, A->nseq);    
+		    is_same=compare_pos_column(posA, a, posB, b, A->nseq);
 		    if(is_same)
 		    {
 		      for (c=0; c< A->nseq;c++)
@@ -728,7 +728,7 @@ if ( aln_compare==1)pep_compare=0;
 			  }
 		    }
 		  }
-	      
+
 	      while ( (entry=extract_entry (CL_A)) )
 		{
 		  s1=entry[SEQ1];
@@ -740,7 +740,7 @@ if ( aln_compare==1)pep_compare=0;
 		  glob[s2+1]++;
 		  pw_glob[s1][s2]++;
 		  pw_glob[s2][s1]++;
-		  
+
 		  if (seq_cache[s1][r1])
 		  {
 		     entry[MISC]=1;
@@ -749,8 +749,8 @@ if ( aln_compare==1)pep_compare=0;
 		}
 	      free_int (posA, -1);
 	      free_int (posB, -1);
-	      free_int (seq_cache, -1);      
-	    }	
+	      free_int (seq_cache, -1);
+	    }
 	else if ( strm( compare_mode, "tc") )
 	{
 	      correct_column = (int*)vcalloc(A->len_aln+1, sizeof (int));
@@ -765,31 +765,31 @@ if ( aln_compare==1)pep_compare=0;
 		  }
 	      free_int (posB, -1);
 	}
-	
+
        for ( a=0; a< n_structure; a++)
            {
-	       ST=read_structure (struct_file[a],struct_format[a], A,B,ST,n_symbol[a], symbol_list[a]); 
+	       ST=read_structure (struct_file[a],struct_format[a], A,B,ST,n_symbol[a], symbol_list[a]);
 	   }
-       
-      /*RESULT ARRAY DECLARATION*/    
-    
+
+      /*RESULT ARRAY DECLARATION*/
+
        tot_count=declare_int (n_categories+1, A->nseq+1);
        pos_count=declare_int (n_categories+1, A->nseq+1);
        pw_tot_count=(int***)vcalloc ( A->nseq, sizeof (int**));
        for ( a=0; a< A->nseq; a++)pw_tot_count[a]=declare_int ( A->nseq, n_categories);
 
-    
+
        pw_pos_count=(int***)vcalloc ( A->nseq, sizeof (int**));
        for ( a=0; a< A->nseq; a++)pw_pos_count[a]=declare_int ( A->nseq, n_categories);
- 
+
      /*COMPARISON MODULE*/
        if (strm( compare_mode, "tc") )
 	 {
 	   int column_is_structure;
 	   int pair_is_structure;
-	   
+
 	   for ( a=0; a< n_categories; a++)
-	     {     
+	     {
 	       for(b = 0; b < A->len_aln; b++)
 		 {
 		   column_is_structure = 1;
@@ -799,8 +799,8 @@ if ( aln_compare==1)pep_compare=0;
 		       for(s2=s1+1; s2 < A->nseq; s2++)
 			 {
 			   if ((posA[s1][b]>0) && (posA[s2][b]>0))
-			     {  
-			       pair_is_structure=is_in_struct_category(s1,s2,posA[s1][b],posA[s2][b],ST,category[a], n_sub_categories[a]);     
+			     {
+			       pair_is_structure=is_in_struct_category(s1,s2,posA[s1][b],posA[s2][b],ST,category[a], n_sub_categories[a]);
 			       column_is_structure = (column_is_structure && pair_is_structure);
 			       if(pair_is_structure)
 				 {
@@ -818,11 +818,11 @@ if ( aln_compare==1)pep_compare=0;
 				 }
 			     }
 			 }
-		     }	       
+		     }
 		   if(column_is_structure && pair_is_structure)
 		     {
 		       tot_count[a][0]++;
-		       if(correct_column[b]) 
+		       if(correct_column[b])
 			 {
 			   pos_count[a][0]++;
 			 }
@@ -851,12 +851,12 @@ if ( aln_compare==1)pep_compare=0;
 		       tot_count[a][s2+1]++;
 		       pw_tot_count[s1][s2][a]++;
 		       pw_tot_count[s2][s1][a]++;
-		       
+
 		       if(print_pair)
 		       {
 			  HERE("%s,%s,%s",get_structure_residue(s1,r1,ST), get_structure_residue(s2,r2,ST),(c==1)?"Y":"N");
 		       }
-		       
+
 		       if ( c==1)
 			 {
 			   pw_pos_count[s1][s2][a]++;
@@ -871,13 +871,13 @@ if ( aln_compare==1)pep_compare=0;
 	 }
        // 	printf("pos=%d,tot=%d\n", pos_count[0][0], tot_count[0][0]);
        /*Measure of Aligned Sequences Similarity*/
-       
+
        sim=get_aln_compare_sim ((strcmp (sim_aln, "al1")==0)?A:B, ST,sim_category[0], sim_n_sub_categories[0], sim_matrix);
        sim_param=analyse_sim ((strcmp (sim_aln, "al1")==0)?A:B, sim);
-       
+
    /*Fill the Result_structure*/
        R=(Result*)vcalloc ( 1, sizeof (Result));
-    
+
        R->grep_list=grep_list;
        R->n_greps=n_greps;
        R->A=A;
@@ -895,7 +895,7 @@ if ( aln_compare==1)pep_compare=0;
        R->n_symbol=n_symbol;
        R->symbol_list=symbol_list;
 
-       
+
        R->tot_count=tot_count;
        R->pos_count=pos_count;
        R->pw_tot_count=pw_tot_count;
@@ -912,15 +912,15 @@ if ( aln_compare==1)pep_compare=0;
        R->sim_n_categories=sim_n_categories;
        R->sim_category=sim_category;
        R->sim_category_list=sim_category_list;
-       R->sim_n_sub_categories=sim_n_sub_categories; 
+       R->sim_n_sub_categories=sim_n_sub_categories;
        R->sep_r=sep_r;
        R->sep_l=sep_l;
 
-      /*Output of the Results*/    
+      /*Output of the Results*/
 
-       fp=vfopen ( io_file, "w");      
+       fp=vfopen ( io_file, "w");
        fp=output_format (io_format, fp, R);
-       vfclose ( fp); 
+       vfclose ( fp);
 
 
      /*Rewriting of Alignment A*/
@@ -930,26 +930,26 @@ if ( aln_compare==1)pep_compare=0;
 	   A->residue_case=2;
 	   aln_output_tot  =declare_int ( A->nseq, A->len_aln+1);
 	   aln_output_count=declare_int ( A->nseq, A->len_aln+1);
-	   
+
 	   while ( (entry=extract_entry (CL_A)) )
 	     {
 	       aln_output_tot[entry[SEQ1]][entry[R1]]++;
 	       aln_output_tot[entry[SEQ2]][entry[R2]]++;
-	       
+
 	       aln_output_count[entry[SEQ1]][entry[R1]]+=entry[MISC];
 	       aln_output_count[entry[SEQ2]][entry[R2]]+=entry[MISC];
 	     }
-	  
+
 	   for ( a=0; a< A->nseq; a++)
 	     {
-	       
+
 	       for (c=0, b=0; b< A->len_aln; b++)
 		 {
 		   if ( !is_gap(A->seq_al[a][b]))
 		     {
 		       c++;
 		       if ( aln_output_tot[a][c] && ((aln_output_count[a][c]*100)/aln_output_tot[a][c])<output_aln_threshold)
-			 { 
+			 {
 			   if ( strm (output_aln_modif, "lower"))
 				A->seq_al[a][b]=tolower(A->seq_al[a][b]);
 			   else
@@ -957,20 +957,20 @@ if ( aln_compare==1)pep_compare=0;
 			 }
 		       else A->seq_al[a][b]=toupper(A->seq_al[a][b]);
 		     }
-		     
+
 		 }
 	     }
 	   A->score_aln=(int)(R->tot_count[0][0]==0)?0:((R->pos_count[0][0]*100)/(float)R->tot_count[0][0]);
 
 	   output_format_aln (output_aln_format,A,NULL,output_aln_file);
-	   
+
 	   free_int ( aln_output_tot, -1);
 	   free_int ( aln_output_count, -1  );
 	 }
        }
        }
     return EXIT_SUCCESS;
-    }   
+    }
 /************************************************************************************/
 /*                                                                                  */
 /*                            OUTPUT                                                */
@@ -981,7 +981,7 @@ FILE *output_format (char *iof,FILE *fp, Result *R)
       {
       int a;
       int l;
-      
+
       /*
       H: files Header
       h: basic header;
@@ -1005,15 +1005,15 @@ FILE *output_format (char *iof,FILE *fp, Result *R)
 FILE *output_pair_wise_sequence_results (FILE *fp,  Result *R)
      {
      int a,c,d;
-     
-     
+
+
      for ( c=0; c<(R->A)->nseq-1; c++)
          {
-	 for ( d=c+1; d< (R->A)->nseq; d++)    
+	 for ( d=c+1; d< (R->A)->nseq; d++)
 	     {
 	     fprintf (fp, "%-10s %-10s%s",(R->A)->name[c],(R->A)->name[d],SSPACE);
 	     fprintf (fp, "%5.1f%s", R->sim[c][d], SSPACE);
-	     
+
 	     for (a=0; a< R->n_categories; a++)
 		 {
 		 fprintf ( fp, "%5.1f ",(R->pw_tot_count[c][d][a]==0)?0:((float)(R->pw_pos_count[c][d][a]*100)/(float)R->pw_tot_count[c][d][a]));
@@ -1022,13 +1022,13 @@ FILE *output_pair_wise_sequence_results (FILE *fp,  Result *R)
 	     fprintf ( fp, "%c%5d%c\n",(R->sep_l), R->pw_glob[c][d],(R->sep_r));
 	     }
 	 }
-	 
+
     return fp;
     }
 FILE *output_sequence_results (FILE *fp,  Result *R)
      {
      int a,c;
-    
+
      for ( c=1; c<=R->A->nseq; c++)
          {
 	 fprintf (fp, "%-10s %-10s%s",(R->A)->name[c-1], "..",SSPACE);
@@ -1042,13 +1042,13 @@ FILE *output_sequence_results (FILE *fp,  Result *R)
 	 }
     return fp;
     }
-	 
+
 
 FILE *output_total_results (FILE *fp,  Result *R)
      {
      int a;
-     
-     
+
+
      fprintf ( fp, "%-13s %-7d%s",extract_suffixe (R->alignment1_file),(R->A)->nseq, SSPACE);
      fprintf (fp, "%5.1f%s", R->sim_param[(R->A)->nseq][0], SSPACE);
      for (a=0; a< R->n_categories; a++)
@@ -1063,11 +1063,11 @@ FILE *output_header (FILE *fp, Result *R)
      {
      int a;
 
-     
+
      fprintf ( fp, "%s\n",generate_string ( R->n_categories*(13+strlen(SSPACE))+31+2*strlen(SSPACE),'*'));
- 
+
      fprintf ( fp, "%-10s %-10s %s%-3s%s", "seq1", "seq2",SSPACE,"Sim",SSPACE);
-     
+
      for ( a=0; a< R->n_categories; a++)
 	 fprintf ( fp, "%-12s%s ",R->category[a][0], SSPACE);
      fprintf (fp, "%-5s", "Tot");
@@ -1143,7 +1143,7 @@ float **get_aln_compare_sim ( Alignment *A, Structure *ST, char **cat, int n_cat
 	          {
 		  p1=is_gap(A->seq_al[a][c]);
 		  p2=is_gap(A->seq_al[b][c]);
-		  
+
 		  r1+=1-p1;
 		  r2+=1-p2;
 		  cr1=A->seq_al[a][c];
@@ -1167,10 +1167,10 @@ float **analyse_sim ( Alignment *A, float **sim)
 	int a,b,c;
 
 	float **an, d;
-	
-	
+
+
 	an=declare_float ( A->nseq+1,2);
-	
+
 	for (d=0, a=0; a< A->nseq;a++)
 		{
 		for ( b=0; b< A->nseq; b++)
@@ -1184,10 +1184,10 @@ float **analyse_sim ( Alignment *A, float **sim)
 			}
 		an[a][0]=((float)an[a][0]/(float)(A->nseq-1));
 		}
-	
-	
+
+
 	an[A->nseq][0]=an[A->nseq][0]/d;
-		
+
 	for ( d=0,a=0; a< A->nseq; a++)
 		{
 		for ( b=0; b< A->nseq; b++)
@@ -1202,12 +1202,12 @@ float **analyse_sim ( Alignment *A, float **sim)
 			}
 		an[a][1]=((float)an[a][1]/(float)(A->nseq-1));
 		}
-	
+
 	an[A->nseq][1]=an[A->nseq][1]/d;
-	
+
 	return an;
 	}
-	    	
+
 
 
 
@@ -1229,10 +1229,10 @@ int is_in_struct_category ( int s1, int s2, int r1, int r2, Structure *ST, char 
     char first[STRING];
     char second[STRING];
     static int **r;
-    
-    
 
-    
+
+
+
     if ( ST==NULL)return 1;
     if ( struc_r1!=NULL)
        {
@@ -1242,12 +1242,12 @@ int is_in_struct_category ( int s1, int s2, int r1, int r2, Structure *ST, char 
 
     if ( r==NULL)r=declare_int (2, 2);
     else r[0][0]=r[1][1]=r[1][0]=r[0][1]=0;
-    
-    
+
+
     struc_r1=get_structure_residue ( s1, r1, ST);
     struc_r2=get_structure_residue ( s2, r2, ST);
 
-    
+
     for ( a=1; a< n_cat; a+=2)
 	{
         sprintf ( first, "%s", cat[a]);
@@ -1256,9 +1256,9 @@ int is_in_struct_category ( int s1, int s2, int r1, int r2, Structure *ST, char 
 	r[0][1]=struc_matches_pattern ( struc_r2, first);
 	r[1][0]=struc_matches_pattern ( struc_r1, second);
 	r[1][1]=struc_matches_pattern ( struc_r2, second);
-	
+
 	if ( (r[0][0]&&r[1][1])||(r[1][0]&&r[0][1]))return 1;
-	}	
+	}
    return 0;
    }
 
@@ -1266,7 +1266,7 @@ char * get_structure_residue (int seq, int res, Structure *ST)
     {
     int a;
     char *s;
-    
+
     s=(char*)vcalloc ( ST->n_fields+1, sizeof (char));
     for (a=0; a< ST->n_fields; a++)
 	s[a]=ST->struc[seq][res][a];
@@ -1275,59 +1275,60 @@ char * get_structure_residue (int seq, int res, Structure *ST)
     }
 
 int struc_matches_pattern ( char *struc, char *pattern)
+{
+  char p[STRING];
+  char *y;
+
+  int b,l;
+
+
+  sprintf ( p, "%s", pattern);
+
+  if ( strcmp (p, "*")==0)return 1;
+  else
+  {
+    char *saveptr;
+    l=strlen ( struc);
+    y=strtok_r ( p, ".",&saveptr);
+
+    for ( b=0; b<l; b++)
     {
-    char p[STRING];
-    char *y;
-    
-    int b,l;
-    
 
-    sprintf ( p, "%s", pattern);
-    
-    if ( strcmp (p, "*")==0)return 1;
-    else
-        {
-	l=strlen ( struc);
-	y=strtok ( p, ".");
+      if ( strcmp ( y, "*")==0);
+      else if ( strchr(y, struc[b])==NULL)return 0;
+      y=strtok_r ( NULL, ".",&saveptr);
 
-	for ( b=0; b<l; b++)
-	        {
-
-		if ( strcmp ( y, "*")==0);		   
-		else if ( strchr(y, struc[b])==NULL)return 0;
-		y=strtok ( NULL, ".");
-		
-		if ( y==NULL && b<(l-1))
-		   {
-		   crash ( "\nA Structure is Missing[FATAL]");
-		   }
-		}
-	}
-
-    return 1;
+      if ( y==NULL && b<(l-1))
+      {
+        crash ( "\nA Structure is Missing[FATAL]");
+      }
     }
-    
+  }
 
-Structure * read_structure (char *fname, char *format, Alignment *A,Alignment *B, Structure *ST, int n_symbols, char **symbol_table)        
+  return 1;
+}
+
+
+Structure * read_structure (char *fname, char *format, Alignment *A,Alignment *B, Structure *ST, int n_symbols, char **symbol_table)
         {
-               
+
         Alignment *StrucAln;
         Sequence *SEQ=NULL, *SA=NULL;
-	
-        
+
+
 
 
         if (ST==NULL)ST=declare_structure (A->nseq, A->seq_al);
         else
             ST=extend_structure ( ST);
-        
-	StrucAln=declare_Alignment(NULL); 
+
+	StrucAln=declare_Alignment(NULL);
         if (strm ( format, "pep"))
                         {
                         SEQ=main_read_seq ( fname);
 			StrucAln=seq2aln(SEQ,StrucAln,0);
 			}
-        
+
         else if ( strcmp ( format, "aln")==0)
                         {
 			StrucAln=main_read_aln (fname, StrucAln);
@@ -1338,36 +1339,37 @@ Structure * read_structure (char *fname, char *format, Alignment *A,Alignment *B
 	SA=aln2seq(StrucAln);
 	string_array_convert (SA->seq, SA->nseq, n_symbols, symbol_table);
         seq2struc (SA, ST);
-	
+
 	free_aln(StrucAln);
 	if (SEQ)free_sequence (SEQ, SEQ->nseq);
-	
+
 	return ST;
         }
 
 int parse_category_list ( char *category_list_in, char ***category, int*n_sub_categories)
-    {
-    int n,a;
-    char *category_list;
-    char *y,*z;
-    category_list=(char*)vcalloc ( strlen(category_list_in)+1, sizeof (char));
-    sprintf (category_list, "%s", category_list_in);
+{
+  int n,a;
+  char *category_list;
+  char *y,*z;
+  category_list=(char*)vcalloc ( strlen(category_list_in)+1, sizeof (char));
+  sprintf (category_list, "%s", category_list_in);
 
-    n=0;
-    z=category_list;
-    while ((y=strtok(z, ";"))!=NULL)
-        {
-	sprintf ( category[n++][2], "%s", y);
-	z=NULL;
-	}
+  n=0;
+  z=category_list;
+  char *saveptr;
+  while ((y=strtok_r(z, ";",&saveptr))!=NULL)
+  {
+    sprintf ( category[n++][2], "%s", y);
+    z=NULL;
+  }
 
-    
+
     for ( a=0; a< n; a++)
 	{
-	 sprintf (category_list,"%s",strtok(category[a][2], "="));
-	 sprintf (category[a][0],"%s",strtok (NULL, "="));
-	 sprintf ( category[a][++n_sub_categories[a]],"%s", strtok(category_list, "[]+"));
-	 while ( ((y=strtok(NULL, "[]+"))!=NULL))
+	 sprintf (category_list,"%s",strtok_r(category[a][2], "=",&saveptr));
+	 sprintf (category[a][0],"%s",strtok_r (NULL, "=",&saveptr));
+	 sprintf ( category[a][++n_sub_categories[a]],"%s", strtok_r(category_list, "[]+",&saveptr));
+	 while ( ((y=strtok_r(NULL, "[]+",&saveptr))!=NULL))
 	        {
 		if ( strcmp (y, "#")==0)y=category[a][n_sub_categories[a]];
 	        sprintf ( category[a][++n_sub_categories[a]],"%s",y);
@@ -1403,7 +1405,7 @@ fprintf ( stderr, "\n-pep1 pep2_file");
 fprintf ( stderr, "\n-st  str_file st_format conversion");
 fprintf ( stderr, "\n   **st_format:  aln, pep");
 fprintf ( stderr, "\n   **conversion: 3d_ali,  conv abcZ #X");
-fprintf ( stderr, "\nNOTE: Several structures in a row are possible"); 
+fprintf ( stderr, "\nNOTE: Several structures in a row are possible");
 
 fprintf ( stderr, "\n\n****DISTANCE MEASURE*****************");
 fprintf ( stderr, "\n-sim_cat category_format  or category_name");

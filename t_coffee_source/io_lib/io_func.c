@@ -1227,46 +1227,46 @@ FILE_format* (*vfclose_format)         ( FILE_format *))
 
 int output_raw_score (Alignment *A, Alignment *B, char *name)
 {
-  FILE *fp;
-  int a, b,pos;
-  int *ngap;
-  int *len;
-  
-  if (!A)return NULL;
-  ngap=(int*)vcalloc (A->len_aln, sizeof (int));
-  len=(int*)vcalloc  (A->len_aln,sizeof (int)); 
-  for (b=0; b<A->len_aln; b++)
+    FILE *fp;
+    int a, b,pos;
+    int *ngap;
+    int *len;
+
+    if (!A)return 0;
+    ngap=(int*)vcalloc (A->len_aln, sizeof (int));
+    len=(int*)vcalloc  (A->len_aln,sizeof (int));
+    for (b=0; b<A->len_aln; b++)
+        for (a=0; a<A->nseq; a++)
+        {
+            int g=is_gap(A->seq_al[a][b]);
+            ngap[b]+=g;
+            len[a]+=1-g;
+        }
+
+    fp=vfopen (name, "w");
+    fprintf ( fp, "#ALN nseq: %d len: %d score: %d\n", A->nseq, A->len_aln, (B)?B->score:0);
+    for (b=0; b<A->len_aln; b++)
+        fprintf (fp, "#COLUMN pos: %d ngap: %d score: %d\n", b+1,ngap[b],(B)?B->seq_al[B->nseq][b]-'0':0);
     for (a=0; a<A->nseq; a++)
-      {
-	int g=is_gap(A->seq_al[a][b]);
-	ngap[b]+=g;
-	len[a]+=1-g;
-      }
-  
-  fp=vfopen (name, "w");
-  fprintf ( fp, "#ALN nseq: %d len: %d score: %d\n", A->nseq, A->len_aln, (B)?B->score:0);
-  for (b=0; b<A->len_aln; b++)
-    fprintf (fp, "#COLUMN pos: %d ngap: %d score: %d\n", b+1,ngap[b],(B)?B->seq_al[B->nseq][b]-'0':0);
-  for (a=0; a<A->nseq; a++)
-    fprintf ( fp, "#SEQUENCE name: %s len: %d score: %d\n", A->name[a], len[a], (B)?B->score_seq[a]:0);
-  for (a=0; a<A->nseq; a++)
-    for (pos=0,b=0; b<A->len_aln; b++)
-      {
-	int r=A->seq_al[a][b];
-	int s=(B)?B->seq_al[a][b]:0;
-	int g=is_gap(r);
-	pos+=1-g;
-	if (!g && s!=NO_COLOR_RESIDUE)
-	  {
-	    int s=B->seq_al[a][b];
-	    if (s>='0')s-='0';
-	    fprintf (fp, "#RESIDUE seq: %s pos: %d res: %c score: %d\n", A->name[a],pos, r,s);
-	  }
-	  }
-  vfclose (fp);
-  vfree (ngap);
-  vfree(len);
-  return 1;
+        fprintf ( fp, "#SEQUENCE name: %s len: %d score: %d\n", A->name[a], len[a], (B)?B->score_seq[a]:0);
+    for (a=0; a<A->nseq; a++)
+        for (pos=0,b=0; b<A->len_aln; b++)
+        {
+            int r=A->seq_al[a][b];
+            int s=(B)?B->seq_al[a][b]:0;
+            int g=is_gap(r);
+            pos+=1-g;
+            if (!g && s!=NO_COLOR_RESIDUE)
+            {
+                int s=B->seq_al[a][b];
+                if (s>='0')s-='0';
+                fprintf (fp, "#RESIDUE seq: %s pos: %d res: %c score: %d\n", A->name[a],pos, r,s);
+            }
+        }
+    vfclose (fp);
+    vfree (ngap);
+    vfree(len);
+    return 1;
 }
 
 
