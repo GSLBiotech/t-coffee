@@ -30,6 +30,9 @@
 #include "stdlib.h"
 #include "fastal_lib_header.h"
 
+#ifdef _MSC_VER
+  #define strtok_r strtok_s
+#endif
 
 void
 tree_parse(struct Fastal_arguments *arguments, char* param)
