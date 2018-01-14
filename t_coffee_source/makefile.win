@@ -35,7 +35,7 @@ endif
 LDFLAGS = $(LDFLAGS_REQUIRED) $(LDFLAGS_OPTIONAL) 
 
 #===================================================
-SUBDIRS := $(wildcard */)
+SUBDIRS := $(wildcard ./*/)
 SOURCES := $(wildcard $(addsuffix *.c,$(SUBDIRS)))
 OBJECTS := $(patsubst %.c,%.obj,$(SOURCES))
 
