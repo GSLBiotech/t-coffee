@@ -46,14 +46,22 @@ Get it from either Chocolatey, GnuWin32 or a Git package.
     cd t_coffee_source
     gmake -j -f makefile.win
 
-# Debugging
+## Debugging
 
-QtCreator can be used to debug the executable.
+QtCreator can be used to debug the executable. First create a project file:
 
-Build it from the command line with an extra flag:
+    cd t_coffee_source
+    qmake -project
+
+Then open the new t_coffee_source.pro file in QtCreator and disable qmake in
+QtCreator > Projects > Build > Build Steps, otherwise qmake will overwrite our
+makefile.
+  
+Only on Windows, use an extra required flag when building due to how the
+MSVC compiler works:
 
     gmake -f makefile.win DEBUG_ENABLED=1
 
-Use these args in QtCreator->Project->Run:
+Set args in QtCreator > Projects > Run:
 
     -infile C:\tmp\input.fasta -type=dna -outfile C:\tmp\output.txt

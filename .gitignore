@@ -35,5 +35,5 @@ t_coffee
 
 # Qt
 .qmake*
-*.pro*
+*.pro.*
 
