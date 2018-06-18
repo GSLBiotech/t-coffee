@@ -910,7 +910,8 @@ int proba_pair_wise ( Alignment *A, int *ns, int **ls, Constraint_list *CL)
     get_tot_prob2 (A,A, ns,ls,NumMatrixTypes, matchProb, insProb,TmatchProb,TinsProb, CL, SEQUENCE);
   F=forward_proba_pair_wise (A->seq_al[ls[0][0]], A->seq_al[ls[1][0]], NumMatrixTypes,NumInsertStates,transMat, initialDistribution,TmatchProb,TinsProb, transProb);
   B=backward_proba_pair_wise (A->seq_al[ls[0][0]], A->seq_al[ls[1][0]], NumMatrixTypes,NumInsertStates,transMat, initialDistribution,TmatchProb,TinsProb, transProb);
-  A->CL=ProbaMatrix2CL(A,ns, ls,NumMatrixTypes,NumInsertStates, F, B, thr,CL);
+
+  A->CL = ProbaMatrix2CL(A,ns, ls,NumMatrixTypes,NumInsertStates, F, B, thr,CL);
 
   //free_proba_pair_wise();
   return 1;
@@ -1393,9 +1394,9 @@ Constraint_list *ProbaMatrix2CL (Alignment *A, int *ns, int **ls, int NumMatrixT
 {
   float totalProb;
   int ij, i, j, I, J, s1, s2;
-  static thread_local int *entry=NULL;
-  static thread_local int **list=NULL;
-  static thread_local int list_max=0;
+  int *entry=NULL;
+  int **list=NULL;
+  int list_max=0;
   int list_size;
   int list_n;
   int old_n=0;

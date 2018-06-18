@@ -339,6 +339,7 @@ Constraint_list *seq2list     ( Job_TC *job)
 
 Constraint_list *method2pw_cl (TC_method *M, Constraint_list *CL)
 {
+
   char *mode;
   Constraint_list *PW_CL=NULL;
   Sequence *S;
@@ -348,12 +349,12 @@ Constraint_list *method2pw_cl (TC_method *M, Constraint_list *CL)
 
 
   mode=M->executable;
-  PW_CL=copy_constraint_list ( CL, SOFT_COPY);
+  PW_CL = copy_constraint_list ( CL, SOFT_COPY);
   PW_CL->pw_parameters_set=1;
 
 
 
-  S=(PW_CL)?PW_CL->S:NULL;
+  S = PW_CL ? PW_CL->S : NULL;
 
   /*DNA or Protein*/
   m=PW_CL->method_matrix;
@@ -2161,7 +2162,7 @@ Alignment * fast_pair      (Job_TC *job)
   int score;
   static thread_local int **l_s=NULL;
   static thread_local int *ns=NULL;
-  char seq[1000];
+  char seq[10000];
   Alignment *A;
   Constraint_list *PW_CL;
   Constraint_list *CL;
@@ -2182,10 +2183,9 @@ Alignment * fast_pair      (Job_TC *job)
 
   A=(job->io)->A;
   M=(job->param)->TCM;
-  PW_CL=((job->param)->TCM)->PW_CL;
+  PW_CL = ((job->param)->TCM)->PW_CL;
   CL=(job->io)->CL;
   seq_in=(job->param)->seq_c;
-
 
   sprintf (seq, "%s", seq_in);
   seqlist=string2num_list (seq);
@@ -2194,7 +2194,11 @@ Alignment * fast_pair      (Job_TC *job)
 
   S=(CL)->S;
 
-  if (!A) {A=declare_aln (CL->S);}
+  if (!A)
+  {
+    A=declare_aln (CL->S);
+  }
+
   if ( !ns)
   {
     ns=(int*)vcalloc ( 2, sizeof (int));
@@ -2219,10 +2223,11 @@ Alignment * fast_pair      (Job_TC *job)
     A->order[a][0]=s;
   }
 
-  A->S=CL->S;
-  PW_CL->S=CL->S;
-  A->CL=CL;
-  A->nseq=n;
+  A->S     = CL->S;
+  //Threads will assign the same ptr, so ignore race.
+  PW_CL->S = CL->S;
+  A->CL    = CL;
+  A->nseq  = n;
   ns[0]=ns[1]=1;
   l_s[0][0]=0;
   l_s[1][0]=1;
@@ -3807,19 +3812,24 @@ NT_node* tree_aln ( NT_node LT, NT_node RT, Alignment*A, int nseq, Constraint_li
     static thread_local char *tmp=NULL;
     NT_node *T;
     if (!tmp)tmp=vtmpnam(NULL);
-    if ( CL && CL->dp_mode && strstr (CL->dp_mode, "collapse"))dump_constraint_list (CL, tmp, "w");
+    if ( CL && CL->dp_mode && strstr (CL->dp_mode, "collapse"))
+    {
+      dump_constraint_list (CL, tmp, "w", 0);
+    }
+
     T=local_tree_aln (LT, RT, A, nseq, CL);
 
     if ( CL && CL->dp_mode && strstr (CL->dp_mode, "collapse"))
     {
       empty_constraint_list  (CL);
       undump_constraint_list (CL, tmp);
-
     }
     return T;
   }
   else
+  {
     return seqan_tree_aln (LT, RT, A, nseq, CL);
+  }
 }
 
 NT_node* seqan_tree_aln ( NT_node LT, NT_node RT, Alignment*A, int nseq, Constraint_list *CL)
@@ -3961,8 +3971,10 @@ NT_node rec_local_tree_aln ( NT_node P, Alignment*A, Constraint_list *CL,int pri
     if (print==1)
       if (L->nseq>R->nseq) print2=0;
 
-    pid1 = start_thread( [=]{ rec_local_tree_aln_task( L, A, CL, print1, tmp1 ); } );
-    pid2 = start_thread( [=]{ rec_local_tree_aln_task( R, A, CL, print2, tmp2 ); } );
+    pid1 = get_next_thread_index();
+    start_thread( [=]{ rec_local_tree_aln_task( L, A, CL, print1, tmp1 ); } );
+    pid2 = get_next_thread_index();
+    start_thread( [=]{ rec_local_tree_aln_task( R, A, CL, print2, tmp2 ); } );
     join( pid1 );
     join( pid2 );
 
@@ -5204,7 +5216,7 @@ char **mpw_gap_padd (char **array,int *ns,int **ls,int *pos)
     return array;
  }
 
-
+//=================================================================
 int pair_wise   (Alignment *A, int*ns, int **l_s,Constraint_list *CL )
 {
   /*
@@ -5242,7 +5254,7 @@ int pair_wise   (Alignment *A, int*ns, int **l_s,Constraint_list *CL )
 
   return score;
 }
-
+//=================================================================
 int empty_pair_wise ( Alignment *A, int *ns, int **l_s, Constraint_list *CL, int glocal)
 {
   int n=0, a, b;
@@ -5282,6 +5294,7 @@ int empty_pair_wise ( Alignment *A, int *ns, int **l_s, Constraint_list *CL, int
 
 
 
+std::mutex g_dp_mode_mutex;
 
 Pwfunc get_pair_wise_function (Pwfunc pw,char *dp_mode, int *glocal)
 {
@@ -5486,7 +5499,11 @@ Pwfunc get_pair_wise_function (Pwfunc pw,char *dp_mode, int *glocal)
     if ( (dp_mode && strm (dpl[a], dp_mode)) || pwl[a]==pw)
     {
       pw=pwl[a];
-      if (dp_mode)sprintf (dp_mode,"%s", dpl[a]);
+      {
+        //Stability workaround. All threads will write same value to global dp_mode.
+        std::lock_guard<std::mutex> guard( g_dp_mode_mutex );
+        if (dp_mode) sprintf (dp_mode,"%s", dpl[a]);
+      }
       glocal[0]=dps[a];
       return pw;
     }

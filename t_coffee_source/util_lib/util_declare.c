@@ -59,18 +59,28 @@ int *** duplicate_residue_index (int ***r)
 
   int ***nr;
 
-  d1=read_array_size_new(r);
-  nr=(int***)vcalloc ( d1, sizeof (int**));
+  d1 = read_array_size_new(r);
+
+  nr = (int***)vcalloc ( d1, sizeof (int**));
   for (a=0; a<d1; a++)
+  {
+    d2 = read_array_size_new( r[a] ) -1;
+    //Make one item longer for null sentinal used in loops.
+    nr[a] = (int**)vcalloc ( d2+1, sizeof (int*));
+
+    for (b=0; b<d2; b++)
     {
-      d2=read_array_size_new (r[a])-1;
-      nr[a]=(int**)vcalloc ( d2+1, sizeof (int*));
-      for (b=0; b<d2; b++)
-	{
-	  d3=read_array_size_new (r[a][b]);
-	  for (c=0; c<d3; c++)nr[a][b][c]=r[a][b][c];
-	}
+      d3 = read_array_size_new( r[a][b] );
+      //Make one item longer for null sentinal used in loops.
+      nr[a][b] = (int*) vcalloc( d3+1, sizeof(int*) );
+
+      for (c=0; c<d3; c++)
+      {
+        nr[a][b][c] = r[a][b][c];
+      }
     }
+  }
+
   return nr;
 }
 int *** declare_residue_index (Sequence *S)
@@ -98,53 +108,55 @@ Constraint_list * declare_constraint_list_simple ( Sequence *S)
 }
 
 Constraint_list * declare_constraint_list ( Sequence *S, char *name, int *L, int ne,FILE *fp, int **M)
-    {
-    Constraint_list *CL;
+{
+  Constraint_list *CL;
 
-    CL=( Constraint_list*)vcalloc (1, sizeof ( Constraint_list));
-
-
-    CL->S=S;
-    CL->M=M;
-
-    if ( name!=NULL)
-	{
-	sprintf ( CL->list_name, "%s", name);
-
-	}
-    CL->cpu=1;
-    CL->fp=fp;
-    if (L)
-      {
-	HERE ("The USE of L is now Deprecated with Constraint Lists");
-	exit (0);
-      }
-    CL->ne=ne;
-    CL->entry_len=LIST_N_FIELDS;
-    CL->el_size=sizeof (CLIST_TYPE);
-    CL->matrices_list=declare_char(20,20);
+  CL=( Constraint_list*)vcalloc (1, sizeof ( Constraint_list));
 
 
-    CL->weight_field=WE;
-    if ( S)CL->seq_for_quadruplet=(int*)vcalloc ( S->nseq, sizeof (int));
-    CL->Prot_Blast=( Blast_param*)vcalloc ( 1, sizeof ( Blast_param));
-    CL->DNA_Blast=( Blast_param*)vcalloc ( 1, sizeof ( Blast_param));
-    CL->Pdb_Blast=( Blast_param*)vcalloc ( 1, sizeof ( Blast_param));
-    CL->TC=(TC_param*)vcalloc (1, sizeof (TC_param));
+  CL->S=S;
+  CL->M=M;
 
-    //New data structure
-    CL->residue_index=declare_residue_index (S);
+  if ( name!=NULL)
+  {
+    sprintf ( CL->list_name, "%s", name);
+
+  }
+  CL->cpu=1;
+  CL->fp=fp;
+  if (L)
+  {
+    HERE ("The USE of L is now Deprecated with Constraint Lists");
+    exit (0);
+  }
+  CL->ne=ne;
+  CL->entry_len=LIST_N_FIELDS;
+  CL->el_size=sizeof (CLIST_TYPE);
+  CL->matrices_list=declare_char(20,20);
+
+
+  CL->weight_field=WE;
+  if ( S)CL->seq_for_quadruplet=(int*)vcalloc ( S->nseq, sizeof (int));
+  CL->Prot_Blast=( Blast_param*)vcalloc ( 1, sizeof ( Blast_param));
+  CL->DNA_Blast=( Blast_param*)vcalloc ( 1, sizeof ( Blast_param));
+  CL->Pdb_Blast=( Blast_param*)vcalloc ( 1, sizeof ( Blast_param));
+  CL->TC=(TC_param*)vcalloc (1, sizeof (TC_param));
+
+  //New data structure
+  CL->local_residue_index = nullptr;
+  CL->residue_index=declare_residue_index (S);
 
 
 
-    return CL;
-    }
+  return CL;
+}
 
 Constraint_list *free_constraint_list4lib_computation (Constraint_list *CL)
 {
   if (!CL)return NULL;
 
   free_arrayN(CL->residue_index, 3);
+  free_arrayN(CL->local_residue_index, 3);
   free_int (CL->M, -1);
 
   vfree (CL);
@@ -170,280 +182,276 @@ Constraint_list *duplicate_constraint_list_soft (Constraint_list *CL)
   return copy_constraint_list (CL,SOFT_COPY);
 }
 Constraint_list *duplicate_constraint_list (Constraint_list *CL)
-     {
-     /*Duplicate everything in the constraint_list*/
-     return copy_constraint_list (CL,HARD_COPY);
-     }
+{
+  /*Duplicate everything in the constraint_list*/
+  return copy_constraint_list (CL,HARD_COPY);
+}
 Constraint_list *copy_constraint_list (Constraint_list *CL, int mode)
-    {
-    Constraint_list *NCL;
-    Sequence *S;
-    int a, b;
+{
+  Constraint_list *NCL;
+  Sequence *S;
+  int a;
+
+  /*Sequences*/
+  S=(mode==HARD_COPY)?duplicate_sequence (CL->S):CL->S;
+
+  if (mode==HARD_COPY)
+    NCL=declare_constraint_list (S, NULL, NULL,0, NULL, NULL);
+  else
+  {
+    NCL=( Constraint_list*)vcalloc ( 1, sizeof (Constraint_list));
+    NCL[0]=CL[0];
+  }
+
+  NCL->copy_mode=mode;
+  if (mode==SOFT_COPY)NCL->pCL=CL;
+  NCL->S=S;
+  /*master*/
+  if (mode==HARD_COPY && CL->master)
+  {NCL->master=(int*)vcalloc ( S->nseq, sizeof(int));
+    for ( a=0; a< S->nseq; a++)
+      NCL->master[a]=CL->master[a];
+  }
+  else if (mode==SOFT_COPY)
+  {
+    NCL->seq_for_quadruplet=CL->seq_for_quadruplet;
+  }
+  NCL->o2a_byte=CL->o2a_byte;
+
+  /*struc List*/
+  NCL->STRUC_LIST=(mode==HARD_COPY)?duplicate_sequence (CL->STRUC_LIST):CL->STRUC_LIST;
+  sprintf ( NCL->align_pdb_param_file, "%s", CL->align_pdb_param_file);
+  sprintf ( NCL->align_pdb_hasch_mode, "%s", CL->align_pdb_hasch_mode);
+
+
+  NCL->W=(mode==HARD_COPY)?duplicate_weights (CL->W):CL->W;
+  NCL->DM=(mode==HARD_COPY)?duplicate_distance_matrix (CL->DM):CL->DM;
+  NCL->ktupDM=(mode==HARD_COPY)?duplicate_distance_matrix (CL->ktupDM):CL->ktupDM;
+  NCL->RunName=CL->RunName;
+
+  if (  mode==HARD_COPY && CL->translation){NCL->translation=(int*)vcalloc ((CL->S)->nseq, sizeof (int)); for ( a=0; a< (CL->S)->nseq; a++)NCL->translation[a]=CL->translation[a];}
+  else{NCL->translation=CL->translation;}
+
+  NCL->out_aln_format=(mode==HARD_COPY)?duplicate_char (CL->out_aln_format, -1, -1):CL->out_aln_format;
+  NCL->n_out_aln_format=CL->n_out_aln_format;
+
+  /*Packing Sequence: To use with domain analysis*/
+  NCL->packed_seq_lu=(mode==HARD_COPY)?duplicate_int (CL->packed_seq_lu, -1, -1):CL->packed_seq_lu;
+  /*DATA*/
+  if (CL->fp)(mode==HARD_COPY)?NCL->fp=vtmpfile():CL->fp;
+
+  if ( mode==HARD_COPY)
+  {
+    NCL->residue_index=duplicate_residue_index (NCL->residue_index);
+  }
+  else
+  {
+    NCL->residue_index=CL->residue_index;
+  }
+
+  if ( mode==HARD_COPY)
+  {
+    NCL->M=copy_int ( CL->M,NCL->M,-1, -1);
+  }
+  else
+    NCL->M=CL->M;
+
+
+  /*List Information*/
+  NCL->ne=CL->ne;
+  sprintf ( NCL->list_name, "%s", CL->list_name);
+  NCL->entry_len=CL->entry_len;
+  NCL->el_size=CL->el_size;
+
+  /*Normalisation information*/
+  NCL->filter_lib=CL->filter_lib;
+  NCL->normalise=CL->normalise;
+  NCL->overweight=CL->overweight;
+  NCL->max_ext_value=CL->max_ext_value;
+  NCL->max_value=CL->max_value;
+
+  /*Pair wise alignment method*/
+  NCL->pw_parameters_set=CL->pw_parameters_set;
+  NCL->gop=CL->gop;
+  NCL->f_gop=CL->f_gop;
+  NCL->gep=CL->gep;
+  NCL->f_gep=CL->f_gep;
+
+  NCL->nomatch=CL->nomatch;
+
+  NCL->TG_MODE=CL->TG_MODE;
+  NCL->F_TG_MODE=CL->F_TG_MODE;
+
+  sprintf ( NCL->dp_mode, "%s", CL->dp_mode);
+  NCL->maximise=CL->maximise;
+  sprintf ( NCL->matrix_for_aa_group, "%s", CL->matrix_for_aa_group);
+  sprintf ( NCL->method_matrix, "%s", CL->method_matrix);
+
+  NCL->diagonal_threshold=CL->diagonal_threshold;
+  NCL->ktup=CL->ktup;
+
+  NCL->use_fragments=CL->use_fragments;
+  NCL->fasta_step=CL->fasta_step;
+  NCL->lalign_n_top=CL->lalign_n_top;
+  NCL->sw_min_dist=CL->sw_min_dist;
+  NCL->matrices_list=(mode==HARD_COPY)?duplicate_char (CL->matrices_list, -1, -1):CL->matrices_list;
+  NCL->n_matrices=CL->n_matrices;
+
+  sprintf (NCL->distance_matrix_mode, "%s", CL->distance_matrix_mode);
+  sprintf (NCL->distance_matrix_sim_mode, "%s", CL->distance_matrix_sim_mode);
+
+  sprintf (NCL->tree_mode, "%s", CL->tree_mode);
+  NCL->tree_aln=(mode==HARD_COPY)?copy_aln (CL->tree_aln, NULL):CL->tree_aln;
+  /*Functions used for dynamic programming and Evaluation*/
+  NCL->no_overaln=CL->no_overaln;
+  NCL->profile_mode=CL->profile_mode;
+  sprintf ( NCL->profile_comparison, "%s",CL->profile_comparison);
+  NCL->get_dp_cost=CL->get_dp_cost;
+  NCL->evaluate_residue_pair=CL->evaluate_residue_pair;
+  NCL->pair_wise=CL->pair_wise;
+
+  NCL->weight_field=CL->weight_field;
+  NCL->max_n_pair=CL->max_n_pair;
+
+  /*threading parameters*/
+  NCL->Prot_Blast=(mode==HARD_COPY)?duplicate_blast_param ( CL->Prot_Blast):CL->Prot_Blast;
+  NCL->DNA_Blast =(mode==HARD_COPY)?duplicate_blast_param ( CL->DNA_Blast):CL->DNA_Blast;
+  NCL->Pdb_Blast =(mode==HARD_COPY)?duplicate_blast_param ( CL->Pdb_Blast):CL->Pdb_Blast;
+  NCL->TC =(mode==HARD_COPY)?duplicate_TC_param ( CL->TC):CL->TC;
+
+  /*Split parameters*/
+  NCL->split=CL->split;
+  NCL->split_nseq_thres= CL->split_nseq_thres;
+  NCL->split_score_thres= CL->split_score_thres;
+  /*Structural status*/
+  NCL->check_pdb_status=CL->check_pdb_status;
+  /*log*/
+  sprintf ( NCL->method_log, "%s",CL->method_log);
+  sprintf ( NCL->evaluate_mode, "%s",CL->evaluate_mode);
+  /* Gene Prediction*/
+  sprintf ( NCL->genepred_score, "%s",CL->genepred_score);
+
+  /*Parameters for domain extraction*/
+  NCL->moca=(mode==HARD_COPY)?duplicate_moca ( CL->moca):CL->moca;
 
 
 
-    /*Sequences*/
+  /*Functions for hiding forbiden pairs of residues*/
+  /* Copy only for soft_copy*/
+  if (mode==SOFT_COPY)
+  {
+    NCL->forbiden_pair_list=CL->forbiden_pair_list;
+  }
+  /*extention properties:*/
+  NCL->nseq_for_quadruplet=CL->nseq_for_quadruplet;
+  if (mode==HARD_COPY && CL->seq_for_quadruplet)
+  {NCL->seq_for_quadruplet=(int*)vcalloc ( S->nseq, sizeof(int));
+    for ( a=0; a< S->nseq; a++)
+      NCL->seq_for_quadruplet[a]=CL->seq_for_quadruplet[a];
+  }
+  else if (mode==SOFT_COPY)
+  {
+    NCL->seq_for_quadruplet=CL->seq_for_quadruplet;
+  }
 
+  /*extention properties: Do only a soft copy*/
+  /* Not To be copied yet */
+  if ( mode==SOFT_COPY)
+  {
+    NCL->extend_jit=CL->extend_jit;
+    NCL->extend_threshold=CL->extend_threshold;
+    sprintf ( NCL->extend_clean_mode, "%s", CL->extend_clean_mode);
+    sprintf ( NCL->extend_compact_mode, "%s", CL->extend_compact_mode);
+  }
 
-      S=(mode==HARD_COPY)?duplicate_sequence (CL->S):CL->S;
-
-
-      if (mode==HARD_COPY)
-	NCL=declare_constraint_list (S, NULL, NULL,0, NULL, NULL);
-      else
-	{
-	  NCL=( Constraint_list*)vcalloc ( 1, sizeof (Constraint_list));
-	  NCL[0]=CL[0];
-	}
-
-
-      NCL->copy_mode=mode;
-      if (mode==SOFT_COPY)NCL->pCL=CL;
-      NCL->S=S;
-      /*master*/
-      if (mode==HARD_COPY && CL->master)
-	{NCL->master=(int*)vcalloc ( S->nseq, sizeof(int));
-	for ( a=0; a< S->nseq; a++)
-	  NCL->master[a]=CL->master[a];
-	}
-      else if (mode==SOFT_COPY)
-	{
-	  NCL->seq_for_quadruplet=CL->seq_for_quadruplet;
-	}
-      NCL->o2a_byte=CL->o2a_byte;
-
-      /*struc List*/
-      NCL->STRUC_LIST=(mode==HARD_COPY)?duplicate_sequence (CL->STRUC_LIST):CL->STRUC_LIST;
-      sprintf ( NCL->align_pdb_param_file, "%s", CL->align_pdb_param_file);
-      sprintf ( NCL->align_pdb_hasch_mode, "%s", CL->align_pdb_hasch_mode);
-
-
-      NCL->W=(mode==HARD_COPY)?duplicate_weights (CL->W):CL->W;
-      NCL->DM=(mode==HARD_COPY)?duplicate_distance_matrix (CL->DM):CL->DM;
-      NCL->ktupDM=(mode==HARD_COPY)?duplicate_distance_matrix (CL->ktupDM):CL->ktupDM;
-      NCL->RunName=CL->RunName;
-
-      if (  mode==HARD_COPY && CL->translation){NCL->translation=(int*)vcalloc ((CL->S)->nseq, sizeof (int)); for ( a=0; a< (CL->S)->nseq; a++)NCL->translation[a]=CL->translation[a];}
-      else{NCL->translation=CL->translation;}
-
-      NCL->out_aln_format=(mode==HARD_COPY)?duplicate_char (CL->out_aln_format, -1, -1):CL->out_aln_format;
-      NCL->n_out_aln_format=CL->n_out_aln_format;
-
-    /*Packing Sequence: To use with domain analysis*/
-      NCL->packed_seq_lu=(mode==HARD_COPY)?duplicate_int (CL->packed_seq_lu, -1, -1):CL->packed_seq_lu;
-    /*DATA*/
-      if (CL->fp)(mode==HARD_COPY)?NCL->fp=vtmpfile():CL->fp;
-
-      if ( mode==HARD_COPY)
-	{
-	  NCL->residue_index=duplicate_residue_index (NCL->residue_index);
-	}
-      else NCL->residue_index=CL->residue_index;
-
-
-     if ( mode==HARD_COPY)
-       {
-	 NCL->M=copy_int ( CL->M,NCL->M,-1, -1);
-       }
-     else
-       NCL->M=CL->M;
-
-
-    /*List Information*/
-      NCL->ne=CL->ne;
-      sprintf ( NCL->list_name, "%s", CL->list_name);
-      NCL->entry_len=CL->entry_len;
-      NCL->el_size=CL->el_size;
-
-    /*Normalisation information*/
-      NCL->filter_lib=CL->filter_lib;
-      NCL->normalise=CL->normalise;
-      NCL->overweight=CL->overweight;
-      NCL->max_ext_value=CL->max_ext_value;
-      NCL->max_value=CL->max_value;
-
-    /*Pair wise alignment method*/
-      NCL->pw_parameters_set=CL->pw_parameters_set;
-      NCL->gop=CL->gop;
-      NCL->f_gop=CL->f_gop;
-      NCL->gep=CL->gep;
-      NCL->f_gep=CL->f_gep;
-
-      NCL->nomatch=CL->nomatch;
-
-      NCL->TG_MODE=CL->TG_MODE;
-      NCL->F_TG_MODE=CL->F_TG_MODE;
-
-      sprintf ( NCL->dp_mode, "%s", CL->dp_mode);
-      NCL->maximise=CL->maximise;
-      sprintf ( NCL->matrix_for_aa_group, "%s", CL->matrix_for_aa_group);
-      sprintf ( NCL->method_matrix, "%s", CL->method_matrix);
-
-      NCL->diagonal_threshold=CL->diagonal_threshold;
-      NCL->ktup=CL->ktup;
-
-      NCL->use_fragments=CL->use_fragments;
-      NCL->fasta_step=CL->fasta_step;
-      NCL->lalign_n_top=CL->lalign_n_top;
-      NCL->sw_min_dist=CL->sw_min_dist;
-      NCL->matrices_list=(mode==HARD_COPY)?duplicate_char (CL->matrices_list, -1, -1):CL->matrices_list;
-      NCL->n_matrices=CL->n_matrices;
-
-      sprintf (NCL->distance_matrix_mode, "%s", CL->distance_matrix_mode);
-      sprintf (NCL->distance_matrix_sim_mode, "%s", CL->distance_matrix_sim_mode);
-
-      sprintf (NCL->tree_mode, "%s", CL->tree_mode);
-      NCL->tree_aln=(mode==HARD_COPY)?copy_aln (CL->tree_aln, NULL):CL->tree_aln;
-    /*Functions used for dynamic programming and Evaluation*/
-      NCL->no_overaln=CL->no_overaln;
-      NCL->profile_mode=CL->profile_mode;
-      sprintf ( NCL->profile_comparison, "%s",CL->profile_comparison);
-      NCL->get_dp_cost=CL->get_dp_cost;
-      NCL->evaluate_residue_pair=CL->evaluate_residue_pair;
-      NCL->pair_wise=CL->pair_wise;
-
-      NCL->weight_field=CL->weight_field;
-      NCL->max_n_pair=CL->max_n_pair;
-
-    /*threading parameters*/
-      NCL->Prot_Blast=(mode==HARD_COPY)?duplicate_blast_param ( CL->Prot_Blast):CL->Prot_Blast;
-      NCL->DNA_Blast =(mode==HARD_COPY)?duplicate_blast_param ( CL->DNA_Blast):CL->DNA_Blast;
-      NCL->Pdb_Blast =(mode==HARD_COPY)?duplicate_blast_param ( CL->Pdb_Blast):CL->Pdb_Blast;
-      NCL->TC =(mode==HARD_COPY)?duplicate_TC_param ( CL->TC):CL->TC;
-
-    /*Split parameters*/
-      NCL->split=CL->split;
-      NCL->split_nseq_thres= CL->split_nseq_thres;
-      NCL->split_score_thres= CL->split_score_thres;
-    /*Structural status*/
-      NCL->check_pdb_status=CL->check_pdb_status;
-    /*log*/
-      sprintf ( NCL->method_log, "%s",CL->method_log);
-      sprintf ( NCL->evaluate_mode, "%s",CL->evaluate_mode);
-    /* Gene Prediction*/
-      sprintf ( NCL->genepred_score, "%s",CL->genepred_score);
-
-    /*Parameters for domain extraction*/
-      NCL->moca=(mode==HARD_COPY)?duplicate_moca ( CL->moca):CL->moca;
-
-
-
-    /*Functions for hiding forbiden pairs of residues*/
-      /* Copy only for soft_copy*/
-      if (mode==SOFT_COPY)
-	{
-	  NCL->forbiden_pair_list=CL->forbiden_pair_list;
-	}
-   /*extention properties:*/
-      NCL->nseq_for_quadruplet=CL->nseq_for_quadruplet;
-      if (mode==HARD_COPY && CL->seq_for_quadruplet)
-	{NCL->seq_for_quadruplet=(int*)vcalloc ( S->nseq, sizeof(int));
-	for ( a=0; a< S->nseq; a++)
-	  NCL->seq_for_quadruplet[a]=CL->seq_for_quadruplet[a];
-	}
-      else if (mode==SOFT_COPY)
-	{
-	  NCL->seq_for_quadruplet=CL->seq_for_quadruplet;
-	}
-
-   /*extention properties: Do only a soft copy*/
-      /* Not To be copied yet */
-      if ( mode==SOFT_COPY)
-	{
-	  NCL->extend_jit=CL->extend_jit;
-	  NCL->extend_threshold=CL->extend_threshold;
-	  sprintf ( NCL->extend_clean_mode, "%s", CL->extend_clean_mode);
-	  sprintf ( NCL->extend_compact_mode, "%s", CL->extend_compact_mode);
-	}
-
-    /*Lookup table parameteres*/
-      NCL->chunk= CL->chunk;
-      /* Do NOT copy NCL->seq_indexed, NCL->start_index, NCL->max_L_len, NCL->chunk*/
-      /*
-	if ( mode==SOFT_COPY)
-	{
-	  NCL->seq_indexed=CL->seq_indexed;
-	  NCL->start_index=CL->start_index;
-	  NCL->end_index=CL->start_index;
-	  NCL->max_L_len=CL->max_L_len;
-	  }
-      */
-    /*PDB STRUCTURE ALIGNMENTS*/
-      /* Do only a soft copy */
-      if ( mode==SOFT_COPY)
-	{
-	  NCL->T=CL->T;
-	}
-    /*MISC*/
-       NCL->cpu=CL->cpu;
-       NCL->local_stderr=CL->local_stderr;
-       sprintf (NCL->multi_thread, "%s", CL->multi_thread);
-       if (mode==SOFT_COPY)
-	 {
-	   NCL->comment=CL->comment;
-	 }
-       else
-	 {
-	   if (CL->comment)NCL->comment=(char*)vcalloc(strlen (NCL->comment)+1, sizeof (char));
-	   sprintf (NCL->comment, "%s", CL->comment);
-	 }
-
-
-    return NCL;
+  /*Lookup table parameteres*/
+  NCL->chunk= CL->chunk;
+  /* Do NOT copy NCL->seq_indexed, NCL->start_index, NCL->max_L_len, NCL->chunk*/
+  /*
+  if ( mode==SOFT_COPY)
+  {
+    NCL->seq_indexed=CL->seq_indexed;
+    NCL->start_index=CL->start_index;
+    NCL->end_index=CL->start_index;
+    NCL->max_L_len=CL->max_L_len;
     }
+      */
+  /*PDB STRUCTURE ALIGNMENTS*/
+  /* Do only a soft copy */
+  if ( mode==SOFT_COPY)
+  {
+    NCL->T=CL->T;
+  }
+  /*MISC*/
+  NCL->cpu=CL->cpu;
+  NCL->local_stderr=CL->local_stderr;
+  sprintf (NCL->multi_thread, "%s", CL->multi_thread);
+  if (mode==SOFT_COPY)
+  {
+    NCL->comment=CL->comment;
+  }
+  else
+  {
+    if (CL->comment)NCL->comment=(char*)vcalloc(strlen (NCL->comment)+1, sizeof (char));
+    sprintf (NCL->comment, "%s", CL->comment);
+  }
+
+
+  return NCL;
+}
 Constraint_list *free_constraint_list_full (Constraint_list *CL)
 {
   free_sequence (free_constraint_list (CL), -1);
   return NULL;
 }
 Sequence *free_constraint_list (Constraint_list *CL)
-    {
-    Sequence *S;
-    int a, b;
-    Constraint_list *pCL;
+{
+  Sequence *S;
+  int a, b;
+  Constraint_list *pCL;
 
 
-    /*Prepare the selective freeing of the CL data structure:
+  /*Prepare the selective freeing of the CL data structure:
       If the CL has been obtained from copy, every pointer that is identical to the parent CL (CL->pCL)
       will not be saved.
     */
 
 
-    if ( !CL)return NULL;
-    else S=CL->S;
+  if ( !CL)return NULL;
+  else S=CL->S;
 
-    if ( CL->copy_mode==SOFT_COPY && !CL->pCL)
-      {vfree(CL); return S;}
-    else if ( CL->copy_mode==SOFT_COPY)
-      {
+  if ( CL->copy_mode==SOFT_COPY && !CL->pCL)
+  {vfree(CL); return S;}
+  else if ( CL->copy_mode==SOFT_COPY)
+  {
 
-	pCL=CL->pCL;
-	CL->residue_index=NULL;
+    pCL=CL->pCL;
+    CL->residue_index=NULL;
 
-	if ( CL->M                      ==pCL->M                       )CL->M=NULL;
+    if ( CL->M                      ==pCL->M                       )CL->M=NULL;
 
-	if (CL->start_index             ==pCL->start_index             )CL->start_index=NULL;
-	if (CL->end_index             ==pCL->end_index                 )CL->end_index=NULL;
+    if (CL->start_index             ==pCL->start_index             )CL->start_index=NULL;
+    if (CL->end_index             ==pCL->end_index                 )CL->end_index=NULL;
 
-	if ( CL->fp                     ==pCL->fp                      )CL->fp=NULL;
-	if ( CL->matrices_list          ==pCL->matrices_list           )CL->matrices_list=NULL;
-
-
-	if ( CL->STRUC_LIST             ==pCL->STRUC_LIST              )CL->STRUC_LIST=NULL;
-	if ( CL->W                      ==pCL->W                       )CL->W=NULL;
-	if ( CL->DM                     ==pCL->DM                      )CL->DM=NULL;
-	if ( CL->ktupDM                 ==pCL->ktupDM                      )CL->ktupDM=NULL;
+    if ( CL->fp                     ==pCL->fp                      )CL->fp=NULL;
+    if ( CL->matrices_list          ==pCL->matrices_list           )CL->matrices_list=NULL;
 
 
-	if ( CL->translation            ==pCL->translation             )CL->translation=NULL;
-	if ( CL->moca                   ==pCL->moca                    )CL->moca=NULL;
-	if ( CL->Prot_Blast             ==pCL->Prot_Blast              )CL->Prot_Blast=NULL;
-	if ( CL->DNA_Blast              ==pCL->DNA_Blast               )CL->DNA_Blast=NULL;
-	if ( CL->Pdb_Blast              ==pCL->Pdb_Blast               )CL->Pdb_Blast=NULL;
-	if ( CL->seq_for_quadruplet     ==pCL->seq_for_quadruplet      )CL->seq_for_quadruplet=NULL;
-	if ( CL->TC                      ==pCL->TC                       )CL->TC=NULL;
+    if ( CL->STRUC_LIST             ==pCL->STRUC_LIST              )CL->STRUC_LIST=NULL;
+    if ( CL->W                      ==pCL->W                       )CL->W=NULL;
+    if ( CL->DM                     ==pCL->DM                      )CL->DM=NULL;
+    if ( CL->ktupDM                 ==pCL->ktupDM                      )CL->ktupDM=NULL;
 
-      }
+
+    if ( CL->translation            ==pCL->translation             )CL->translation=NULL;
+    if ( CL->moca                   ==pCL->moca                    )CL->moca=NULL;
+    if ( CL->Prot_Blast             ==pCL->Prot_Blast              )CL->Prot_Blast=NULL;
+    if ( CL->DNA_Blast              ==pCL->DNA_Blast               )CL->DNA_Blast=NULL;
+    if ( CL->Pdb_Blast              ==pCL->Pdb_Blast               )CL->Pdb_Blast=NULL;
+    if ( CL->seq_for_quadruplet     ==pCL->seq_for_quadruplet      )CL->seq_for_quadruplet=NULL;
+    if ( CL->TC                      ==pCL->TC                       )CL->TC=NULL;
+
+  }
 
 
     /*End of selective freeing of the CL data structure*/
@@ -451,6 +459,7 @@ Sequence *free_constraint_list (Constraint_list *CL)
 
 
     if ( CL->residue_index)free_arrayN(CL->residue_index, 3);
+    if ( CL->local_residue_index) free_arrayN( CL->local_residue_index, 3 );
 
     if ( CL->M)free_int (CL->M, -1);
     if ( CL->fp)vfclose (CL->fp);
@@ -1312,10 +1321,10 @@ Sequence* free_Alignment ( Alignment *LA)
 
 Alignment * update_aln_random_tag ( Alignment *A)
 {
-  static int tag;
+  static thread_local int tag = 0;
   if ( !A) return A;
 
-  A->random_tag=++tag;
+  A->random_tag = ++tag;
   return A;
 }
 
@@ -1372,10 +1381,9 @@ Profile * free_profile ( Profile *P)
 /************************************************************************/
 
 
-double alloc_mem;
-double max_mem;
-double tot_mem;
-Memcontrol *memlast;
+thread_local double alloc_mem;
+thread_local double max_mem;
+thread_local double tot_mem;
 
 FILE* print_mem_usage (FILE *fp, char *comment)
 {
@@ -1389,7 +1397,10 @@ void set_max_mem (int m)
 
 int verify_memory (int s)
 {
-  static int flushed;
+  // Just ignore on modern workstations with many GB of RAM and always return okay.
+  return 1;
+
+  static thread_local int flushed = 0;
 
   alloc_mem+=s;
 
@@ -1532,7 +1543,7 @@ void *vrealloc ( void *p, size_t size)
     p=M;
 
 
-    if ( size<=0){return NULL;vfree (p);return NULL;}
+    if ( size<=0){return NULL;}
     else
     {
       verify_memory (size - i_size);
@@ -1567,16 +1578,7 @@ void vfree ( void *p)
     verify_memory (-(size+2*sizeof(Memcontrol)));
   }
 }
-void vfree_all (void *p)
-{
-  Memcontrol *n;
-  while (memlast)
-  {
-    n=memlast->p;
-    vfree (memlast+2);
-    memlast=n;
-  }
-}
+
 /*********************************************************************/
 /*                                                                   */
 /*                          SIZES                                    */
@@ -1611,20 +1613,20 @@ int read_array_size_new (void *array)
   return read_array_size ( array, 0);
 }
 int read_array_size (void *array, size_t size)
-    {
-    Memcontrol *p;
-    if (array==NULL)return 0;
-    p=(Memcontrol *)array;
-    p-=2;
-    if ( p[0].size_element ==0 && size==0)
-      {
-	fprintf ( stderr, "\nERROR in read_array_size: trying to read the size of a malloced block");
-      }
-    else if ( size ==0) return (int)p[0].size/p[0].size_element;
+{
+  Memcontrol *p;
+  if (array==NULL)return 0;
+  p=(Memcontrol *)array;
+  p-=2;
+  if ( p[0].size_element ==0 && size==0)
+  {
+    fprintf ( stderr, "\nERROR in read_array_size: trying to read the size of a malloced block");
+  }
+  else if ( size ==0) return (int)p[0].size/p[0].size_element;
 
-    return (int)p[0].size/size;
+  return (int)p[0].size/size;
 
-    }
+}
 int is_dynamic_memory ( void *array)
 {
   Memcontrol *p;

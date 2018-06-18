@@ -4753,7 +4753,7 @@ int batch_main ( int argc, char **argv)
           */
   if ((CL->S)->nseq>1 && !do_convert)
   {
-    CL=read_n_constraint_list (list_file,n_list,NULL, mem_mode,weight,type, le, CL, seq_source);
+    CL=read_n_constraint_list (list_file, n_list, NULL, mem_mode, weight, type, le, CL, seq_source);
     //CL=post_process_constraint_list (CL); //needed when constraints are added, for instance the RNA modes
   }
   else if ( do_convert && out_lib[0])
@@ -5466,8 +5466,6 @@ int batch_main ( int argc, char **argv)
 
 
   vremove ( "core");
-
-  vfree_all(NULL);
 
   le=t_coffee_tip (le, tip);
   le=print_command_line ( le);

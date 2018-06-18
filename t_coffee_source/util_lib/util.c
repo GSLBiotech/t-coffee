@@ -103,9 +103,9 @@ static int get_vtmpnam2_root();
 static int global_exit_signal;
 static int no_error_report;
 static int clean_exit_started;
-static int debug_lock;
-static char *in_cl;
-static char *logfile;
+static thread_local int debug_lock;
+static char *in_cl = NULL;
+static char *logfile = NULL;
 
 /*********************************************************************/
 /*                                                                   */
@@ -648,7 +648,7 @@ void sort_list_int ( int **V,int N_F, int F, int left, int right)
   qsort ( V, (right-left)+1, sizeof(int**),(int(*)(const void*,const void*))(cmp_list_int));
 }
 
-static int *order;
+static thread_local int *order = NULL;
 void sort_list_int2 ( int **V,int *list,int N_F, int left, int right)
 {
   // just like sort_int_list, but uses list to to order the comparison of the keys
@@ -2081,8 +2081,8 @@ char *vcat ( char *st1, char *st2)
 int print_param ( char *param, FILE *fp);
 int print_param ( char *param, FILE *fp)
 {
-  static char **p;
-  static int np;
+  static thread_local char **p = NULL;
+  static thread_local int np;
   int a;
 
   if (!p)p=(char**)vcalloc (1000, sizeof (char*));
@@ -2227,7 +2227,7 @@ char ** push_string (char *val, char **stack, int *nval, int position)
 
 int vsrand (int val)
 {
-  static int initialized;
+  static thread_local int initialized = 0;
 
   if (initialized) return 0;
   else if (   getenv ("DEBUG_SRAND"))
@@ -3587,7 +3587,7 @@ char **left_pad_string_array ( char **array, int n, int len, char pad)
      }
 char * crop_string (char *string, int start, int end)
 {
-  static char *buf;
+  static thread_local char *buf = NULL;
   /*Extract [start-end[*/
 
   if ( strlen (string)<end)
@@ -3825,8 +3825,8 @@ int printf_system  (char *string, ...)
 {
   char *buf;
   int r;
-  char static *tmpdir;
-  char static *cdir;
+  char static *tmpdir = NULL;
+  char static *cdir = NULL;
 
   cvsprintf (buf, string);
   r=my_system (buf);
@@ -3946,31 +3946,6 @@ int is_shellpid(int pid)
 {
   if ( lock(pid, LLOCK, LCHECK, NULL) && strstr (lock(pid,LLOCK, LREAD, NULL), "-SHELL-"))return 1;
   else return 0;
-}
-int is_root_thread()
-{
-  //Cache.
-  static thread_local int my_index = -9;
-  if( -9 == my_index )
-  {
-    my_index = get_thread_index();
-  }
-
-  return -1 == my_index;
-
-  //old is_rootpid
-  //
-//  if (debug_lock)
-//    {
-//      char *f;
-//      fprintf ( stderr,"\n\t------ check if %d isrootpid (util): %s->%d", getpid(),f=lock2name (getppid(),LLOCK), (lock(getppid(), LLOCK, LCHECK, NULL))?1:0);
-//      vfree (f);
-//    }
-//
-//
-//  if(lock (getppid(), LLOCK, LCHECK, NULL)!=NULL)return 0;
-//  else return 1;
-  //
 }
 
 int shift_lock ( int from, int to, int from_type,int to_type, int action)
@@ -4116,7 +4091,7 @@ int safe_system (const char * com_in)
   int failure_handling;
   char *p;
   char command[1000];
-  static char *com;
+  static thread_local char *com = NULL;
 
 
 
@@ -4229,33 +4204,102 @@ pid_t set_pid (pid_t p)
   return p;
 }
 
-static std::vector<std::thread*> g_threads;
-static std::mutex g_threads_mutex;
+std::vector<std::thread*> g_threads;
+std::vector<std::thread::id> g_thread_ids;
+
+const std::thread::id g_main_thread_id = std::this_thread::get_id();
+std::mutex g_threads_mutex;
+
+int get_next_thread_index()
+{
+  std::lock_guard<std::mutex> guard( g_threads_mutex );
+  return g_threads.size();
+}
 
 //Main thread will return -1 because not in list.
-//Note, it is not possible to use raw thread ids as integers, no thanks to standard committee choosing to make it opaque.
+//Note, it is not possible to use raw thread ids as integers,
+//because c++ standards committee chose to make it opaque.
 int get_thread_index()
 {
-  auto id = std::this_thread::get_id();
-  const int n = g_threads.size();
-  for( int i=0; i < n; ++i )
+  const auto id = std::this_thread::get_id();
+
   {
-    if( g_threads[i] &&
-        g_threads[i]->get_id() == id )
-    return i;
+    std::lock_guard<std::mutex> guard( g_threads_mutex );
+    const int n = g_thread_ids.size();
+
+    for( int i=0; i < n; ++i )
+    {
+      if( id == g_thread_ids[i] )
+        return i;
+    }
   }
 
   return -1;
 }
 
-int start_thread(std::function<void(void)> fn)
+void start_thread(std::function<void(void)> fn)
 {
   std::lock_guard<std::mutex> guard( g_threads_mutex );
-  int index = g_threads.size();
-  g_threads.push_back( new std::thread( fn ) );
+  if( g_threads.empty() )
+  {
+    g_threads.reserve( 1000 );
+    g_thread_ids.reserve( 1000 );
+  }
 
-  return index;
+  auto thread = new std::thread( fn );     
+  g_threads.push_back( thread );
+  g_thread_ids.push_back( thread->get_id() );
 }
+
+int is_root_thread()
+{
+  return g_main_thread_id == std::this_thread::get_id();
+}
+
+void join()
+{
+  const int n = g_threads.size();
+  for( int i = 0; i < n; ++i )
+  {
+    join( i );
+  }
+}
+
+void join(int index)
+{
+  if( index < 0 )
+    return;
+
+  std::thread* thread = nullptr;
+  {
+    std::lock_guard<std::mutex> guard( g_threads_mutex );
+
+    if( index >= g_threads.size() )
+      return;
+
+    thread = g_threads[index];
+  }
+
+  if( !thread ||
+      !thread->joinable() )
+    return;
+
+  thread->join();
+
+  {
+    std::lock_guard<std::mutex> guard( g_threads_mutex );
+    g_threads[index] = nullptr;
+  }
+}
+
+void join(const std::vector<int> & indexes)
+{
+  for( int i: indexes )
+  {
+    join( i );
+  }
+}
+
 
 pid_t vwait (pid_t *p)
 {
@@ -4271,37 +4315,6 @@ pid_t vwait (pid_t *p)
   if ( p) p[0]=rv;
 
   return p2;
-}
-
-void join()
-{
-  const int n = g_threads.size();
-  for( int i = 0; i < n; ++i )
-  {
-    join( i );
-  }
-}
-
-void join(int index)
-{
-  if( index < 0 ||
-    index >= g_threads.size() ||
-    !g_threads[index] )
-    return;
-
-  if( !g_threads[index]->joinable() )
-    return;
-
-  g_threads[index]->join();
-  g_threads[index] = nullptr;
-}
-
-void join(const std::vector<int> & indexes)
-{
-  for( int i: indexes )
-  {
-    join( i );
-  }
 }
 
 int get_child_list (int pid,int *clist);
@@ -5795,7 +5808,7 @@ void  initiate_vtmpnam (char *file)
 }
 char *vtmpnam ( char *s1)
 {
-  char *s,*s2;
+  char *s = NULL, *s2 = NULL;
 
   standard_initialisation(NULL, NULL);
 
@@ -5825,16 +5838,17 @@ int vtmpnam_size()
 int get_vtmpnam2_root()
 {
   int MAX_TMPNAM_ROOT=10000;
-  static int v=0;
+  static thread_local int v=0;
 
   if (v) ;
   else
-    {
-      vsrand(0);
-      v=rand()%MAX_TMPNAM_ROOT;
-    }
+  {
+    vsrand(0);
+    v=rand()%MAX_TMPNAM_ROOT;
+  }
   return v;
 }
+//=================================================================
 char *tmpnam_2 (char *s)
 {
   //Defined by main thread.
@@ -5847,11 +5861,11 @@ char *tmpnam_2 (char *s)
   static thread_local char localRoot2[VERY_LONG_STRING]={0};
 
   //Define once.
-	if( !root )
-	{
-		root=get_vtmpnam2_root();
+  if( !root )
+  {
+    root=get_vtmpnam2_root();
     sprintf ( root2, "%d_%d_", root, get_thread_index());
-	}
+  }
 
   if( !s )
   {
@@ -5864,17 +5878,17 @@ char *tmpnam_2 (char *s)
     strncpy( (char*) localRoot2, root2, VERY_LONG_STRING );
   }
 
-	if (!s) return NULL;
+  if (!s) return NULL;
 
   static char *tmpdir=get_tmp_4_tcoffee();
   char buf[VERY_LONG_STRING];
 
-	sprintf (buf, "%s/%s%d_TCtmp%s", tmpdir, localRoot2, ++file, set_file2remove_extension (NULL, GET) );
-	if ( strlen(buf) > strlen(s) ) s = (char*) vrealloc (s, (strlen(buf)+1)*sizeof (char));
-	sprintf (s, "%s", buf);
-	return s;
+  sprintf (buf, "%s/%s%d_TCtmp%s", tmpdir, localRoot2, ++file, set_file2remove_extension (NULL, GET) );
+  if ( strlen(buf) > strlen(s) ) s = (char*) vrealloc (s, (strlen(buf)+1)*sizeof (char));
+  sprintf (s, "%s", buf);
+  return s;
 }
-
+//=================================================================
 char *vremove2 (char *s)
 {
   char list_file[1000];
@@ -5950,7 +5964,7 @@ int log_function ( char *fname)
 
 
 
-FILE *NFP;/*Null file pointer: should only be open once*/
+thread_local FILE *NFP = NULL;/*Null file pointer: should only be open once*/
 
 /*********************************************************************/
 /*                                                                   */
@@ -8726,10 +8740,10 @@ char *env_file;
 char ** standard_initialisation  (char **in_argv, int *in_argc)
 {
 
-  char *s;
-  static int done=0;
-  char buf[1000];
-  char **out_argv;
+  char *s = NULL;
+  static thread_local int done=0;
+  char buf[1000] = {0};
+  char **out_argv = NULL;
   int a, stdi,c;
 
 

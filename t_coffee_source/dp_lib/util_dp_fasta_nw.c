@@ -314,7 +314,7 @@ int ** evaluate_diagonals_for_two_sequences ( char *seq1, char *seq2,int maximis
        return diag;
        }
 
-
+//=================================================================
 int ** evaluate_diagonals ( Alignment *A, int *ns, int **l_s, Constraint_list *CL,int maximise,int n_groups, char **group_list, int ktup)
         {
 	int **tot_diag;
@@ -484,7 +484,7 @@ int ** evaluate_segments_with_ktup ( Alignment *A, int *ns, int **l_s, Constrain
 
 
 
-
+//=================================================================
 int ** evaluate_diagonals_with_clist ( Alignment *A, int *ns, int **l_s, Constraint_list *CL,int maximise,int n_groups, char **group_list, int ktup)
     {
 

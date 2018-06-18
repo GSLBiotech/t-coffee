@@ -41,6 +41,7 @@
 FILE * compare_al_to_lib ( Constraint_list *CL, int start, char *fname, Sequence *S)
 {
 
+
 	int a, b, s1, s2, r1, r2;
 	int len;
 	static int* translation;
@@ -477,6 +478,7 @@ int aln_compare ( int argc, char *argv[])
 /*PARAMETER PROCESSING*/
  //---Maria added this---//
        CL=NULL;
+
 
 if ( pep_compare==1 || count==1)aln_compare=0;
 if ( aln_compare==1)pep_compare=0;

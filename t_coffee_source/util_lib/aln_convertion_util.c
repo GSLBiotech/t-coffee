@@ -6025,7 +6025,8 @@ Sequence * seq2template_seq ( Sequence *S, char *template_list, Fname *F)
       //my_system ( command);
       char* threadCommand = (char*) malloc( strlen( command ) + 1 );
       strcpy( threadCommand, command );
-      pid=start_thread( [=]{ seq2template_seq_task( threadCommand ); } );
+      pid = get_next_thread_index();
+      start_thread( [=]{ seq2template_seq_task( threadCommand ); } );
       thread_indexes.push_back( pid );
       pid_list[pid]=npid;
       //set_pid(pid);
@@ -12302,6 +12303,7 @@ int is_in_same_group_aa ( char r1, char r2, int n_group, char **gl, char *mode)
 Alignment * gene2prot (Alignment *A){return A; }
 char * test_gene2prot (Constraint_list *CL, int s1)
        {
+
 	   int a, b,q, nal;
 	   int F=-10000000; /*FORBIDEN STATE*/
 	   int AL=0;       /*ALLOWED STATE*/

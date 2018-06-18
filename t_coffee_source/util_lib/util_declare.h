@@ -116,7 +116,7 @@ void * vrealloc ( void *p, size_t size);
 void   vfree2 ( void **p);
 void   vfree ( void *p);
 void * free_arrayN (void *p, int ndim);
-void   vfree_all (void *p);
+
 /*********************************************************************/
 /*                                                                   */
 /*                          SIZES                                    */

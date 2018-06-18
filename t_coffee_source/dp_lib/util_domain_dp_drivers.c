@@ -613,6 +613,7 @@ int get_starting_point ( Constraint_list *CL)
 
 int * analyse_sequence ( Constraint_list *CL)
 {
+
  int a, p;
  int len, start, n_dots;
  int left, right, tw, r, w;
@@ -656,7 +657,7 @@ int * analyse_sequence ( Constraint_list *CL)
 }
 
 /*********************************COPYRIGHT NOTICE**********************************/
-/*© Centre National de la Recherche Scientifique (CNRS) */
+/*\A9 Centre National de la Recherche Scientifique (CNRS) */
 /*and */
 /*Cedric Notredame */
 /*Fri Aug  8 19:03:27 MDT 2003. */

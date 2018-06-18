@@ -25,6 +25,8 @@
 /*...............................................                                           */
 /******************************COPYRIGHT NOTICE*******************************/
 
+#include <thread>
+
 #define SEQ2 0
 #define R2   1
 #define WE   2
@@ -385,8 +387,9 @@ struct Constraint_list
        * The residue index bla bla bla
        * \todo document the residue index!
        */
-      int ***residue_index;
-      int ** freeze;
+      int *** residue_index;
+      static thread_local int *** local_residue_index;
+      static thread_local int ** freeze;
       int residue_field;
 
       /*Index of the pairs of sequences within L*/
@@ -490,8 +493,8 @@ Constraint_list *  empty_constraint_list (Constraint_list *CL);
 void               unfreeze_constraint_list (Constraint_list *CL);
 Constraint_list *  freeze_constraint_list (Constraint_list *CL);
 Constraint_list *  undump_constraint_list (Constraint_list *CL, char *file);
-int   dump_constraint_list (Constraint_list *CL, char *file,char *mode);
-int   safe_dump_constraint_list (Constraint_list *CL, char *file,char *mode, Sequence *RS);
+int   dump_constraint_list (Constraint_list *CL, char *file,char *mode, int jobIndex);
+int   safe_dump_constraint_list (Constraint_list *CL, char *file,char *mode, Sequence *RS, int jobIndex);
 FILE* display_constraint_list (Constraint_list *CL, FILE *fp, char *tag);
 
 
@@ -545,7 +548,7 @@ Constraint_list * sort_constraint_list_on_n_fields (Constraint_list *CL, int sta
 /*                                                                   */
 /*********************************************************************/
 Constraint_list* read_n_constraint_list(char **fname,int n_list, char *in_mode,char *mem_mode,char *weight_mode,char *type, FILE *local_stderr, Constraint_list *CL, char *seq_source); /**< See util_constraints_list.c::read_n_constraint_list */
-Constraint_list* read_constraint_list(Constraint_list *CL,char *fname,char *in_mode,char *mem_mode,char *weight_mode);
+Constraint_list* read_constraint_list(Constraint_list *CL,char *fname,char *in_mode,char *mem_mode,char *weight_mode, int jobIndex);
 Constraint_list * read_constraint_list_raw_file(Constraint_list *CL, char *fname);
 
 int        read_cpu_in_n_list(char **fname, int n);
@@ -640,7 +643,7 @@ Constraint_list * clean_shadow ( Constraint_list *CL, int start, int len);
 /*                                                                   */
 /*                                                                   */
 /*********************************************************************/
-Constraint_list *merge_constraint_list   ( Constraint_list *SL, Constraint_list *ML, char *mode);
+Constraint_list *merge_constraint_list   ( Constraint_list *SL, Constraint_list *ML, char *mode, int jobIndex);
 Constraint_list *modify_weight( Constraint_list *CL,int start, int end,  char *modify_mode);
 Constraint_list *compact_list (Constraint_list *CL, char *compact_mode);
 Constraint_list *rescale_list_simple (Constraint_list *CL,int start, int len,int new_min, int new_max);

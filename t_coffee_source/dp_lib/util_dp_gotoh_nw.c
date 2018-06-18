@@ -1528,15 +1528,15 @@ int cl2diag_cap_r390 (Alignment *A, int *ns, int **ls, Constraint_list *CL, int 
 
 int cl2diag_cap (Alignment *A, int *nns, int **ls, Constraint_list *CL, int ***list, int *n)
 {
-  int *sortseq;
+  int *sortseq = NULL;
 
   int in, a, b, al1, al2;
   int max_n;
   int cap=0;
   int k=0;
 
-  static int **ll;
-  static int max_ll;
+  static thread_local int **ll = NULL;
+  static thread_local int max_ll;
   int nll=0;
 
   int ns=0;
@@ -1653,6 +1653,7 @@ int cl2pair_list_ext ( Alignment *A, int *ns, int **ls, Constraint_list *CL, int
 int fork_cl2pair_list_ext ( Alignment *A, int *ns, int **ls, Constraint_list *CL, int ***list_in, int *n_in, int njobs);
 int cl2pair_list_ext ( Alignment *A, int *ins, int **ils, Constraint_list *CL, int ***list_in, int *n_in)
 {
+
   int *ns;
   int **ls;
   int ret;
@@ -1689,6 +1690,7 @@ int cl2pair_list_ext ( Alignment *A, int *ins, int **ils, Constraint_list *CL, i
 
 void fork_cl2pair_list_ext_task(int j, char** pid_tmpfile, int** sl, int** pos, int *ns, int** ls, Constraint_list *CL, int* sl1, int* sl2, int** inv_pos, int l1, int l2, int** nr)
 {
+
   int p1, p2;
   int si, s, r, t_s, t_r,t_w, t_s2, t_r2, t_w2;
   int normalisation_mode=0;
@@ -1835,7 +1837,8 @@ int fork_cl2pair_list_ext ( Alignment *A, int *ns, int **ls, Constraint_list *CL
   for (sjobs=0, j=0; j<njobs; j++)
   {
     pid_tmpfile[j]=vtmpnam(NULL);
-    int thread_index = start_thread( [=]{ fork_cl2pair_list_ext_task( j, pid_tmpfile, sl, pos, ns, ls, CL, sl1, sl2, inv_pos, l1, l2, nr ); } );
+    int thread_index = get_next_thread_index();
+    start_thread( [=]{ fork_cl2pair_list_ext_task( j, pid_tmpfile, sl, pos, ns, ls, CL, sl1, sl2, inv_pos, l1, l2, nr ); } );
     thread_indexes.push_back( thread_index );
     sjobs++;
   }
@@ -1861,8 +1864,9 @@ int fork_cl2pair_list_ext ( Alignment *A, int *ns, int **ls, Constraint_list *CL
 int list2linked_pair_wise ( Alignment *A, int *ns, int **l_s, Constraint_list *CL, int **list, int n, char ***al, int *len);
 int linked_pair_wise ( Alignment *A, int *ns, int **ls, Constraint_list *CL)
 {
+
   int n=0;
-  static int **list=NULL;
+  static thread_local int **list=NULL;
   int score, a;
   char **al;
   int len=0;
@@ -1951,14 +1955,14 @@ int list2linked_pair_wise( Alignment *A, int *ns, int **l_s, Constraint_list *CL
 {
   int a,b,c, i, j, LEN=0, start_trace;
   int pi, pj,ij, delta_i, delta_j, prev_i, prev_j;
-  static int **slist;
-  static long *MI, *MJ, *MM,*MT2;
-  static int *sortseq;
-  static int max_size;
+  static thread_local int **slist = NULL;
+  static thread_local long *MI  = NULL, *MJ = NULL, *MM = NULL, *MT2 = NULL;
+  static thread_local int *sortseq = NULL;
+  static thread_local int max_size;
   int gop, gep, igop, igep;
   int l1, l2, l, ls;
-  char **al;
-  char **aln,*char_buf;
+  char **al = NULL;
+  char **aln = NULL, *char_buf = NULL;
   int ni=0, nj=0;
   long score;
   int nomatch;
@@ -1980,7 +1984,9 @@ int list2linked_pair_wise( Alignment *A, int *ns, int **l_s, Constraint_list *CL
     {
       max_size=n;
 
-      vfree (MI);vfree (MJ); vfree (MM);
+      vfree (MI);
+      vfree (MJ);
+      vfree (MM);
       free_int (slist, -1);
 
       slist=declare_int (n,3);
@@ -2233,6 +2239,7 @@ Constraint_list* collapse_list (Alignment *A,int *ns, int **ls, char**al, int le
 int ns2s (int *ns, int **ls, int *is1, int *is2, int *is);
 int linked_pair_wise_collapse ( Alignment *A, int *ns, int **ls, Constraint_list *CL)
 {
+
   int n=0;
   static int **list=NULL;
   int score, a;
@@ -2263,6 +2270,7 @@ int linked_pair_wise_collapse ( Alignment *A, int *ns, int **ls, Constraint_list
 
 Constraint_list* collapse_list (Alignment *A,int *ns, int **ls, char **al, int len, Constraint_list *CL)
 {
+
   int s1, s2,s, cs1, cs2, cr1, cr2,l,ll;
   int **lu;
   int a,b,c,d;
@@ -2356,6 +2364,7 @@ Constraint_list* collapse_list (Alignment *A,int *ns, int **ls, char **al, int l
 	}
     }
   vfclose (fp);
+
   CL=undump_constraint_list (CL,add);
   return CL;
 }
@@ -2365,6 +2374,7 @@ Constraint_list* collapse_list (Alignment *A,int *ns, int **ls, char **al, int l
 
 int cl2pair_list_collapse ( Alignment *A, int *ns, int **ls, Constraint_list *CL, int ***list_in, int *n_in)
 {
+
   int si, r1,r2,t_s, t_r,t_w, t_s2, t_r2, t_w2, s1, s2;
   int a, b, l1, l2;
 
@@ -2496,6 +2506,7 @@ void qsort390(void *base, size_t nmemb, size_t size, int (*compar)(const void *,
 
 int procoffee_pair_wise ( Alignment *A, int *nsi, int **lsi, Constraint_list *CL)
 {
+
   int n=0;
   int **list=NULL;
   int score, a;

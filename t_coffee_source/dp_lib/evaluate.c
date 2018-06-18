@@ -127,6 +127,7 @@ int node2sub_aln_score    (Alignment *A,Constraint_list *CL, char *mode, NT_node
 }
 int sub_aln2sub_aln_score ( Alignment *A,Constraint_list *CL, const char *mode, int *ns, int **ls)
 {
+
   /*Warning: Does Not Take Gaps into account*/
 
   int **pos;
@@ -667,6 +668,7 @@ Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_lis
 Alignment * triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
 {
 
+
   if (!pIN || !CL || !CL->residue_index) return pIN;
 
   if (get_nproc()==1)return  nfork_triplet_coffee_evaluate_output (pIN,CL);
@@ -689,6 +691,7 @@ void fork_triplet_coffee_evaluate_output_task(int j,
   int a,b, x, y,res;
   int s1,r1,s2,r2,w2,s3,r3,w3;
   FILE *fp;
+
 
 
   initiate_vtmpnam(NULL);
@@ -774,10 +777,8 @@ Alignment * fork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list
 
   double score_aln=0;
   double max_aln=0;
-  double *max_seq, *score_seq;
 
   int a,b,res;
-  int **lu;
 
   //multi-threading
   FILE *fp;
@@ -790,10 +791,6 @@ Alignment * fork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list
   pos=aln2pos_simple(pIN, pIN->nseq);
   sprintf ( pOUT->name[pIN->nseq], "cons");
 
-  max_seq=(double*)vcalloc ( pIN->nseq+1, sizeof (double));
-  score_seq=(double*)vcalloc ( pIN->nseq+1, sizeof (double));
-  lu=declare_int (pIN->nseq, pIN->len_aln+1);
-
   //multi Threading stuff
   njobs=nproc;
   sl=n2splits (njobs,pIN->len_aln);
@@ -803,13 +800,27 @@ Alignment * fork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list
   for (sjobs=0,j=0; sjobs<njobs; j++)
   {
     pid_tmpfile[j]=vtmpnam(NULL);
-    int index = start_thread( [=]{ fork_triplet_coffee_evaluate_output_task(
-                     j, pid_tmpfile, CL, pIN, sl, pos, lu, max_seq, score_seq ); } );
+    int index = get_next_thread_index();
+    start_thread( [=]
+    {
+      int **lu = declare_int (pIN->nseq, pIN->len_aln+1);
+      double *max_seq=(double*)vcalloc ( pIN->nseq+1, sizeof (double));
+      double *score_seq=(double*)vcalloc ( pIN->nseq+1, sizeof (double));
+
+      fork_triplet_coffee_evaluate_output_task(
+        j, pid_tmpfile, CL, pIN, sl, pos, lu, max_seq, score_seq );
+
+      free_int (lu,-1);
+      vfree ( score_seq);
+      vfree ( max_seq);
+    });
     thread_indexes.push_back( index );
     sjobs++;
   }
   join( thread_indexes );//wait for all jobs to complete
 
+  double *max_seq=(double*)vcalloc ( pIN->nseq+1, sizeof (double));
+  double *score_seq=(double*)vcalloc ( pIN->nseq+1, sizeof (double));
   for (j=0; j<njobs; j++)
   {
     float sseq, mseq;
@@ -843,17 +854,18 @@ Alignment * fork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list
     pOUT->score_seq[a]=(max_seq[a]==0)?0:((score_seq[a]*100)/max_seq[a]);
   }
 
-  free_int (lu,-1);
   free_int (pos , -1);
   vfree (pid_tmpfile);
   free_int (sl, -1);
   vfree ( score_seq);
   vfree ( max_seq);
+
   return pOUT;
 }
 
 Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL)
-    {
+{
+
       Alignment *pOUT=NULL;
       int **pos;
 
@@ -958,7 +970,8 @@ Alignment * nfork_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_lis
 
 
 int  sp_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL, char *fname)
-    {
+{
+
       int **pos;
       int s1, s2, s3, s4;
       int r1, r2, r3, r4;
@@ -1044,7 +1057,8 @@ int  sp_triplet_coffee_evaluate_output ( Alignment *pIN,Constraint_list *CL, cha
 
 
 int  sp_triplet_coffee_evaluate_output2 ( Alignment *pIN,Constraint_list *CL, char *fname)
-    {
+{
+
       int **pos;
       int s1, s2, s3, s4;
       int r1, r2, r3, r4;
@@ -1131,6 +1145,7 @@ int  sp_triplet_coffee_evaluate_output2 ( Alignment *pIN,Constraint_list *CL, ch
 
 Alignment *struc_evaluate4tcoffee (Alignment *A, Constraint_list *CL, char *mode, float imaxD, int enb,char *in_matrix_name)
 {
+
   double **max_pw_sc;
   double **tot_pw_sc;
   double **max_res_sc;
@@ -2971,7 +2986,8 @@ int residue_pair_extended_list_mixt (Constraint_list *CL, int s1, int r1, int s2
 	}
 
 int residue_pair_extended_list_quadruplet (Constraint_list *CL, int s1, int r1, int s2, int r2 )
-        {
+{
+
 	  double score=0;
 
 	  int t_s, t_r, t_w, q_s, q_r, q_w;
@@ -3100,6 +3116,7 @@ int residue_pair_extended_list4rna2 (Constraint_list *CL,int s1, int r1, int s2,
 int residue_pair_extended_list4rna ( Constraint_list *CL,Constraint_list *R, int s1, int r1, int s2, int r2 )
 {
 
+
   int a, b, n1, n2;
   int list1[100];
   int list2[100];
@@ -3139,6 +3156,7 @@ int residue_pair_extended_list4rna ( Constraint_list *CL,Constraint_list *R, int
 
 int residue_pair_extended_list4rna_ref ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
 {
+
   static Constraint_list *R;
   int a, b, n1, n2;
   int list1[100];
@@ -3192,6 +3210,7 @@ int residue_pair_extended_list4rna_ref ( Constraint_list *CL, int s1, int r1, in
 static int ** clean_residue_pair_hasch (int s1, int r1, int s2, int r2,int **hasch, Constraint_list *CL);
 int residue_pair_extended_list_raw ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
+
 	double score=0;
 
 
@@ -3268,6 +3287,7 @@ int residue_pair_extended_list_raw ( Constraint_list *CL, int s1, int r1, int s2
 	}
 int residue_pair_extended_list_4gp ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
+
 	  double score=0;
 
 
@@ -3349,6 +3369,7 @@ int residue_pair_extended_list_4gp ( Constraint_list *CL, int s1, int r1, int s2
 
 int residue_pair_extended_list_pc ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
+
 	  //old norm does not take into account the number of effective intermediate sequences
 
 	  double score=0;
@@ -3457,6 +3478,7 @@ int residue_pair_extended_list_pc ( Constraint_list *CL, int s1, int r1, int s2,
  */
 int residue_pair_extended_list ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
+
 	double score=0;
 	double max_score=0;
 	double max_val=0;
@@ -3553,6 +3575,7 @@ int ** clean_residue_pair_hasch (int s1, int r1, int s2, int r2,int **hasch, Con
 
 int residue_pair_test_function ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
+
 	  double score=0;
 
 	  int a, t_s, t_r;
@@ -3633,6 +3656,7 @@ int residue_pair_test_function ( Constraint_list *CL, int s1, int r1, int s2, in
 
 int residue_pair_relative_extended_list ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
+
 	int a, t_s, t_r;
 	static int **hasch;
 	static int max_len;
@@ -3708,6 +3732,7 @@ int residue_pair_relative_extended_list ( Constraint_list *CL, int s1, int r1, i
 	}
 int residue_pair_extended_list_g_coffee_quadruplet ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
 {
+
    int t_s, t_r, t_w, q_s, q_r, q_w;
 	  int a, b;
 	  static int **hasch;
@@ -3787,6 +3812,7 @@ int residue_pair_extended_list_g_coffee_quadruplet ( Constraint_list *CL, int s1
 	}
 int residue_pair_extended_list_g_coffee ( Constraint_list *CL, int s1, int r1, int s2, int r2 )
         {
+
 	int a, t_s, t_r;
 	static int **hasch;
 	int score=0,s;
@@ -3857,6 +3883,7 @@ int residue_pair_extended_list_g_coffee ( Constraint_list *CL, int s1, int r1, i
 
 int extend_residue_pair ( Constraint_list *CL, int s1, int r1, int s2, int r2)
         {
+
 	double score=0;
 
 	int a, t_s, t_r, p;
@@ -4101,6 +4128,7 @@ int get_cdna_best_frame_dp_cost (Alignment *A, int**pos1, int ns1, int*list1, in
 
 int get_dp_cost_quadruplet ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
         {
+
 	  int score;
 
 
@@ -4151,11 +4179,13 @@ int ***make_cw_lu (int **cons, int l, Constraint_list *CL)
     }
   return lu;
 }
+
+thread_local int Alignment::random_tag = -1;
 int id2_profile_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL);
 int cw_profile_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
 {
-	  static int last_tag;
-	  static int *pr, ***lu;
+	  static int last_tag = 0;
+	  static int *pr = NULL, ***lu = NULL;
 	  int score;
 	  static int *list[2], ns[2], **cons[2], ref;
 	  int  eva_col,ref_col, a, p, r;
@@ -4330,6 +4360,7 @@ int consensus_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col
 
 int fast_get_dp_cost_quadruplet ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
 	{
+
 	/*WARNING: WORKS ONLY WITH List to Extend*/
 	  /*That function does a quruple extension beween two columns by pooling the residues together*/
 
@@ -4513,6 +4544,7 @@ int fast_get_dp_cost_quadruplet ( Alignment *A, int**pos1, int ns1, int*list1, i
 
 int fast_get_dp_cost ( Alignment *A, int**pos1, int ns1, int*list1, int col1, int**pos2, int ns2, int*list2, int col2, Constraint_list *CL)
 	{
+
 	/*WARNING: WORKS ONLY WITH List to Extend*/
 
 	  double score=0;

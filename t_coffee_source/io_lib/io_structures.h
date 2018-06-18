@@ -319,7 +319,7 @@ struct Alignment
 /*For linked lists*/
     struct Alignment * A;
       /*Misc*/
-    int random_tag;
+    static thread_local int random_tag;
 
     };
 

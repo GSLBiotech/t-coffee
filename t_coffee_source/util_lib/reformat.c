@@ -11124,6 +11124,7 @@ void modify_data  (Sequence_data_struc *D1in, Sequence_data_struc *D2in, Sequenc
   }
   else if ( strm (action, "weight_lib"))
   {
+
     int l;
     int w;
     w=atoi (action_list[1]);
