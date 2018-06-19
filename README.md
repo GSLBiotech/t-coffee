@@ -28,6 +28,7 @@ that allows it to build and run natively on Windows with MSVC.
 - Disabled embedded perl script due to exceeding MSVC compiler limits.
   This needs to be revisited to re-activate.
 - Removed some unused variables, functions and function args, but some might still remain.
+- Allow input and executable filenames to have spaces.
 
 # Building
 
