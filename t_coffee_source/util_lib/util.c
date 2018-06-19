@@ -2218,8 +2218,15 @@ char ** push_string (char *val, char **stack, int *nval, int position)
   nval[0]++;
   new_stack=(char**)vcalloc ( nval[0], sizeof (char*));
   new_stack[position]=val;
-  for (a=0; a< position; a++)new_stack[a]=stack[a];
-  for (a=position+1; a<nval[0]; a++)new_stack[a]=stack[a-1];
+  for (a=0; a< position; a++)
+  {
+    new_stack[a]=stack[a];
+  }
+
+  for (a=position+1; a<nval[0]; a++)
+  {
+    new_stack[a]=stack[a-1];
+  }
   vfree (stack);
 
   return new_stack;
@@ -2751,60 +2758,60 @@ int check_cl4t_coffee (int argc, char **argv)
 }
 
 char** merge_list ( char **argv, int *argc)
-       {
-       int a, b;
-       int n_in;
-       char **out;
-       char current [STRING];
+{
+  int a, b;
+  int n_in;
+  char **out;
+  char current [STRING];
 
-       out=declare_char (argc[0], STRING);
-       n_in=argc[0];
-       argc[0]=0;
+  out=declare_char (argc[0], STRING);
+  n_in=argc[0];
+  argc[0]=0;
 
-       a=0;
-       while (a< n_in && !is_parameter ( argv[a]))
-	 {
-	   sprintf (out[argc[0]++], "%s",  argv[a]);
-	   argv[a][0]='\0';
-	   a++;
-	 }
-
-
-       for ( a=0; a< n_in; a++)
-	 {
-	   if ( is_parameter (argv[a]))
-	     {
-	       sprintf ( out[argc[0]++], "%s", argv[a]);
-	       sprintf ( current, "%s", argv[a]);
-
-	       for ( b=0; b< n_in;)
-		 {
-		   if ( is_parameter (argv[b]) && strm (current, argv[b]))
-			{
-			  argv[b][0]='\0';
-			  b++;
-			  while ( b<n_in && !is_parameter ( argv[b]) )
-			    {
-			      if (argv[b][0])
-			       {
-				 sprintf ( out[argc[0]++], "%s", argv[b]);
-				 argv[b][0]='\0';
-			       }
-			     b++;
-			    }
-			}
-
-		   else b++;
+  a=0;
+  while (a< n_in && !is_parameter ( argv[a]))
+  {
+    sprintf (out[argc[0]++], "%s",  argv[a]);
+    argv[a][0]='\0';
+    a++;
+  }
 
 
+  for ( a=0; a< n_in; a++)
+  {
+    if ( is_parameter (argv[a]))
+    {
+      sprintf ( out[argc[0]++], "%s", argv[a]);
+      sprintf ( current, "%s", argv[a]);
 
-		 }
-	     }
-	 }
+      for ( b=0; b< n_in;)
+      {
+        if ( is_parameter (argv[b]) && strm (current, argv[b]))
+        {
+          argv[b][0]='\0';
+          b++;
+          while ( b<n_in && !is_parameter ( argv[b]) )
+          {
+            if (argv[b][0])
+            {
+              sprintf ( out[argc[0]++], "%s", argv[b]);
+              argv[b][0]='\0';
+            }
+            b++;
+          }
+        }
 
-       free_char (argv, -1);
-       return out;
-       }
+        else b++;
+
+
+
+      }
+    }
+  }
+
+  free_char (argv, -1);
+  return out;
+}
 
 
 int *  string2num_list_old ( char *string)
@@ -2965,46 +2972,65 @@ char **  string2list2 ( char *string, char *separators)
 }
 
 char** break_list ( char **argv, int *argc, char *separators)
-       {
-       int a, b;
-       int n_in;
-       char **out;
-       char **ar=NULL;
-       int n_ar;
-       int cont=1;
+{
+  int a, b;
+  int n_in;
+  char **out;
+  char **ar=NULL;
+  int n_ar;
+  int cont=1;
 
-       /*Breaks down the argv command line in smaller units, breaking at every separator*/
-       out=(char**)vcalloc (MAX_N_PARAM, sizeof (char*));
-       n_in=argc[0];
-       argc[0]=0;
+  /*Breaks down the argv command line in smaller units, breaking at every separator*/
+  out=(char**)vcalloc (MAX_N_PARAM, sizeof (char*));
+  n_in=argc[0];
+  argc[0]=0;
 
-       if ( n_in>=MAX_N_PARAM)
-	 {
-	   myexit(fprintf_error ( stderr, "\nERROR: too many parameters, recompile with MAX_N_PARAM set at a higher velue [FATAL:%s]\n", PROGRAM));\
-	   myexit (EXIT_FAILURE);
-	 }
+  if ( n_in>=MAX_N_PARAM)
+  {
+    myexit(fprintf_error ( stderr, "\nERROR: too many parameters, recompile with MAX_N_PARAM set at a higher velue [FATAL:%s]\n", PROGRAM));\
+    myexit (EXIT_FAILURE);
+  }
 
-       for ( a=0; a< n_in; a++)
-           {
+  for ( a=0; a< n_in; a++)
+  {
+    //Allow args (particularly filenames) to have whitespace in their path.
+    bool spaceDelimited = false;
+    //Get null terminated string.
+    const char* string = argv[a];
 
+    for( int i=0; string[i]; ++i )
+    {
+      if( ' ' == string[i] )
+      {
+        spaceDelimited = true;
+        out[ argc[0] ] = (char*) vcalloc( strlen(string) + 1, sizeof(char) );
+        sprintf( out[ argc[0] ], "%s", string );
+        ++argc[0];
+        break;
+      }
+    }
 
+    if( spaceDelimited )
+      continue;
 
-	     if (cont)ar=get_list_of_tokens( argv[a], separators,&n_ar);
-	     else ar=get_list_of_tokens( argv[a],"",&n_ar);
+    //---------------------------------------------------------------
+    if (cont)ar=get_list_of_tokens( argv[a], separators,&n_ar);
+    else ar=get_list_of_tokens( argv[a],"",&n_ar);
 
+    for ( b=0; b< n_ar; b++)
+    {
+      out[argc[0]]=(char*)vcalloc( strlen (ar[b])+1, sizeof (char));
+      sprintf (out[argc[0]++], "%s", ar[b]);
+    }
 
-	     for ( b=0; b< n_ar; b++)
-	       {
-		 out[argc[0]]=(char*)vcalloc( strlen (ar[b])+1, sizeof (char));
-		 sprintf (out[argc[0]++], "%s", ar[b]);
-	       }
-	     free_char (ar, -1);
-	     ar=NULL;
-	     if ( strstr (argv[a], "-other_pg"))cont=0;
-	   }
-       free_char (ar, -1);
-       return out;
-       }
+    free_char (ar, -1);
+    ar=NULL;
+    if ( strstr (argv[a], "-other_pg"))cont=0;
+  }
+
+  free_char (ar, -1);
+  return out;
+}
 
 char *invert_string2 (char *string)
 {

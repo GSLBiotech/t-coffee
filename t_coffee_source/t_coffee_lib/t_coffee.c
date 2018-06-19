@@ -716,7 +716,10 @@ int batch_main ( int argc, char **argv)
   /* extra>prompt>special>parameters>defaults*/
   argv=break_list ( argv, &argc, "=;, \n");
   argv=merge_list ( argv, &argc);
-  if (argc>1 && argv[1][0]!='-')argv=push_string ("-seq ", argv, &argc, 1);
+  if (argc>1 && argv[1][0]!='-')
+  {
+    argv=push_string ("-seq ", argv, &argc, 1);
+  }
 
   if ( name_is_in_list ("-method",argv, argc,100)==-1)
   {
@@ -4087,7 +4090,7 @@ int batch_main ( int argc, char **argv)
       sprintf (list_file[n_list++], "S%s",seq_list[a]);
     else if ( check_file_exists (seq_list[a]+1))
       sprintf (list_file[n_list++], "%s",seq_list[a]);
-    else printf_exit ( EXIT_FAILURE,stderr, "\nERROR: %s does not exist [FATAL]",seq_list[a]);
+    else printf_exit ( EXIT_FAILURE,stderr, "\nERROR: Input sequence file \"%s\" does not exist [FATAL]",seq_list[a]);
 
   }
   /*introduce the alignments from the -aln flag*/
