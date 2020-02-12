@@ -417,26 +417,26 @@ typedef struct Constraint_list Constraint_list;
 struct TC_method
 {
 
-  char executable[FILENAMELEN+1];
-  char executable2[FILENAMELEN+1];
-  char in_flag[FILENAMELEN+1];
-  char in_flag2[FILENAMELEN+1];
-  char out_flag[FILENAMELEN+1];
-  char aln_mode[FILENAMELEN+1];
-  char out_mode[FILENAMELEN+1];
-  char seq_type[FILENAMELEN+1];
-  char weight[FILENAMELEN+1];
-  char matrix[FILENAMELEN+1];
-  int gop;
-  int gep;
-  int minid;
-  int maxid;
-  char param[1000];
-  char param1[1000];
-  char param2[1000];
-  int extend_seq;
-  int reverse_seq;
-  Constraint_list *PW_CL;
+  char executable[FILENAMELEN+1]  = {};
+  char executable2[FILENAMELEN+1] = {};
+  char in_flag[FILENAMELEN+1]     = {};
+  char in_flag2[FILENAMELEN+1]    = {};
+  char out_flag[FILENAMELEN+1]    = {};
+  char aln_mode[FILENAMELEN+1]    = {};
+  char out_mode[FILENAMELEN+1]    = {};
+  char seq_type[FILENAMELEN+1]    = {};
+  char weight[FILENAMELEN+1]      = {};
+  char matrix[FILENAMELEN+1]      = {};
+  int gop   = 0;
+  int gep   = 0;
+  int minid = 0;
+  int maxid = 0;
+  char param[1000]  = {};
+  char param1[1000] = {};
+  char param2[1000] = {};
+  int extend_seq    = 0;
+  int reverse_seq   = 0;
+  Constraint_list *PW_CL = nullptr;
 };
 typedef struct TC_method TC_method;
 

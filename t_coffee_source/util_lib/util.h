@@ -438,7 +438,7 @@ int *  string2num_list( char *string);
 int *  string2num_list2( char *string, char *separators);
 char **char_array2number ( char ** array, int n);
 char *char2number ( char * array);
-long atop(char *);
+long long atop(char *);
 char *invert_string (char *string);
 char *invert_string2 (char *string);
 char *string2inverted_string (char *string);

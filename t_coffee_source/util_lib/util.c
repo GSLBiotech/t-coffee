@@ -3201,11 +3201,11 @@ char *char2number ( char * array)
 }
 
 
-long atop (char*p)
+long long atop (char*p)
 {
   /*turns a char into a pointer*/
   if ( p==NULL) return 0;
-  else return atol(p);
+  else return atoll(p);
 }
 
 char *mark_internal_gaps(char *seq, char symbol)

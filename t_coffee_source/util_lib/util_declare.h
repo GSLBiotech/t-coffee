@@ -198,7 +198,7 @@ float     ** free_float     ( float     **array, int first);
 Alignment ** free_aln_array ( Alignment **array);
 Alignment *free_data_in_aln (Alignment *A);
 
-long aln_stack (Alignment *A, int mode);
+long long aln_stack (Alignment *A, int mode);
 
 Sequence  *free_Alignment     ( Alignment *A);
 Sequence  *free_aln     ( Alignment *A);

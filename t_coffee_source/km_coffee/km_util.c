@@ -47,7 +47,7 @@ my_malloc(size_t size)
 	void *p = malloc(size);
 	if (p == NULL)
 	{
-		fprintf(stderr, "ERROR: Could not allocate space of size %li\n", size);
+    fprintf(stderr, "ERROR: Could not allocate space of size %llu\n", size);
 		exit(1);
 	}
 	return p;
@@ -59,7 +59,7 @@ my_calloc ( size_t num, size_t size )
 	void *p = calloc(num, size);
 	if (p == NULL)
 	{
-		fprintf(stderr, "ERROR: Could not allocate space of size %li\n", size*num);
+    fprintf(stderr, "ERROR: Could not allocate space of size %llu\n", size*num);
 		exit(1);
 	}
 	return p;
@@ -72,7 +72,7 @@ my_realloc(void *p, size_t size)
 	p = realloc(p, size);
 	if (p == NULL)
 	{
-		fprintf(stderr, "ERROR: Could not allocate space of size %li\n", size);
+    fprintf(stderr, "ERROR: Could not allocate space of size %llu\n", size);
 		exit(1);
 	}
 	return p;

@@ -63,7 +63,7 @@ typedef struct Job_io_TC Job_io_TC;
 struct Job_param_TC
 {
   char *method;
-  struct TC_method *TCM; 
+  struct TC_method *TCM = nullptr;
   char *temp_c;
   char *aln_c;
   char *seq_c;

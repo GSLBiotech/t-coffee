@@ -67,7 +67,7 @@ Job_TC* print_lib_job ( Job_TC *job,char *string, ...)
 	{
 	  if ( list[a][1]=='d')sprintf (bval, "%d", va_arg (ap,int));
 	  else if ( list[a][1]=='f')sprintf (bval, "%lf",(float) va_arg (ap,double));
-	  else if ( list[a][1]=='p')sprintf (bval, "%ld", (long)va_arg (ap,void *));
+    else if ( list[a][1]=='p')sprintf (bval, "%llu", (unsigned long long)va_arg (ap,void *));
 	  value[np++]=duplicate_string (bval);
 	}
       else
@@ -102,22 +102,22 @@ Job_TC *print_lib_job2 ( Job_TC* job, int n, char **name, char **value)
       else if ( strstr(name[a], "io") && !job->io){job->io=(Job_io_TC*)vcalloc ( 1, sizeof (Job_io_TC));job->pl[job->np++]=(char*)job->io;}
       else if ( strstr(name[a], "param") && !job->param){job->param=(Job_param_TC*)vcalloc ( 1, sizeof (Job_param_TC));job->pl[job->np++]=(char*)job->param;}
 
-      if (           strm (name[a], "control"))                {job->control=(struct Job_control_TC*)atol(value[a]);string=0;}
-      else if (      strm (name[a], "control->submitF"))       {(job->control) ->submitF=(struct Job_TC *(*)(struct Job_TC *))atol(value[a]);string=0;}
-      else if (      strm (name[a], "control->retrieveF"))     {(job->control) ->retrieveF=(struct Job_TC *(*)(struct Job_TC *))atol(value[a]);string=0;}
+      if (           strm (name[a], "control"))                {job->control=(struct Job_control_TC*)atoll(value[a]);string=0;}
+      else if (      strm (name[a], "control->submitF"))       {(job->control) ->submitF=(struct Job_TC *(*)(struct Job_TC *))atoll(value[a]);string=0;}
+      else if (      strm (name[a], "control->retrieveF"))     {(job->control) ->retrieveF=(struct Job_TC *(*)(struct Job_TC *))atoll(value[a]);string=0;}
       else if (      strm (name[a], "control->mode"))   {(job->control)->mode=value[a];string=1;}
 
-      else if ( strm (name[a], "param"))            {job->param=(struct Job_param_TC*)atol(value[a]);string=0;}
+      else if ( strm (name[a], "param"))            {job->param=(struct Job_param_TC*)atoll(value[a]);string=0;}
       else if ( strm (name[a], "param->method"))    {job->pl[job->np++]=((job->param)->method)=value[a];string=1;}
-      else if ( strm (name[a], "param->TCM"))       {(job->param)->TCM= (TC_method *) atol(value[a]) ;string=0;}
+      else if ( strm (name[a], "param->TCM"))       {(job->param)->TCM= (TC_method *) atoll(value[a]) ;string=0;}
       else if ( strm (name[a], "param->aln_c"))     {job->pl[job->np++]=(job->param)->aln_c=value[a] ;string=1;}
       else if ( strm (name[a], "param->seq_c"))     {job->pl[job->np++]=(job->param)->seq_c=value[a] ;string=1;}
 
 
-      else if (           strm (name[a], "io"))                {job->io=(struct Job_io_TC*)atol(value[a]);string=0;}
+      else if (           strm (name[a], "io"))                {job->io=(struct Job_io_TC*)atoll(value[a]);string=0;}
       else if ( strm (name[a], "io->out")) {job->pl[job->np++]=(job->io)->out=value[a] ;string=1;}
       else if ( strm (name[a], "io->in" )) {job->pl[job->np++]=(job->io)->in =value[a] ;string=1;}
-      else if ( strm (name[a], "io->CL"))  {(job->io)->CL=(Constraint_list*)atol (value[a]); string=0;}
+      else if ( strm (name[a], "io->CL"))  {(job->io)->CL=(Constraint_list*)atoll(value[a]); string=0;}
       else
 	{
 	  fprintf ( stderr, "ERROR: print_lib_job2: %s is unknown [FATAL:%s]", name[a], PROGRAM);

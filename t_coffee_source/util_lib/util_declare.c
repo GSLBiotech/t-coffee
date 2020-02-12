@@ -1215,10 +1215,10 @@ Alignment * realloc_alignment2 ( Alignment *A, int n_nseq, int n_len)
 	}
 
 static std::mutex g_stack_mutex;
-long aln_stack (Alignment *A, int mode)
+long long aln_stack (Alignment *A, int mode)
 {
   std::lock_guard<std::mutex> guard( g_stack_mutex );
-  static long *list;
+  static long long *list;
   static int size;
   static int max_size;
 
@@ -1228,9 +1228,9 @@ long aln_stack (Alignment *A, int mode)
     if ( size==max_size)
     {
       max_size+=1000;
-      list=(long int*)vrealloc (list, max_size*sizeof (long));
+      list=(long long*)vrealloc (list, max_size*sizeof (long long));
     }
-    list[size++]=(long)A;
+    list[size++]=(long long)A;
     return 0;
   }
   else if (mode==FREE_ALN)
@@ -1238,7 +1238,7 @@ long aln_stack (Alignment *A, int mode)
     int a, b;
     for (a=0; a<size; a++)
     {
-      if (list[a]==(long)A)
+      if (list[a]==(long long)A)
       {
         for (b=a+1; b<size;b++)
         {

@@ -1262,13 +1262,13 @@ int get_tot_prob2 (Alignment *A1,Alignment *A2, int *ns, int **ls, int nstates, 
 }
 int get_tot_prob3 (Alignment *A1,Alignment *A2, int *ns, int **ls, int nstates, float **matchProb, float **insProb, float *TmatchProb, float ***TinsProb, Constraint_list *CL, int mode)
 {
-  double **prf1;
-  double **prf2;
-  double **dmx1;
-  double **dmx2;
+  double **prf1 = nullptr;
+  double **prf2 = nullptr;
+  double **dmx1 = nullptr;
+  double **dmx2 = nullptr;
 
   int i, I, j, J, k, ij,r,r1,r2;
-  int *lu;
+  int *lu = nullptr;
 
   if (mode==SEQUENCE)
   {

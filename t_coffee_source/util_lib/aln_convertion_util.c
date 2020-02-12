@@ -6665,7 +6665,7 @@ char *seq2T_value ( Sequence *S, int n, char *value, char *type)
 	  if ( strm (value, "A"))
 	    {
 	      if ((X->VR)->A)
-		{sprintf ( rv_buf, "%ld", (long)(X->VR)->A);return rv_buf;}
+    {sprintf ( rv_buf, "%zu", (unsigned long long)(X->VR)->A);return rv_buf;}
 	      else return NULL;
 	    }
 	}
@@ -8812,7 +8812,7 @@ int ** seq2comp_mat (Sequence *S, char *mode, char *comp_mode)
 	    }
 	}
       free_int (M,-1);
-      sprintf ( mode2, "_memory_%ld", (long int)sim);
+      sprintf ( mode2, "_memory_%lld", (long long)sim);
       output_similarities( file, A, mode2);
       display_output_filename (stderr, "SIMILARITY_MATRIX", "SIMILARITY_MATRIX_FORMAT_01", file, CHECK);
       fprintf ( stderr, "\n");

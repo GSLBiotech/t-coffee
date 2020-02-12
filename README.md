@@ -29,6 +29,7 @@ that allows it to build and run natively on Windows with MSVC.
   This needs to be revisited to re-activate.
 - Removed some unused variables, functions and function args, but some might still remain.
 - Allow input and executable filenames to have spaces.
+- Build and run without crashing 64-bit executable on Windows built natively with MSVC.
 
 # Building
 

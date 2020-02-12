@@ -143,7 +143,7 @@ traverse_km_tree(KM_node* root, int *vecs, const SeqSet *seq_set, char *out_f, i
 		{
 			if(current->end-current->start > 2)
 			{
-				sprintf(command, "%li",current->id);
+        sprintf(command, "%llu",current->id);
 				write_files(current, vecs, seq_set, command);
 // 				sprintf(command,"clustalo --guidetree-out co_tree.dnd -i %li --force >/dev/null 2>/dev/null", current->id);
 // 				if (system(command))
@@ -152,9 +152,9 @@ traverse_km_tree(KM_node* root, int *vecs, const SeqSet *seq_set, char *out_f, i
 // 					exit(1);
 // 				}
 				if (current->id!=0)
-					sprintf(command,"t_coffee -in %li -output fasta_aln -outfile %li.fa -n_core %i -gapopen %i -gapext %i -method %s -quiet >/dev/null 2>/dev/null", current->id, current->id, n_cores, gapopen, gapext, method);
+          sprintf(command,"t_coffee -in %llu -output fasta_aln -outfile %llu.fa -n_core %i -gapopen %i -gapext %i -method %s -quiet >/dev/null 2>/dev/null", current->id, current->id, n_cores, gapopen, gapext, method);
 				else
-					sprintf(command,"t_coffee -in %li -output fasta_aln -outfile %s -n_core %i -gapopen %i -gapext %i -method %s -quiet >/dev/null 2>/dev/null ",  current->id, out_f, n_cores, gapopen, gapext, method);
+          sprintf(command,"t_coffee -in %llu -output fasta_aln -outfile %s -n_core %i -gapopen %i -gapext %i -method %s -quiet >/dev/null 2>/dev/null ",  current->id, out_f, n_cores, gapopen, gapext, method);
 				if (system(command))
 				{
 					printf("ERROR when running: %s\n",command);
@@ -164,12 +164,12 @@ traverse_km_tree(KM_node* root, int *vecs, const SeqSet *seq_set, char *out_f, i
 			else
 				if(current->end-current->start > 1)
 			{
-				sprintf(command, "%li",current->id);
+        sprintf(command, "%llu",current->id);
 				write_files(current, vecs, seq_set, command);
 				if (current->id!=0)
-					sprintf(command,"t_coffee -in %li -output fasta_aln -outfile %li.fa -n_core %i -gapopen %i -gapext %i -method %s -quiet >/dev/null 2>/dev/null", current->id, current->id, n_cores, gapopen, gapext, method);
+          sprintf(command,"t_coffee -in %llu -output fasta_aln -outfile %llu.fa -n_core %i -gapopen %i -gapext %i -method %s -quiet >/dev/null 2>/dev/null", current->id, current->id, n_cores, gapopen, gapext, method);
 				else
-					sprintf(command,"t_coffee -in %li -output fasta_aln -outfile %s -n_core %i -gapopen %i -gapext %i -method %s -quiet >/dev/null 2>/dev/null ",  current->id, out_f, n_cores, gapopen, gapext, method);
+          sprintf(command,"t_coffee -in %llu -output fasta_aln -outfile %s -n_core %i -gapopen %i -gapext %i -method %s -quiet >/dev/null 2>/dev/null ",  current->id, out_f, n_cores, gapopen, gapext, method);
 
 				printf("%s\n", command);
 				if (system(command))
@@ -180,7 +180,7 @@ traverse_km_tree(KM_node* root, int *vecs, const SeqSet *seq_set, char *out_f, i
 			}
 			else
 			{
-				sprintf(command, "%li.fa",current->id);
+        sprintf(command, "%llu.fa",current->id);
 				write_files(current, vecs, seq_set, command);
 			}
 			tmp =(Node_pair*) pop(to_do);
@@ -190,13 +190,13 @@ traverse_km_tree(KM_node* root, int *vecs, const SeqSet *seq_set, char *out_f, i
 			if (child == current->n_children)
 			{
 				if (current->id!=0)
-					sprintf(command, "t_coffee -output fasta_aln -method %s -quiet -outfile %li.fa -n_core %i -gapopen %i -profile FILE::prf.fa ", method, current->id,n_cores, gapopen);
+          sprintf(command, "t_coffee -output fasta_aln -method %s -quiet -outfile %llu.fa -n_core %i -gapopen %i -profile FILE::prf.fa ", method, current->id,n_cores, gapopen);
 				else
 					sprintf(command, "t_coffee -output fasta_aln -method %s -quiet -outfile %s -n_core %i -gapopen %i   -profile FILE::prf.fa ", method, out_f, n_cores, gapopen);
 				FILE *prf_F = my_fopen("prf.fa", "w");
 				for(j=0; j<current->n_children;++j)
 				{
-					fprintf(prf_F, "%li.fa\n", current->children[j]->id);
+          fprintf(prf_F, "%llu.fa\n", current->children[j]->id);
 				}
 				fclose(prf_F);
 
