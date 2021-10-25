@@ -6029,7 +6029,6 @@ Sequence * seq2template_seq ( Sequence *S, char *template_list, Fname *F)
       start_thread( [=]{ seq2template_seq_task( threadCommand ); } );
       thread_indexes.push_back( pid );
       pid_list[pid]=npid;
-      //set_pid(pid);
       npid++;
       submited++;
     }

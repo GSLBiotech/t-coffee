@@ -35,7 +35,7 @@
 #define PROGRAM "T-COFFEE"
 #define AUTHOR "Cedric Notredame "
 #define DATE "12 Aug 2014 - 22:05"
-#define VERSION "Version_11.00.8cbe486-thread4"
+#define VERSION "Version_11.00.8cbe486-thread5"
 #define BUILD_INFO "2014-08-12 22:05:29 - Revision 8cbe486 - Build 477"
 #define DISTRIBUTION_ADDRESS "www.tcoffee.org/Packages"
 

@@ -510,9 +510,6 @@ int release_all_locks (int pid);
 char *lock (int pid, int type, int action, char *value, ...);
 int check_process (const char *com,int pid,int r, int failure_handling);
 
-int assert_pid (pid_t p);
-pid_t **declare_pidtable ();
-pid_t set_pid (pid_t p);
 pid_t vwait (pid_t *p);
 pid_t  vwaitpid (pid_t p, int *status, int options);
 

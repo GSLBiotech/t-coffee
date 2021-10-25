@@ -305,7 +305,6 @@ Constraint_list *fork_line_produce_list   ( Constraint_list *CL, Sequence *S, ch
       start_thread( [=]{ fork_line_produce_list_task( job, cseq, CL, pid_tmpfile[npid], jobIndex ); } );
       thread_indexes.push_back( pid );
       pid_list[pid]=npid;
-      //set_pid (pid);
       npid++;
       submited++;
       fprintf(stderr, "%i %i\n", submited, max_nproc);
@@ -400,7 +399,6 @@ Constraint_list *fork_cell_produce_list   ( Constraint_list *CL, Sequence *S, ch
 
     job=job->c;
     pid_list[pid]=npid;
-    //set_pid(pid);
     npid++;
     submited++;
   }
@@ -3742,7 +3740,6 @@ Constraint_list * fork_relax_constraint_list_4gp (Constraint_list *CL)
 		else
 		{
 			pid_list[pid]=npid;
-			//set_pid (pid);
 			npid++;
 		}
 	}

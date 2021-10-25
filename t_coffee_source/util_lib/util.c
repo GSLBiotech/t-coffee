@@ -4199,36 +4199,7 @@ int safe_system (const char * com_in)
 
 
 
-static int **pidtable = NULL;
-int assert_pid (pid_t p)
-{
-  if ( p>= MAX_N_PID || p<0)
-  {
-    printf_exit (EXIT_FAILURE, stderr, "MAX_N_PID exceded -- Recompile changing the value of MAX_N_PID (current: %d Requested: %d)", MAX_N_PID, p);
-  }
-  return 1;
-}
-pid_t **declare_pidtable ()
-{
-  int a;
 
-  pidtable=(int**)vcalloc (MAX_N_PID, sizeof (pid_t*));
-  for (a=0; a<MAX_N_PID; a++)
-  {
-    pidtable[a]=(int*)vcalloc (2, sizeof (pid_t));
-  }
-  return pidtable;
-}
-pid_t set_pid (pid_t p)
-{
-
-  assert_pid (p);
-  if (!pidtable)declare_pidtable();
-  if ( p<=0) return (pid_t)0;
-  pidtable[(int)p][0]=getpid();
-  pidtable[(int)p][1]=1;
-  return p;
-}
 
 std::vector<std::thread*> g_threads;
 std::vector<std::thread::id> g_thread_ids;
@@ -4272,7 +4243,7 @@ void start_thread(std::function<void(void)> fn)
     g_thread_ids.reserve( 1000 );
   }
 
-  auto thread = new std::thread( fn );     
+  auto thread = new std::thread( fn );
   g_threads.push_back( thread );
   g_thread_ids.push_back( thread->get_id() );
 }
@@ -4343,123 +4314,9 @@ pid_t vwait (pid_t *p)
   return p2;
 }
 
-int get_child_list (int pid,int *clist);
-void kill_child_list (int *list);
-int kill_child_pid(int pid)
-{
-  int *list;
-  int n,a, cpid;
-
-  cpid=getpid();
-  list=(int*)vcalloc (MAX_N_PID, sizeof (int));
-
-  while ((n=get_child_list (pid,list)))
-    {
-      kill_child_list (list);
-    }
-
-  for (a=0; a<MAX_N_PID; a++)
-    {
-      if ( list [a] && a!=cpid)
-	{
-	  shift_lock (a,cpid, LERROR, LERROR, LSET);
-	  shift_lock (a,cpid, LWARNING, LWARNING, LSET);
-	  lock  (a, LLOCK, LRELEASE, " ");
-	  lock  (a, LERROR,LRELEASE, " ");
-	  lock  (a, LWARNING,LRELEASE, " ");
-	}
-    }
-  return 1;
-}
-
-void kill_child_list (int *list)
-{
-  int a;
-  int cpid=getpid();
-  for (a=0; a<MAX_N_PID; a++)
-    {
-      if (list[a]==1 && a!=cpid)
-	{
-	  kill (a, SIGTERM);
-	  list[a]=-1;
-	}
-      else if (a==cpid)list[a]=0;
-    }
-}
-
-static int done =0;
-int get_child_list (int pid,int *clist)
-{
-	if (done)
-		return 0;
-	char ***list;
-	char *lockf;
-	int a;
-	int n=0;
-
-	assert_pid (pid);
-	clist[pid]++;
-	if (clist[pid]>1)
-	{
-		add_information ( stderr, "WARNING Lock System not solved correctly." );
-		for (a=0; a<MAX_N_PID; a++)
-			release_all_locks (a);
-		done=1;
-		return 0;
-	}
-
-	lockf=lock2name (pid, LLOCK);
-	if ( lockf && file_exists (NULL,lockf))
-	{
-		list=file2list (lockf, "\n");
-
-		a=1;
-		while (list && list[a])
-		{
-			n+=get_child_list (atoi(list[a++][1]), clist);
-		}
-		free_arrayN ((void **)list, 3);
-	}
-	vfree (lockf);
-
-	if (!clist[pid]){clist[pid]=1; n++;}
-	return n;
-	return 0;
-}
 
 
-int kill_child_pid_pld()
-{
-  int n=0;
-  string2file (logfile, "a","\n----TC: %d kill ALL CHILDREN", getpid());
 
-  //  kill (0, SIGTERM); //send a sigterm to ALL children processes
-  //return 1;
-
-  if ( !pidtable)return 0;
-  else
-  {
-    int a;
-    pid_t cpid;
-    cpid=getpid();
-    for (a=0; a<MAX_N_PID; a++)
-    {
-      if (pidtable[a][1] && pidtable[a][0]==cpid )
-      {
-        if (debug_lock)fprintf ( stderr, "\n--- KILL %d from TC (%d)\n", a, getpid());
-
-        pidtable[a][1]=pidtable[a][0]=0;
-        kill((pid_t)a, SIGTERM);
-        //lock (a, LLOCK, LRELEASE, "");
-        shift_lock(a,getpid(),LERROR,LERROR, LSET);
-        shift_lock(a,getpid(),LWARNING,LWARNING, LSET);
-
-        n++;
-      }
-    }
-  }
-  return n;
-}
 
 
 
@@ -8943,8 +8800,6 @@ void clean_exit ()
 
   if (is_root_thread())
     {
-
-      kill_child_pid(getpid());
       if (has_error_lock())
 	{
 	  char *e=NULL;
